@@ -78,7 +78,7 @@ export function DashboardSidebar() {
   const [active, setActive] = useState("Funnels")
 
   return (
-    <aside className="hidden lg:flex w-[260px] shrink-0 flex-col border-r border-slate-200 bg-white">
+    <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-[260px] shrink-0 flex-col border-r border-slate-200 bg-white">
       {/* Logo */}
       <div className="flex h-16 items-center gap-2.5 px-5 border-b border-slate-100">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-sm">
