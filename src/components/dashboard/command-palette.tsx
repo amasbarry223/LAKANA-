@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import {
   LayoutGrid,
   BellRing,
@@ -11,114 +12,196 @@ import {
   Gauge,
   Activity,
   Split,
+  Database,
   Users,
   ScrollText,
   FileBarChart,
-  Database,
   Settings,
   RefreshCw,
   Bell,
+  Plus,
+  Download,
   Search,
+  Moon,
+  Sun,
+  LogOut,
 } from "lucide-react"
 import {
   CommandDialog,
-  CommandInput,
-  CommandList,
   CommandEmpty,
   CommandGroup,
+  CommandInput,
   CommandItem,
+  CommandList,
   CommandSeparator,
+  CommandShortcut,
 } from "@/components/ui/command"
-import { toast } from "sonner"
 
-type CmdItem = {
+type Command = {
   label: string
   icon: React.ComponentType<{ className?: string }>
-  action: () => void
-  hint?: string
+  onSelect: () => void
+  shortcut?: string
+  keywords?: string
 }
+
+const navCommands = [
+  { label: "Tableau de bord", icon: LayoutGrid, keywords: "overview accueil home" },
+  { label: "Centre d'alertes", icon: BellRing, keywords: "alertes alr" },
+  { label: "Client 360°", icon: UserRound, keywords: "client fiche profil" },
+  { label: "Graphe de relations", icon: Share2, keywords: "graphe reseau graph" },
+  { label: "Investigations", icon: FolderSearch, keywords: "dossiers inv" },
+  { label: "Assistant IA", icon: Sparkles, keywords: "ia chat assistant" },
+  { label: "Filtrage sanctions/PPE", icon: ShieldAlert, keywords: "sanctions ppe flt" },
+  { label: "Risk Score", icon: Gauge, keywords: "score risque scr" },
+  { label: "Détection comportementale", icon: Activity, keywords: "comportement cmp" },
+  { label: "Fractionnement", icon: Split, keywords: "structuring frc" },
+  { label: "Intégration des données", icon: Database, keywords: "import ingestion int" },
+  { label: "Utilisateurs & rôles", icon: Users, keywords: "users rbac bo" },
+  { label: "Journal d'audit", icon: ScrollText, keywords: "audit log" },
+  { label: "Rapports réglementaires", icon: FileBarChart, keywords: "rapports reports bceao centif" },
+  { label: "Paramètres", icon: Settings, keywords: "settings config" },
+  { label: "Synchronisation", icon: RefreshCw, keywords: "sync hors ligne off" },
+  { label: "Notifications", icon: Bell, keywords: "notif" },
+]
+
+// Données clients/alertes pour la recherche
+const searchableClients = [
+  { name: "Traoré, Moussa", id: "CLI-1042", type: "Client", score: 87 },
+  { name: "Diarra, Fatoumata", id: "CLI-1087", type: "Client", score: 72 },
+  { name: "Keïta, Ibrahim", id: "CLI-1103", type: "Client", score: 64 },
+  { name: "Coulibaly, Aïssata", id: "CLI-1066", type: "Client", score: 58 },
+  { name: "Touré, Seydou", id: "CLI-1055", type: "Client", score: 41 },
+  { name: "Sangaré, Mariam", id: "CLI-1098", type: "Client", score: 36 },
+]
+
+const searchableAlerts = [
+  { name: "ALR-241 — Fractionnement (Traoré M.)", id: "ALR-241", type: "Alerte" },
+  { name: "ALR-238 — Correspondance PPE (Diarra F.)", id: "ALR-238", type: "Alerte" },
+  { name: "ALR-235 — Volume inhabituel (Keïta I.)", id: "ALR-235", type: "Alerte" },
+  { name: "INV-241 — Investigation Traoré", id: "INV-241", type: "Investigation" },
+  { name: "INV-238 — Investigation Diarra", id: "INV-238", type: "Investigation" },
+]
 
 export function CommandPalette({
   open,
   onOpenChange,
   onNavigate,
+  onAction,
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
-  onNavigate: (view: string) => void
+  onNavigate: (label: string) => void
+  onAction: (action: string) => void
 }) {
-  const navItems: CmdItem[] = [
-    { label: "Tableau de bord", icon: LayoutGrid, hint: "Vue d'ensemble", action: () => onNavigate("Tableau de bord") },
-    { label: "Centre d'alertes", icon: BellRing, hint: "Analyse", action: () => onNavigate("Centre d'alertes") },
-    { label: "Client 360°", icon: UserRound, hint: "Analyse", action: () => onNavigate("Client 360°") },
-    { label: "Graphe de relations", icon: Share2, hint: "Analyse", action: () => onNavigate("Graphe de relations") },
-    { label: "Investigations", icon: FolderSearch, hint: "Analyse", action: () => onNavigate("Investigations") },
-    { label: "Assistant IA", icon: Sparkles, hint: "Analyse", action: () => onNavigate("Assistant IA") },
-    { label: "Filtrage sanctions/PPE", icon: ShieldAlert, hint: "Conformité", action: () => onNavigate("Filtrage sanctions/PPE") },
-    { label: "Risk Score", icon: Gauge, hint: "Conformité", action: () => onNavigate("Risk Score") },
-    { label: "Détection comportementale", icon: Activity, hint: "Conformité", action: () => onNavigate("Détection comportementale") },
-    { label: "Fractionnement", icon: Split, hint: "Conformité", action: () => onNavigate("Fractionnement") },
-    { label: "Intégration des données", icon: Database, hint: "Administration", action: () => onNavigate("Intégration des données") },
-    { label: "Utilisateurs & rôles", icon: Users, hint: "Administration", action: () => onNavigate("Utilisateurs & rôles") },
-    { label: "Journal d'audit", icon: ScrollText, hint: "Administration", action: () => onNavigate("Journal d'audit") },
-    { label: "Rapports réglementaires", icon: FileBarChart, hint: "Administration", action: () => onNavigate("Rapports réglementaires") },
-    { label: "Paramètres", icon: Settings, hint: "Paramètres", action: () => onNavigate("Paramètres") },
-    { label: "Synchronisation", icon: RefreshCw, hint: "Paramètres", action: () => onNavigate("Synchronisation") },
-    { label: "Notifications", icon: Bell, hint: "Paramètres", action: () => onNavigate("Notifications") },
-  ]
+  const handleNav = (label: string) => {
+    onNavigate(label)
+    onOpenChange(false)
+  }
 
-  const clients: CmdItem[] = [
-    { label: "Traoré, Moussa", icon: UserRound, hint: "CLI-1042 · score 87", action: () => { onNavigate("Client 360°"); toast.info("Client ouvert", { description: "Traoré, Moussa (CLI-1042) — score 87/100." }) } },
-    { label: "Diarra, Fatoumata", icon: UserRound, hint: "CLI-1087 · PPE", action: () => { onNavigate("Client 360°"); toast.info("Client ouvert", { description: "Diarra, Fatoumata (CLI-1087) — PPE." }) } },
-    { label: "Keïta, Ibrahim", icon: UserRound, hint: "CLI-1103 · score 64", action: () => { onNavigate("Client 360°"); toast.info("Client ouvert", { description: "Keïta, Ibrahim (CLI-1103) — score 64/100." }) } },
-  ]
-
-  const alerts: CmdItem[] = [
-    { label: "ALR-241 · Fractionnement", icon: BellRing, hint: "Bloquante", action: () => { onNavigate("Centre d'alertes"); toast.info("Alerte ouverte", { description: "ALR-241 — Traoré M. — Fractionnement." }) } },
-    { label: "ALR-238 · Correspondance PPE", icon: BellRing, hint: "Bloquante", action: () => { onNavigate("Centre d'alertes"); toast.info("Alerte ouverte", { description: "ALR-238 — Diarra F. — PPE." }) } },
-    { label: "INV-241 · Investigation en cours", icon: FolderSearch, hint: "Traoré M.", action: () => { onNavigate("Investigations"); toast.info("Dossier ouvert", { description: "INV-241 — Traoré M." }) } },
-  ]
-
-  const run = (item: CmdItem) => {
-    item.action()
+  const handleAction = (action: string) => {
+    onAction(action)
     onOpenChange(false)
   }
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange} className="max-w-xl">
-      <CommandInput placeholder="Rechercher une page, un client, une alerte..." />
+    <CommandDialog open={open} onOpenChange={onOpenChange}>
+      <CommandInput placeholder="Rechercher une page, un client, une alerte, ou une action..." />
       <CommandList>
-        <CommandEmpty>Aucun résultat.</CommandEmpty>
+        <CommandEmpty>Aucun résultat trouvé.</CommandEmpty>
+
+        {/* Actions rapides */}
+        <CommandGroup heading="Actions rapides">
+          <CommandItem onSelect={() => handleAction("new-investigation")}>
+            <Plus className="h-4 w-4" />
+            Nouvelle investigation
+            <CommandShortcut>⌘N</CommandShortcut>
+          </CommandItem>
+          <CommandItem onSelect={() => handleAction("export-audit")}>
+            <Download className="h-4 w-4" />
+            Exporter le journal d'audit (CSV)
+          </CommandItem>
+          <CommandItem onSelect={() => handleAction("toggle-theme")}>
+            <Moon className="h-4 w-4" />
+            Basculer mode sombre / clair
+            <CommandShortcut>⌘J</CommandShortcut>
+          </CommandItem>
+          <CommandItem onSelect={() => handleAction("sync")}>
+            <RefreshCw className="h-4 w-4" />
+            Synchroniser maintenant
+          </CommandItem>
+          <CommandItem onSelect={() => handleAction("logout")}>
+            <LogOut className="h-4 w-4" />
+            Se déconnecter
+          </CommandItem>
+        </CommandGroup>
+
+        <CommandSeparator />
+
+        {/* Navigation */}
         <CommandGroup heading="Navigation">
-          {navItems.map((item) => (
-            <CommandItem key={item.label} value={`${item.label} ${item.hint ?? ""}`} onSelect={() => run(item)}>
-              <item.icon className="h-4 w-4 text-slate-400" />
-              <span>{item.label}</span>
-              {item.hint && <span className="ml-auto text-[11px] text-slate-400">{item.hint}</span>}
+          {navCommands.map((c) => (
+            <CommandItem
+              key={c.label}
+              value={`${c.label} ${c.keywords ?? ""}`}
+              onSelect={() => handleNav(c.label)}
+            >
+              <c.icon className="h-4 w-4" />
+              {c.label}
             </CommandItem>
           ))}
         </CommandGroup>
+
         <CommandSeparator />
+
+        {/* Clients */}
         <CommandGroup heading="Clients">
-          {clients.map((item) => (
-            <CommandItem key={item.label} value={`client ${item.label} ${item.hint ?? ""}`} onSelect={() => run(item)}>
-              <item.icon className="h-4 w-4 text-slate-400" />
-              <span>{item.label}</span>
-              {item.hint && <span className="ml-auto text-[11px] text-slate-400">{item.hint}</span>}
+          {searchableClients.map((c) => (
+            <CommandItem
+              key={c.id}
+              value={`${c.name} ${c.id} client`}
+              onSelect={() => handleNav("Client 360°")}
+            >
+              <UserRound className="h-4 w-4" />
+              <span className="flex-1">{c.name}</span>
+              <span className="text-xs text-slate-400">{c.id} · {c.score}/100</span>
             </CommandItem>
           ))}
         </CommandGroup>
-        <CommandSeparator />
-        <CommandGroup heading="Alertes & investigations">
-          {alerts.map((item) => (
-            <CommandItem key={item.label} value={`alerte ${item.label} ${item.hint ?? ""}`} onSelect={() => run(item)}>
-              <item.icon className="h-4 w-4 text-slate-400" />
-              <span>{item.label}</span>
-              {item.hint && <span className="ml-auto text-[11px] text-slate-400">{item.hint}</span>}
+
+        {/* Alertes & Investigations */}
+        <CommandGroup heading="Alertes & Investigations">
+          {searchableAlerts.map((a) => (
+            <CommandItem
+              key={a.id}
+              value={`${a.name} ${a.id}`}
+              onSelect={() => handleNav(a.type === "Investigation" ? "Investigations" : "Centre d'alertes")}
+            >
+              <BellRing className="h-4 w-4" />
+              <span className="flex-1">{a.name}</span>
+              <span className="text-xs text-slate-400">{a.type}</span>
             </CommandItem>
           ))}
         </CommandGroup>
       </CommandList>
     </CommandDialog>
   )
+}
+
+// Hook pour le raccourci clavier ⌘K / Ctrl+K
+export function useCommandPalette() {
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault()
+        setOpen((o) => !o)
+      }
+    }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [])
+
+  return { open, setOpen }
 }

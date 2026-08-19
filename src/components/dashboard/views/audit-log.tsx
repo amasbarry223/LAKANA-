@@ -35,10 +35,20 @@ const logs: LogEntry[] = [
 
 const modules = ["Tous modules", "Authentification", "Centre d'alertes", "Client 360°", "Investigations", "Risk Score", "Filtrage sanctions", "Utilisateurs", "Journal d'audit"]
 
-type SortColumn = "date" | "user"
+type SortColumn = "date" | "user" | "module" | "result"
 type SortDir = "asc" | "desc"
 
-const moreModules = ["Client 360°", "Investigations", "Risk Score", "Filtrage sanctions", "Utilisateurs", "Journal d'audit"]
+const moreModules = [
+  "Authentification",
+  "Centre d'alertes",
+  "Client 360°",
+  "Investigations",
+  "Risk Score",
+  "Filtrage sanctions",
+  "Utilisateurs",
+  "Journal d'audit",
+  "Rapports réglementaires",
+]
 
 function SortIcon({ column, sortBy, sortDir }: { column: SortColumn; sortBy: SortColumn | null; sortDir: SortDir }) {
   const Icon: LucideIcon = sortBy !== column ? ArrowUpDown : sortDir === "asc" ? ArrowUp : ArrowDown
@@ -71,6 +81,8 @@ export function AuditLogView() {
     if (!sortBy) return 0
     const dir = sortDir === "asc" ? 1 : -1
     if (sortBy === "user") return a.user.localeCompare(b.user) * dir
+    if (sortBy === "module") return a.module.localeCompare(b.module) * dir
+    if (sortBy === "result") return a.result.localeCompare(b.result) * dir
     return a.date.localeCompare(b.date) * dir
   })
 
@@ -220,9 +232,31 @@ export function AuditLogView() {
                     <SortIcon column="user" sortBy={sortBy} sortDir={sortDir} />
                   </button>
                 </th>
-                <th className="px-3 py-2.5 font-semibold">Module</th>
+                <th className="px-3 py-2.5 font-semibold">
+                  <button
+                    onClick={() => toggleSort("module")}
+                    className={cn(
+                      "inline-flex items-center gap-1 transition cursor-pointer",
+                      sortBy === "module" ? "text-indigo-600" : "hover:text-slate-600"
+                    )}
+                  >
+                    Module
+                    <SortIcon column="module" sortBy={sortBy} sortDir={sortDir} />
+                  </button>
+                </th>
                 <th className="px-3 py-2.5 font-semibold">Action</th>
-                <th className="px-3 py-2.5 font-semibold">Résultat</th>
+                <th className="px-3 py-2.5 font-semibold">
+                  <button
+                    onClick={() => toggleSort("result")}
+                    className={cn(
+                      "inline-flex items-center gap-1 transition cursor-pointer",
+                      sortBy === "result" ? "text-indigo-600" : "hover:text-slate-600"
+                    )}
+                  >
+                    Résultat
+                    <SortIcon column="result" sortBy={sortBy} sortDir={sortDir} />
+                  </button>
+                </th>
                 <th className="px-5 py-2.5 font-semibold">IP</th>
               </tr>
             </thead>

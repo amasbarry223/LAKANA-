@@ -172,13 +172,43 @@ export function RiskScoreView() {
       </div>
 
       {/* Note about weight adjustment */}
-      <div className="flex items-center gap-2 rounded-lg border border-indigo-100 bg-indigo-50/50 px-4 py-2.5 text-xs text-indigo-700">
-        <Info className="h-3.5 w-3.5 shrink-0" />
-        <span>
-          Les pondérations sont ajustables par le responsable conformité (SCR-04).
-          Total actuel : <strong>{total}/100 pts</strong>. Toute modification est
-          historisée et tracée.
-        </span>
+      <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 px-4 py-2.5 text-xs text-indigo-700">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Info className="h-3.5 w-3.5 shrink-0" />
+            <span>
+              Les pondérations sont ajustables par le responsable conformité (SCR-04). Toute modification est historisée et tracée.
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className={cn(
+                "border",
+                total === 100
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : "bg-rose-50 text-rose-700 border-rose-200"
+              )}
+            >
+              Total : {total}/100 pts
+            </Badge>
+            <button
+              onClick={() => {
+                setWeights([30, 25, 20, 15, 10])
+                toast.info("Pondérations réinitialisées")
+              }}
+              className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              <RotateCw className="h-3 w-3" />
+              Réinitialiser les pondérations
+            </button>
+          </div>
+        </div>
+        {total !== 100 && (
+          <p className="mt-1.5 text-rose-600">
+            ⚠️ Le total devrait être 100 pts (actuel: {total}). Ajustez les pondérations.
+          </p>
+        )}
       </div>
 
       {/* Row 2: Distribution + History */}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Sparkles, Send, User, ShieldAlert, Info, RefreshCw } from "lucide-react"
+import { Sparkles, Send, User, ShieldAlert } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
@@ -35,11 +35,36 @@ export function AssistantIAView() {
   ])
   const [input, setInput] = useState("")
 
+  const generateResponse = (query: string): string => {
+    const q = query.toLowerCase()
+    const reminder = "\n\n⚠️ Rappel : la décision finale revient à l'analyste habilité (IA-03)."
+
+    if (q.includes("score") || q.includes("risque")) {
+      return `Le système de Risk Score LAKANA calcule un score dynamique sur 100 points, explicable et auditable (section 14). Il repose sur 5 critères pondérés :\n\n• Fractionnement potentiel (FRC) — 30 pts : transactions groupées sous le seuil de déclaration.\n• Volume inhabituel (VOL) — 25 pts : écart significatif entre le montant moyen récent et historique.\n• Fréquence anormale (FREQ) — 20 pts : nombre de transactions largement supérieur à l'habitude.\n• Correspondance PPE/sanctions (PPE) — 15 pts : client classé PPE ou sur liste officielle.\n• Relations inhabituelles (REL) — 10 pts : liens avec comptes ou bénéficiaires déjà signalés.\n\nLe score est recalculé à chaque nouvelle transaction (SCR-03).${reminder}`
+    }
+    if (q.includes("fractionnement") || q.includes("structuring")) {
+      return `La détection de Fractionnement (FRC) identifie les séquences de transactions structurées pour rester sous le seuil de déclaration. Le moteur FRC repère :\n\n• Les transactions individuelles sous le seuil (1 000 000 FCFA pour les déclarations CENTIF).\n• Les transactions groupées sur une fenêtre glissante de 48h.\n• Les sommes cumulées dépassant le seuil sur la fenêtre.\n\nUne alerte FRC est générée dès que la somme cumulée > seuil sur 48h (règle R-FRC-01).${reminder}`
+    }
+    if (q.includes("ppe") || q.includes("sanctions") || q.includes("sanction")) {
+      return `Le Filtrage Listes de Sanctions (FLT) effectue un fuzzy matching contre plusieurs listes de référence :\n\n• Listes : ONU, GAFI, CENTIF, Liste PPE Mali.\n• Similarité calculée en % — variantes orthographiques ouest-africaines prises en compte (FLT-02).\n• Au-delà de 85% de similarité, une correspondance est signalée comme alerte.\n• Une revue humaine est obligatoire avant toute mesure (FLT-04) — la décision finale ne peut jamais être automatisée.${reminder}`
+    }
+    if (q.includes("alerte") || q.includes("alert")) {
+      return `État actuel du Centre d'alertes :\n\n• 24 alertes bloquantes (à traiter en priorité).\n• 87 alertes à analyser.\n• Taux d'abandon des alertes : 67,52% (objectif de réduction en cours).\n\nLes alertes sont triées par criticité : bloquante > à analyser > informationnelle.${reminder}`
+    }
+    if (q.includes("investigation") || q.includes("dossier")) {
+      return `Le processus d'Investigation (INV) suit 4 étapes :\n\n1. Ouverture du dossier INV à partir d'une alerte ou d'un signalement.\n2. Documentation : collecte des éléments factuels (transactions, relations, contexte client).\n3. Clôture avec décision : Classée sans suite / Déclaration CENTIF / Autre.\n4. Traçabilité complète : toutes les actions sont journalisées (INV-04).\n\nLes investigations dépassant 24h sont signalées comme en retard.${reminder}`
+    }
+    if (q.includes("bonjour") || q.includes("salut") || q.includes("hello")) {
+      return `Bonjour 👋 Je suis l'assistant IA LAKANA. Je peux vous aider sur :\n\n• Le Risk Score et ses 5 critères (FRC, VOL, FREQ, PPE, REL).\n• La détection de Fractionnement (FRC) et ses seuils.\n• Le Filtrage sanctions (PPE, ONU, GAFI, CENTIF).\n• Les statistiques d'alertes en cours.\n• Le processus d'Investigation (INV).\n\nPosez-moi votre question !${reminder}`
+    }
+    return `Je ne peux répondre qu'à partir des facteurs déjà calculés par les règles métier de LAKANA (IA-02). Pour cette question, je vous recommande de consulter la fiche Client 360° ou le Centre d'alertes.${reminder}`
+  }
+
   const send = (text?: string) => {
     const q = (text ?? input).trim()
     if (!q) return
     const preset = presets.find((p) => p.q.toLowerCase() === q.toLowerCase())
-    const answer = preset?.a ?? "Je ne peux répondre qu'à partir des facteurs déjà calculés par les règles métier de LAKANA (IA-02). Pour cette question, je vous recommande de consulter la fiche Client 360° ou le Centre d'alertes. Rappel : la décision finale vous revient (IA-03)."
+    const answer = preset?.a ?? generateResponse(q)
     setMessages((m) => [...m, { role: "user", content: q }, { role: "assistant", content: answer }])
     setInput("")
   }
@@ -88,7 +113,7 @@ export function AssistantIAView() {
                 <div className={cn(
                   "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm",
                   m.role === "assistant"
-                    ? "rounded-tl-sm bg-slate-50 text-slate-700"
+                    ? "rounded-tl-sm bg-slate-50 text-slate-700 whitespace-pre-line"
                     : "rounded-tr-sm bg-indigo-600 text-white"
                 )}>
                   {m.content}

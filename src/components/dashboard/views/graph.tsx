@@ -60,8 +60,18 @@ const legend = [
 export function GraphView() {
   const [zoom, setZoom] = useState(1)
   const [selected, setSelected] = useState<string | null>("c1")
+  const [hovered, setHovered] = useState<string | null>(null)
 
   const sel = nodes.find((n) => n.id === selected)
+  const connectedNodes = sel
+    ? edges
+        .filter((e) => e.from === sel.id || e.to === sel.id)
+        .map((e) => {
+          const otherId = e.from === sel.id ? e.to : e.from
+          const other = nodes.find((n) => n.id === otherId)
+          return { node: other, label: e.label, strong: e.strong }
+        })
+    : []
 
   return (
     <div className="space-y-5">
@@ -130,8 +140,19 @@ export function GraphView() {
                 const isAlert = n.alert || n.type === "alerte"
                 const style = isAlert ? nodeStyle.alerte : nodeStyle[n.type]
                 const isSel = selected === n.id
+                const isHov = hovered === n.id
                 return (
-                  <g key={n.id} onClick={() => setSelected(n.id)} className="cursor-pointer">
+                  <g
+                    key={n.id}
+                    onClick={() => setSelected(n.id)}
+                    onMouseEnter={() => setHovered(n.id)}
+                    onMouseLeave={() => setHovered(null)}
+                    className="cursor-pointer"
+                  >
+                    <title>{`${n.label} — ${n.type}`}</title>
+                    {isHov && !isSel && (
+                      <circle cx={n.x} cy={n.y} r={style.r + 5} fill="none" stroke={style.stroke} strokeWidth={1.5} opacity={0.35} />
+                    )}
                     {isSel && <circle cx={n.x} cy={n.y} r={style.r + 6} fill="none" stroke="#6366F1" strokeWidth={2} strokeDasharray="3 3" />}
                     <circle cx={n.x} cy={n.y} r={style.r} fill={style.fill} stroke={style.stroke} strokeWidth={isAlert ? 2.5 : 1.5} />
                     <text x={n.x} y={n.y + 3} textAnchor="middle" className="text-[9px] font-semibold" fill={style.textColor}>{n.label}</text>
@@ -176,8 +197,22 @@ export function GraphView() {
               <div className="rounded-lg border border-slate-200 p-3">
                 <p className="text-xs font-medium text-slate-400">Connexions</p>
                 <p className="mt-1 text-sm text-slate-700">
-                  {edges.filter((e) => e.from === sel.id || e.to === sel.id).length} lien(s) financier(s)
+                  {connectedNodes.length} lien(s) financier(s)
                 </p>
+                {connectedNodes.length > 0 && (
+                  <ul className="mt-2 space-y-1">
+                    {connectedNodes.map((c, i) => (
+                      <li key={i} className="text-xs text-slate-600">
+                        • {c.node?.label} <span className="text-slate-400">({c.node?.type})</span>
+                        {c.label && (
+                          <span className={cn("ml-1", c.strong ? "font-semibold text-rose-600" : "text-slate-400")}>
+                            — {c.label}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
               <button
                 onClick={() => toast.info("Client 360°", { description: "Redirection vers la fiche client." })}

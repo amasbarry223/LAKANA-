@@ -1,7 +1,8 @@
 "use client"
 
-import { Search, Calendar, Plus, Bell, ChevronDown, Wifi, CloudOff, Menu } from "lucide-react"
-import { useState } from "react"
+import { Search, Calendar, Plus, Bell, ChevronDown, Wifi, CloudOff, Menu, Moon, Sun } from "lucide-react"
+import { useState, useEffect } from "react"
+import { useTheme } from "next-themes"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
@@ -9,6 +10,13 @@ export function DashboardHeader({ onMenuClick, onOpenSearch }: { onMenuClick?: (
   const [online, setOnline] = useState(true)
   const [showNotifs, setShowNotifs] = useState(false)
   const [showDates, setShowDates] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const { theme, setTheme } = useTheme()
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true)
+  }, [])
 
   const notifList = [
     { title: "Alerte bloquante non traitée", desc: "ALR-241 (Traoré M.) — score 87/100", time: "Il y a 12 min", color: "text-rose-600" },
@@ -66,6 +74,19 @@ export function DashboardHeader({ onMenuClick, onOpenSearch }: { onMenuClick?: (
           <span className="hidden sm:inline">
             {online ? "Synchronisé" : "Hors ligne"}
           </span>
+        </button>
+
+        {/* Theme toggle */}
+        <button
+          onClick={() => {
+            const next = theme === "dark" ? "light" : "dark"
+            setTheme(next)
+            toast.success(next === "dark" ? "Mode sombre activé" : "Mode clair activé")
+          }}
+          className="hidden h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 sm:flex"
+          aria-label="Basculer le thème"
+        >
+          {mounted && theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
         </button>
 
         {/* Notifications */}

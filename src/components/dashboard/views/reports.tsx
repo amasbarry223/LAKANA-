@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { FileBarChart, Download, Calendar, CheckCircle2, Clock, FileText, ChevronRight, ChevronDown } from "lucide-react"
+import { FileBarChart, Download, Calendar, CheckCircle2, Clock, FileText, ChevronRight, ChevronDown, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -17,7 +17,7 @@ type Report = {
   format: "PDF" | "XLSX"
 }
 
-const reports: Report[] = [
+const initialReports: Report[] = [
   { id: "RPT-024", title: "Déclaration de soupçon — CENTIF", type: "CENTIF-Mali", period: "Août 2026", generatedAt: "25/08/2026 10:15", status: "Généré", size: "1,2 Mo", format: "PDF" },
   { id: "RPT-023", title: "Synthèse alertes mensuelle", type: "Contrôle interne", period: "Juillet 2026", generatedAt: "05/08/2026 08:00", status: "Généré", size: "3,4 Mo", format: "XLSX" },
   { id: "RPT-022", title: "Rapport conformité BCEAO", type: "BCEAO", period: "T2 2026", generatedAt: "15/07/2026 14:30", status: "Généré", size: "2,8 Mo", format: "PDF" },
@@ -49,6 +49,8 @@ const templates = [
 export function ReportsView() {
   const [period, setPeriod] = useState("Août 2026")
   const [periodOpen, setPeriodOpen] = useState(false)
+  const [reports, setReports] = useState<Report[]>(initialReports)
+  const [generating, setGenerating] = useState<string | null>(null)
 
   const periodOptions = ["Juillet 2026", "Août 2026", "T2 2026", "T3 2026", "Année 2026"]
 
@@ -56,6 +58,32 @@ export function ReportsView() {
     setPeriod(p)
     setPeriodOpen(false)
     toast.success("Période mise à jour", { description: p })
+  }
+
+  const handleGenerate = (t: { title: string; desc: string; type: Report["type"]; color: string }) => {
+    if (generating) return
+    setGenerating(t.title)
+    toast.info("Génération en cours...", { description: t.title })
+    setTimeout(() => {
+      const now = new Date()
+      const pad = (n: number) => String(n).padStart(2, "0")
+      const dateStr = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`
+      const sizeMo = (Math.random() * 4.5 + 0.5).toFixed(1).replace(".", ",")
+      const newId = `RPT-${String(100 + reports.length + 1).padStart(3, "0")}`
+      const newReport: Report = {
+        id: newId,
+        title: t.title,
+        type: t.type,
+        period,
+        generatedAt: dateStr,
+        status: "Généré",
+        size: `${sizeMo} Mo`,
+        format: t.type === "Contrôle interne" ? "XLSX" : "PDF",
+      }
+      setReports((prev) => [newReport, ...prev])
+      setGenerating(null)
+      toast.success("Rapport généré", { description: `${t.title} — prêt au téléchargement.` })
+    }, 2000)
   }
 
   return (
@@ -117,23 +145,38 @@ export function ReportsView() {
         <h3 className="text-base font-semibold text-slate-900">Générer un rapport</h3>
         <p className="mt-1 text-xs text-slate-400">Sélectionnez un modèle, choisissez la période et générez l'export.</p>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {templates.map((t) => (
-            <button
-              key={t.title}
-              onClick={() => toast.success("Rapport généré", { description: `${t.title} — ${t.type}. Prêt au téléchargement.` })}
-              className="group rounded-xl border border-slate-200 p-4 text-left transition hover:border-indigo-300 hover:bg-indigo-50/30"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: `${t.color}15` }}>
-                  <FileText className="h-4 w-4" style={{ color: t.color }} />
+          {templates.map((t) => {
+            const isGenerating = generating === t.title
+            const disabled = generating !== null
+            return (
+              <button
+                key={t.title}
+                onClick={() => handleGenerate(t)}
+                disabled={disabled}
+                className={cn(
+                  "group rounded-xl border border-slate-200 p-4 text-left transition",
+                  disabled ? "cursor-not-allowed opacity-60" : "hover:border-indigo-300 hover:bg-indigo-50/30"
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: `${t.color}15` }}>
+                    {isGenerating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" style={{ color: t.color }} />
+                    ) : (
+                      <FileText className="h-4 w-4" style={{ color: t.color }} />
+                    )}
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-indigo-500" />
                 </div>
-                <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-indigo-500" />
-              </div>
-              <p className="mt-3 text-sm font-semibold text-slate-900">{t.title}</p>
-              <p className="mt-1 text-xs text-slate-400">{t.desc}</p>
-              <Badge variant="outline" className={cn("mt-2 border", typeColor[t.type])}>{t.type}</Badge>
-            </button>
-          ))}
+                <p className="mt-3 text-sm font-semibold text-slate-900">{t.title}</p>
+                <p className="mt-1 text-xs text-slate-400">{t.desc}</p>
+                <Badge variant="outline" className={cn("mt-2 border", typeColor[t.type])}>{t.type}</Badge>
+                {isGenerating && (
+                  <p className="mt-2 text-[11px] font-medium text-indigo-600">Génération en cours...</p>
+                )}
+              </button>
+            )
+          })}
         </div>
       </div>
 

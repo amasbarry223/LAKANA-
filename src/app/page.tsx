@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useTheme } from "next-themes"
+import { toast } from "sonner"
 import { DashboardSidebar, MobileSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
 import { CommandPalette } from "@/components/dashboard/command-palette"
@@ -49,6 +51,7 @@ export default function Home() {
   const [active, setActive] = useState("Centre d'alertes")
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const { theme, setTheme } = useTheme()
 
   // ⌘K / Ctrl+K to open command palette
   useEffect(() => {
@@ -107,7 +110,33 @@ export default function Home() {
         onLogout={handleLogout}
       />
       <DashboardHeader onMenuClick={() => setMobileNavOpen(true)} onOpenSearch={() => setPaletteOpen(true)} />
-      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} onNavigate={setActive} />
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        onNavigate={setActive}
+        onAction={(action) => {
+          switch (action) {
+            case "new-investigation":
+              toast.success("Nouvelle investigation créée", { description: "Dossier INV-246 ouvert — en attente de documentation." })
+              setActive("Investigations")
+              break
+            case "export-audit":
+              setActive("Journal d'audit")
+              toast.info("Export du journal", { description: "Cliquez sur Exporter dans la page du journal d'audit." })
+              break
+            case "toggle-theme":
+              setTheme(theme === "dark" ? "light" : "dark")
+              break
+            case "sync":
+              setActive("Synchronisation")
+              toast.success("Synchronisation lancée", { description: "Mise à jour de toutes les sources (OFF-02)." })
+              break
+            case "logout":
+              handleLogout()
+              break
+          }
+        }}
+      />
 
       {/* Main content offset for fixed sidebar (lg+) and fixed header */}
       <main className="lg:pl-[260px] pt-16">
