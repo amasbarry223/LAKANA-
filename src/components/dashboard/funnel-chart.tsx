@@ -1,6 +1,7 @@
 "use client"
 
 import { MoreHorizontal, ChevronRight, ShieldCheck } from "lucide-react"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 
 type Step = {
@@ -44,11 +45,17 @@ export function FunnelChartWidget() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
+          <button
+            onClick={() => toast.info("Détails du pipeline", { description: "Vue détaillée des 5 étapes de traitement LBC/FT." })}
+            className="flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
             Détails
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
-          <button className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100">
+          <button
+            onClick={() => toast.info("Options du widget")}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100"
+          >
             <MoreHorizontal className="h-4 w-4" />
           </button>
         </div>
@@ -113,13 +120,19 @@ export function FunnelChartWidget() {
         </div>
         <div className="flex items-center gap-2 text-sm">
           <span className="text-slate-500">Opportunité :</span>
-          <button className="font-semibold text-indigo-600 hover:underline">
+          <button
+            onClick={() => toast.success("Calibrage lancé", { description: "Le moteur de fuzzy matching PPE sera recalibré sur les variantes ouest-africaines (FLT-02)." })}
+            className="font-semibold text-indigo-600 hover:underline"
+          >
             Calibrer le fuzzy matching PPE
           </button>
         </div>
       </div>
 
-      <button className="mt-4 w-full rounded-lg border border-indigo-200 bg-indigo-50/50 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50">
+      <button
+        onClick={() => toast.info("Insights conformité", { description: "Redirection vers les insights du Centre d'alertes." })}
+        className="mt-4 w-full rounded-lg border border-indigo-200 bg-indigo-50/50 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50"
+      >
         Voir les insights conformité
       </button>
     </div>

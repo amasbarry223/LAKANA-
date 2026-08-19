@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { ScrollText, Search, Download, ChevronDown } from "lucide-react"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
@@ -43,6 +44,31 @@ export function AuditLogView() {
     return queryOk && moduleOk
   })
 
+  const exportLogsCsv = () => {
+    const headers = ["date", "user", "role", "module", "action", "result", "ip"]
+    const escape = (val: string) => {
+      const s = String(val ?? "")
+      if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+        return `"${s.replace(/"/g, '""')}"`
+      }
+      return s
+    }
+    const rows = logs.map((l) =>
+      [l.date, l.user, l.role, l.module, l.action, l.result, l.ip].map(escape).join(",")
+    )
+    const csv = [headers.join(","), ...rows].join("\r\n")
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `journal-audit-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    toast.success("Journal exporté", { description: "Export CSV téléchargé (BO-05/06)." })
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -50,7 +76,10 @@ export function AuditLogView() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px]">Journal d'audit</h1>
           <p className="mt-1 text-sm text-slate-500">Traçabilité complète des connexions, actions et décisions (BO-05).</p>
         </div>
-        <button className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+        <button
+          onClick={exportLogsCsv}
+          className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        >
           <Download className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Exporter (BO-06)</span>
         </button>
@@ -98,7 +127,10 @@ export function AuditLogView() {
               {m}
             </button>
           ))}
-          <button className="flex h-9 items-center gap-1 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-600 hover:bg-slate-50">
+          <button
+            onClick={() => toast.info("Plus de filtres", { description: "Filtres avancés par module." })}
+            className="flex h-9 items-center gap-1 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          >
             Plus
             <ChevronDown className="h-3.5 w-3.5" />
           </button>

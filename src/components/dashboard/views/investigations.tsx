@@ -10,7 +10,9 @@ import {
   CheckCircle2,
   Send,
   User,
+  X,
 } from "lucide-react"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
@@ -126,17 +128,41 @@ const filters: { key: Status | "toutes"; label: string }[] = [
 ]
 
 export function InvestigationsView() {
+  const [items, setItems] = useState<Investigation[]>(investigations)
   const [filter, setFilter] = useState<Status | "toutes">("toutes")
   const [selected, setSelected] = useState<string | null>("INV-241")
+  const [decisionOpen, setDecisionOpen] = useState(false)
+  const [decisionText, setDecisionText] = useState("")
+  const [decisionType, setDecisionType] = useState<Status>("cloturee")
 
-  const filtered = investigations.filter((i) => filter === "toutes" || i.status === filter)
-  const selectedInv = investigations.find((i) => i.ref === selected) || filtered[0]
+  const filtered = items.filter((i) => filter === "toutes" || i.status === filter)
+  const selectedInv = items.find((i) => i.ref === selected) || filtered[0]
 
   const counts = {
-    toutes: investigations.length,
-    en_cours: investigations.filter((i) => i.status === "en_cours").length,
-    cloturee: investigations.filter((i) => i.status === "cloturee").length,
-    transmise: investigations.filter((i) => i.status === "transmise").length,
+    toutes: items.length,
+    en_cours: items.filter((i) => i.status === "en_cours").length,
+    cloturee: items.filter((i) => i.status === "cloturee").length,
+    transmise: items.filter((i) => i.status === "transmise").length,
+  }
+
+  const submitDecision = () => {
+    if (!decisionText.trim()) {
+      toast.error("Décision requise", { description: "Veuillez documenter la décision motivée (INV-02)." })
+      return
+    }
+    if (!selectedInv) return
+    const today = new Date().toLocaleDateString("fr-FR")
+    setItems((arr) =>
+      arr.map((i) =>
+        i.ref === selectedInv.ref
+          ? { ...i, status: decisionType, decision: decisionText, dateCloture: today }
+          : i
+      )
+    )
+    const label = decisionType === "transmise" ? "Déclaration transmise au CENTIF" : "Investigation clôturée"
+    toast.success(label, { description: `${selectedInv.ref} — ${selectedInv.client}. Décision tracée (INV-04).` })
+    setDecisionText("")
+    setDecisionOpen(false)
   }
 
   return (
@@ -308,11 +334,26 @@ export function InvestigationsView() {
               </div>
 
               {selectedInv.status === "en_cours" ? (
-                <button className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                <button
+                  onClick={() => { setDecisionType("cloturee"); setDecisionOpen(true) }}
+                  className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                >
                   Documenter une décision
                 </button>
               ) : (
-                <button className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                <button
+                  onClick={() => {
+                    setItems((arr) =>
+                      arr.map((i) =>
+                        i.ref === selectedInv.ref
+                          ? { ...i, status: "en_cours", decision: undefined, dateCloture: undefined }
+                          : i
+                      )
+                    )
+                    toast.info("Dossier rouvert", { description: `${selectedInv.ref} — réouverture motivée par le responsable (INV-05).` })
+                  }}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                >
                   <User className="h-3.5 w-3.5" />
                   Rouvrir le dossier (responsable)
                 </button>
@@ -325,6 +366,77 @@ export function InvestigationsView() {
           </div>
         )}
       </div>
+
+      {/* Decision modal (INV-02/03) */}
+      {decisionOpen && selectedInv && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4" onClick={() => setDecisionOpen(false)}>
+          <div
+            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Documenter une décision</h3>
+                <p className="mt-0.5 text-xs text-slate-400">{selectedInv.ref} — {selectedInv.client}</p>
+              </div>
+              <button onClick={() => setDecisionOpen(false)} className="rounded-md p-1 text-slate-400 hover:bg-slate-100">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-4">
+              <label className="text-xs font-medium text-slate-600">Type de décision</label>
+              <div className="mt-1.5 grid grid-cols-3 gap-2">
+                {([
+                  { v: "cloturee", label: "Classer" },
+                  { v: "transmise", label: "Transmettre au CENTIF" },
+                  { v: "en_cours", label: "Maintenir en cours" },
+                ] as const).map((o) => (
+                  <button
+                    key={o.v}
+                    onClick={() => setDecisionType(o.v)}
+                    className={cn(
+                      "rounded-lg border px-3 py-2 text-xs font-semibold transition",
+                      decisionType === o.v
+                        ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                    )}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="text-xs font-medium text-slate-600">Décision motivée</label>
+              <textarea
+                value={decisionText}
+                onChange={(e) => setDecisionText(e.target.value)}
+                rows={4}
+                placeholder="Décrivez la décision et sa motivation (INV-02)..."
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+              />
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setDecisionOpen(false)}
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={submitDecision}
+                className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Valider la décision
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

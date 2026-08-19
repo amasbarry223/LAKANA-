@@ -47,6 +47,15 @@ export function NotificationsView() {
     return true
   })
 
+  const remove = (id: string) => {
+    setItems((arr) => arr.filter((n) => n.id !== id))
+    toast.success("Notification supprimée")
+  }
+
+  const markRead = (id: string) => {
+    setItems((arr) => arr.map((n) => (n.id === id ? { ...n, read: true } : n)))
+  }
+
   const markAllRead = () => setItems((arr) => arr.map((n) => ({ ...n, read: true })))
   const unread = items.filter((n) => !n.read).length
 
@@ -111,9 +120,10 @@ export function NotificationsView() {
             return (
               <div
                 key={n.id}
+                onClick={() => markRead(n.id)}
                 className={cn(
                   "flex items-start gap-3 px-5 py-4 transition hover:bg-slate-50",
-                  !n.read && "bg-indigo-50/30"
+                  !n.read && "bg-indigo-50/30 cursor-pointer"
                 )}
               >
                 <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", tc.color.split(" ")[0], tc.color.split(" ")[1])}>
@@ -130,7 +140,10 @@ export function NotificationsView() {
                   <p className="mt-0.5 text-xs text-slate-500">{n.desc}</p>
                   <p className="mt-1 text-[11px] text-slate-400">{n.time}</p>
                 </div>
-                <button className="rounded-md p-1.5 text-slate-300 hover:bg-slate-100 hover:text-slate-500">
+                <button
+                  onClick={(e) => { e.stopPropagation(); remove(n.id) }}
+                  className="rounded-md p-1.5 text-slate-300 hover:bg-slate-100 hover:text-slate-500"
+                >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>

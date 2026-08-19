@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { ShieldAlert, Search, Check, X, ChevronDown } from "lucide-react"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
@@ -43,10 +44,15 @@ const statusConfig: Record<Match["status"], { label: string; color: string }> = 
 const filters = ["Toutes", "En attente", "Confirmées", "Rejetées"] as const
 
 export function SanctionsView() {
+  const [items, setItems] = useState<Match[]>(matches)
   const [filter, setFilter] = useState<(typeof filters)[number]>("Toutes")
   const [query, setQuery] = useState("")
 
-  const filtered = matches.filter((m) => {
+  const setStatus = (id: string, status: Match["status"]) => {
+    setItems((arr) => arr.map((m) => (m.id === id ? { ...m, status } : m)))
+  }
+
+  const filtered = items.filter((m) => {
     const statusOk =
       filter === "Toutes" ||
       (filter === "En attente" && m.status === "en_attente") ||
@@ -66,9 +72,9 @@ export function SanctionsView() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
-          { label: "Correspondances en attente", value: matches.filter((m) => m.status === "en_attente").length, color: "#F59E0B" },
-          { label: "Confirmées (bloquantes)", value: matches.filter((m) => m.status === "confirme").length, color: "#EF4444" },
-          { label: "Faux positifs rejetés", value: matches.filter((m) => m.status === "rejete").length, color: "#64748B" },
+          { label: "Correspondances en attente", value: items.filter((m) => m.status === "en_attente").length, color: "#F59E0B" },
+          { label: "Confirmées (bloquantes)", value: items.filter((m) => m.status === "confirme").length, color: "#EF4444" },
+          { label: "Faux positifs rejetés", value: items.filter((m) => m.status === "rejete").length, color: "#64748B" },
           { label: "Listes actives", value: 4, color: "#6366F1" },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4">
@@ -146,13 +152,38 @@ export function SanctionsView() {
                 </Badge>
                 {m.status === "en_attente" && (
                   <div className="flex items-center gap-1">
-                    <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100" title="Confirmer (FLT-04)">
+                    <button
+                      onClick={() => {
+                        setStatus(m.id, "confirme")
+                        toast.error("Correspondance confirmée", { description: `${m.id} — ${m.client}. Mesure de gel requise (FLT-04).` })
+                      }}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100"
+                      title="Confirmer (FLT-04)"
+                    >
                       <Check className="h-4 w-4" />
                     </button>
-                    <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200" title="Rejeter faux positif (FLT-05)">
+                    <button
+                      onClick={() => {
+                        setStatus(m.id, "rejete")
+                        toast.success("Faux positif rejeté", { description: `${m.id} — ${m.client}. Rejet motivé (FLT-05).` })
+                      }}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200"
+                      title="Rejeter faux positif (FLT-05)"
+                    >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
+                )}
+                {m.status !== "en_attente" && (
+                  <button
+                    onClick={() => {
+                      setStatus(m.id, "en_attente")
+                      toast.info("Correspondance remise en attente", { description: `${m.id} — ${m.client}.` })
+                    }}
+                    className="rounded-md px-2 py-1 text-[11px] font-semibold text-slate-500 hover:bg-slate-100"
+                  >
+                    Réinitialiser
+                  </button>
                 )}
               </div>
             </div>

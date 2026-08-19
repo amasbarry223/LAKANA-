@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Settings, Save, RotateCcw, ShieldAlert, Sliders, Building2, Lock, History } from "lucide-react"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
@@ -48,11 +49,17 @@ export function SettingsView() {
           <p className="mt-1 text-sm text-slate-500">Configuration du moteur d'analyse et des seuils réglementaires (BO-03/04).</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+          <button
+            onClick={() => toast.info("Restauration", { description: "Restauration des paramètres à la version précédente." })}
+            className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+          >
             <RotateCcw className="h-3.5 w-3.5" />
             Restaurer
           </button>
-          <button className="flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
+          <button
+            onClick={() => toast.success("Paramètres enregistrés", { description: "Les modifications sont tracées dans l'historique des versions (BO-03)." })}
+            className="flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700"
+          >
             <Save className="h-3.5 w-3.5" />
             Enregistrer
           </button>

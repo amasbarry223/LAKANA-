@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Share2, ZoomIn, ZoomOut, Maximize, Download } from "lucide-react"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
@@ -82,7 +83,10 @@ export function GraphView() {
               <Maximize className="h-4 w-4" />
             </button>
           </div>
-          <button className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+          <button
+            onClick={() => toast.success("Graphe exporté", { description: "Le graphe a été exporté comme pièce jointe (GRF-04)." })}
+            className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
             <Download className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Exporter (GRF-04)</span>
           </button>
@@ -175,7 +179,10 @@ export function GraphView() {
                   {edges.filter((e) => e.from === sel.id || e.to === sel.id).length} lien(s) financier(s)
                 </p>
               </div>
-              <button className="w-full rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+              <button
+                onClick={() => toast.info("Client 360°", { description: "Redirection vers la fiche client." })}
+                className="w-full rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+              >
                 Voir Client 360°
               </button>
             </div>

@@ -139,3 +139,63 @@ Work Log:
 
 Stage Summary:
 - Application LAKANA responsive : sidebar fixe sur desktop (≥1024px), drawer mobile avec hamburger en dessous. 17 vues + écran de connexion tous fonctionnels sans erreur. Projet frontend complet et vérifié end-to-end.
+
+---
+Task ID: wiring-views
+Agent: sub-agent (general-purpose)
+Task: Rendre interactifs tous les boutons statiques restants des vues LAKANA via toasts sonner (frontend uniquement)
+
+Work Log:
+- Lu les 10 fichiers cibles (structuring, risk-score, settings, graph, integration, users, audit-log, reports, sync, client-360) pour comprendre la structure et les handlers existants.
+- Ajouté `import { toast } from "sonner"` aux 10 fichiers (sonner déjà configuré via layout.tsx + composant ui/sonner.tsx).
+- `structuring.tsx` : bouton "Ouvrir investigation" → toast.success avec client + séquence FRC.
+- `risk-score.tsx` : bouton "Recalculer" → toast.success (SCR-03).
+- `settings.tsx` : bouton "Restaurer" → toast.info ; bouton "Enregistrer" → toast.success (BO-03).
+- `graph.tsx` : bouton "Exporter (GRF-04)" → toast.success ; bouton "Voir Client 360°" du panneau détail → toast.info.
+- `integration.tsx` : handler `onDrop` → toast.success "Fichier importé" (INT-02/03/06) ; bouton "Choisir un fichier" → toast.info (INT-01) ; ajouté un petit bouton RefreshCw par ligne connecteur → toast.success (BO-07).
+- `users.tsx` : bouton "Nouvel utilisateur" → toast.info (BO-01) ; bouton MoreHorizontal par ligne → toast.info "Actions utilisateur".
+- `audit-log.tsx` : bouton "Exporter (BO-06)" → CSV RÉEL via Blob + URL.createObjectURL + <a> temporaire (helper `exportLogsCsv` in-component, BOM UTF-8 pour Excel, échappement RFC 4180, filename `journal-audit-YYYY-MM-DD.csv`) puis toast.success ; bouton "Plus" (ChevronDown) → toast.info "Plus de filtres".
+- `reports.tsx` : 4 cartes modèles → toast.success "Rapport généré" avec titre/type ; boutons Download (status === "Généré") → toast.success "Téléchargement" avec titre + format.
+- `sync.tsx` : converti `offlineQueue` const → `useState(initialQueue)` ; bouton "Synchroniser" bannière en ligne → toast.success (OFF-02) ; bouton "Tout synchroniser" → toast.success global ; boutons RefreshCw par source → toast.success "Source synchronisée" avec nom ; bouton "Remonter la file maintenant" → toast.success (OFF-04) + `setOfflineQueue` marque tous pending=false (corrigé aussi l'attribut `disabled={online}` → `disabled={!online}` pour que le bouton soit réellement cliquable en ligne, conformément au style visuel existant et à l'intention du handler).
+- `client-360.tsx` : lignes d'historique d'alertes → onClick cursor-pointer + toast.info "Alerte {ref}" avec type + date.
+- Lint final : `bun run lint` → exit 0, 0 erreur, 0 warning.
+
+Stage Summary:
+- Tous les boutons statiques restants des 10 vues LAKANA sont maintenant interactifs via toasts sonner. Aucune modification visuelle ou de styling (à l'exception de l'ajout d'un petit bouton RefreshCw par ligne connecteur dans integration.tsx et du `cursor-pointer` sur les lignes d'alerte client-360.tsx — les deux étant explicitement requis par la spec). L'export CSV du journal d'audit est un vrai téléchargement navigateur (Blob + anchor + BOM Excel). La file d'attente hors ligne dans sync.tsx est désormais pilotée par état React et se vide réellement au clic sur "Remonter la file". `bun run lint` passe sans erreur ni warning.
+
+---
+Task ID: wiring-all-buttons
+Agent: main + subagent (wiring-views)
+Task: Recenser et rendre interactifs tous les boutons/éléments statiques (frontend uniquement, pas de backend)
+
+Work Log:
+- Remplacé le Toaster radix par sonner (Toaster from @/components/ui/sonner) dans layout.tsx — API toast() simple, position top-right, richColors, closeButton.
+- Câblé directement (main agent) :
+  * header.tsx : New investigation (toast success), notifications bell (dropdown avec 3 notifs cliquables), date picker (dropdown 5 périodes), sync toggle (toast avec OFF-01).
+  * filter-bar.tsx : 4 dropdowns fonctionnels avec menus (statuts/niveaux/modules/analystes) + Compare toggle + view toggles (tous avec toasts).
+  * funnel-chart.tsx : Détails, Options, Calibrer fuzzy matching, Voir les insights (toasts).
+  * funnel-performance.tsx : Tout voir, items cliquables (toast par alerte), Voir toutes les alertes (toasts).
+  * funnel-insights.tsx : Tout voir, Voir le détail par insight (toasts).
+  * sanctions.tsx : Confirm/Reject avec mise à jour d'état (status en_attente→confirme/rejete) + toasts + bouton Réinitialiser. Stats recalculées dynamiquement.
+  * investigations.tsx : Documenter une décision ouvre un MODAL (type de décision, textarea, validation INV-02), Rouvrir dossier (remet en_cours), soumission met à jour le statut + date de clôture + toast.
+  * notifications.tsx : Delete (retire de la liste), click item (marque lu), Tout marquer lu (déjà ok).
+- Délégué au subagent (wiring-views) :
+  * structuring.tsx : Ouvrir investigation (toast).
+  * risk-score.tsx : Recalculer (toast SCR-03).
+  * settings.tsx : Enregistrer/Restaurer (toasts BO-03).
+  * graph.tsx : Exporter graphe (toast GRF-04), Voir Client 360° (toast).
+  * integration.tsx : onDrop upload (toast INT-02/03/06), Choisir fichier (toast), refresh connecteurs (toast BO-07).
+  * users.tsx : Nouvel utilisateur (toast BO-01), actions user MoreHorizontal (toast).
+  * audit-log.tsx : Export CSV RÉEL (Blob + URL.createObjectURL + anchor temporaire, BOM UTF-8, RFC 4180 escaping, filename daté) + toast BO-05/06 ; bouton Plus (toast).
+  * reports.tsx : 4 templates cliquables (toast génération), download buttons (toast).
+  * sync.tsx : offlineQueue converti en useState, Synchroniser/Tout synchroniser/refresh sources/Remonter file (toasts + clear pending), fix disabled logic.
+  * client-360.tsx : alertes historiques cliquables (toasts).
+- Lint propre (0 erreur, 0 warning).
+- Vérification browser : 
+  * New investigation → toast success confirmé par VLM.
+  * Sanctions confirm → toast visible ET statut passé à 'Confirmée' (confirmé VLM).
+  * Investigations modal → s'ouvre correctement (confirmé VLM).
+  * 17 vues naviguent SANS erreur runtime.
+
+Stage Summary:
+- Tous les boutons/éléments statiques sont maintenant interactifs : toasts de feedback sur toute l'application, interactions avec état (sanctions confirm/reject, investigations décision+modal, notifications delete/read, sync queue). Export CSV réel pour le journal d'audit. Dropdowns fonctionnels (header, filter-bar). 0 erreur lint, 0 erreur runtime sur 17 vues.

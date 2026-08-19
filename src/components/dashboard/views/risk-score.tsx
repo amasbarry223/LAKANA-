@@ -25,6 +25,7 @@ import {
   YAxis,
 } from "recharts"
 import { Badge } from "@/components/ui/badge"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
 // Section 14 du cahier des charges — système de scoring
@@ -223,7 +224,10 @@ export function RiskScoreView() {
             <h3 className="text-base font-semibold text-slate-900">
               Évolution du score moyen
             </h3>
-            <button className="flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-700">
+            <button
+              onClick={() => toast.success("Recalcul lancé", { description: "Risk Score recalculé pour tous les clients (SCR-03)." })}
+              className="flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-700"
+            >
               <RotateCw className="h-3 w-3" />
               Recalculer
             </button>

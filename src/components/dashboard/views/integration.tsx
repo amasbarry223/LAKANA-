@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { UploadCloud, FileText, CheckCircle2, AlertTriangle, RefreshCw, Database, ChevronRight, Plug } from "lucide-react"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
@@ -81,7 +82,11 @@ export function IntegrationView() {
         <div
           onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
           onDragLeave={() => setDragOver(false)}
-          onDrop={(e) => { e.preventDefault(); setDragOver(false) }}
+          onDrop={(e) => {
+            e.preventDefault()
+            setDragOver(false)
+            toast.success("Fichier importé", { description: "Import en cours — validation, détection doublons, analyse auto (INT-02/03/06)." })
+          }}
           className={cn(
             "rounded-xl border-2 border-dashed bg-white p-6 text-center transition xl:col-span-2",
             dragOver ? "border-indigo-400 bg-indigo-50/50" : "border-slate-200"
@@ -92,7 +97,10 @@ export function IntegrationView() {
           </div>
           <p className="mt-3 text-sm font-semibold text-slate-900">Déposez un fichier ici</p>
           <p className="mt-1 text-xs text-slate-400">Formats acceptés : CSV, Excel (.xlsx) — INT-01</p>
-          <button className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
+          <button
+            onClick={() => toast.info("Sélection de fichier", { description: "Formats acceptés : CSV, Excel (INT-01)." })}
+            className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700"
+          >
             <FileText className="h-3.5 w-3.5" />
             Choisir un fichier
           </button>
@@ -135,6 +143,13 @@ export function IntegrationView() {
                   </span>
                   <p className="text-[10px] text-slate-400">{c.lastSync}</p>
                 </div>
+                <button
+                  onClick={() => toast.success("Connecteur synchronisé", { description: "Synchronisation relancée (BO-07)." })}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                  title="Synchroniser ce connecteur"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </button>
               </div>
             ))}
           </div>

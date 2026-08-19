@@ -1,6 +1,7 @@
 "use client"
 
 import { AlertTriangle, Sparkles, Trophy, ChevronRight } from "lucide-react"
+import { toast } from "sonner"
 
 type Insight = {
   icon: React.ComponentType<{ className?: string }>
@@ -43,7 +44,10 @@ export function FunnelInsights() {
     <div className="rounded-xl border border-slate-200 bg-white p-5">
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-slate-900">Insights conformité</h3>
-        <button className="text-xs font-semibold text-indigo-600 hover:underline">
+        <button
+          onClick={() => toast.info("Tous les insights", { description: "Liste complète des insights conformité." })}
+          className="text-xs font-semibold text-indigo-600 hover:underline"
+        >
           Tout voir
         </button>
       </div>
@@ -65,6 +69,7 @@ export function FunnelInsights() {
                 {ins.desc}
               </p>
               <button
+                onClick={() => toast.info(`Insight : ${ins.title}`, { description: ins.desc })}
                 className={`mt-2 inline-flex items-center gap-0.5 text-xs font-semibold ${ins.accent} hover:underline`}
               >
                 Voir le détail

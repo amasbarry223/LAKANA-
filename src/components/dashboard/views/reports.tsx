@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { FileBarChart, Download, Calendar, CheckCircle2, Clock, FileText, ChevronRight } from "lucide-react"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
@@ -85,7 +86,11 @@ export function ReportsView() {
         <p className="mt-1 text-xs text-slate-400">Sélectionnez un modèle, choisissez la période et générez l'export.</p>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {templates.map((t) => (
-            <button key={t.title} className="group rounded-xl border border-slate-200 p-4 text-left transition hover:border-indigo-300 hover:bg-indigo-50/30">
+            <button
+              key={t.title}
+              onClick={() => toast.success("Rapport généré", { description: `${t.title} — ${t.type}. Prêt au téléchargement.` })}
+              className="group rounded-xl border border-slate-200 p-4 text-left transition hover:border-indigo-300 hover:bg-indigo-50/30"
+            >
               <div className="flex items-center justify-between">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: `${t.color}15` }}>
                   <FileText className="h-4 w-4" style={{ color: t.color }} />
@@ -133,7 +138,11 @@ export function ReportsView() {
                     {r.status}
                   </Badge>
                   {r.status === "Généré" && (
-                    <button className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100" title="Télécharger">
+                    <button
+                      onClick={() => toast.success("Téléchargement", { description: `${r.title} (${r.format}).` })}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                      title="Télécharger"
+                    >
                       <Download className="h-4 w-4" />
                     </button>
                   )}

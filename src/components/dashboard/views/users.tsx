@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Users, Plus, MoreHorizontal, ShieldCheck, Lock, Search } from "lucide-react"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
@@ -76,7 +77,10 @@ export function UsersView() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px]">Utilisateurs & rôles</h1>
           <p className="mt-1 text-sm text-slate-500">Gestion des comptes et contrôle d'accès RBAC (BO-01, section 12).</p>
         </div>
-        <button className="flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 text-sm font-semibold text-white hover:bg-indigo-700">
+        <button
+          onClick={() => toast.info("Nouvel utilisateur", { description: "Formulaire de création de compte avec attribution de rôle (BO-01)." })}
+          className="flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 text-sm font-semibold text-white hover:bg-indigo-700"
+        >
           <Plus className="h-4 w-4" />
           Nouvel utilisateur
         </button>
@@ -162,7 +166,10 @@ export function UsersView() {
                   </td>
                   <td className="px-3 py-3 text-slate-500">{u.lastLogin}</td>
                   <td className="px-5 py-3 text-right">
-                    <button className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                    <button
+                      onClick={() => toast.info("Actions utilisateur", { description: "Modifier, désactiver ou réinitialiser le mot de passe." })}
+                      className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                    >
                       <MoreHorizontal className="h-4 w-4" />
                     </button>
                   </td>

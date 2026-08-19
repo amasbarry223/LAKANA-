@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Wifi, CloudOff, RefreshCw, Database, CheckCircle2, AlertTriangle, Clock, Upload, Download } from "lucide-react"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
@@ -39,7 +40,7 @@ type QueueItem = {
   pending: boolean
 }
 
-const offlineQueue: QueueItem[] = [
+const initialQueue: QueueItem[] = [
   { id: "Q-012", type: "Alerte générée hors ligne", client: "Traoré, Moussa", date: "25/08/2026 08:15", pending: true },
   { id: "Q-011", type: "Alerte générée hors ligne", client: "Diarra, Fatoumata", date: "25/08/2026 07:42", pending: true },
   { id: "Q-010", type: "Investigation modifiée", client: "Keïta, Ibrahim", date: "25/08/2026 07:10", pending: true },
@@ -48,6 +49,12 @@ const offlineQueue: QueueItem[] = [
 
 export function SyncView() {
   const [online, setOnline] = useState(true)
+  const [offlineQueue, setOfflineQueue] = useState<QueueItem[]>(initialQueue)
+
+  const flushQueue = () => {
+    setOfflineQueue((q) => q.map((item) => ({ ...item, pending: false })))
+    toast.success("File remontée", { description: "Toutes les alertes hors ligne ont été transmises (OFF-04)." })
+  }
 
   return (
     <div className="space-y-5">
@@ -92,7 +99,10 @@ export function SyncView() {
           </p>
         </div>
         {online && (
-          <button className="flex h-9 items-center gap-1.5 rounded-lg bg-white px-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
+          <button
+            onClick={() => toast.success("Synchronisation lancée", { description: "Mise à jour de toutes les sources (OFF-02)." })}
+            className="flex h-9 items-center gap-1.5 rounded-lg bg-white px-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
+          >
             <RefreshCw className="h-3.5 w-3.5" />
             Synchroniser
           </button>
@@ -125,7 +135,10 @@ export function SyncView() {
         <div className="rounded-xl border border-slate-200 bg-white p-5 xl:col-span-2">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold text-slate-900">Sources de données</h3>
-            <button className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:underline">
+            <button
+              onClick={() => toast.success("Synchronisation globale", { description: "Toutes les sources ont été resynchronisées." })}
+              className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:underline"
+            >
               <RefreshCw className="h-3 w-3" />
               Tout synchroniser
             </button>
@@ -154,7 +167,10 @@ export function SyncView() {
                     <Icon className="h-2.5 w-2.5" />
                     {s.status}
                   </Badge>
-                  <button className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                  <button
+                    onClick={() => toast.success("Source synchronisée", { description: `${s.name} mise à jour.` })}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                  >
                     <RefreshCw className="h-3.5 w-3.5" />
                   </button>
                 </div>
@@ -203,7 +219,8 @@ export function SyncView() {
             ))}
           </div>
           <button
-            disabled={online}
+            disabled={!online}
+            onClick={flushQueue}
             className={cn(
               "mt-3 w-full rounded-lg py-2 text-xs font-semibold transition",
               online
