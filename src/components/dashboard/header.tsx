@@ -1,14 +1,25 @@
 "use client"
 
-import { Search, Calendar, Plus, Bell, ChevronDown, Wifi, CloudOff } from "lucide-react"
+import { Search, Calendar, Plus, Bell, ChevronDown, Wifi, CloudOff, Menu } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 
-export function DashboardHeader() {
+export function DashboardHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const [online, setOnline] = useState(true)
 
   return (
     <header className="fixed inset-x-0 top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/80 px-4 backdrop-blur-md md:px-6 lg:left-[260px]">
+      {/* Mobile menu button */}
+      {onMenuClick && (
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50"
+          aria-label="Ouvrir le menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      )}
+
       {/* Search */}
       <div className="relative flex-1 max-w-md">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />

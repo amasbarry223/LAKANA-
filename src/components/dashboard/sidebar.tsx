@@ -20,6 +20,7 @@ import {
   Bell,
   MoreVertical,
   LogOut,
+  X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -78,33 +79,26 @@ const sections: NavSection[] = [
   },
 ]
 
-export function DashboardSidebar({
-  active,
-  onSelect,
-  userName = "Aminata Touré",
-  userRole = "Analyste conformité",
-  onLogout,
-}: {
+type SidebarProps = {
   active: string
   onSelect: (label: string) => void
   userName?: string
   userRole?: string
   onLogout?: () => void
-}) {
+}
+
+function SidebarContent({ active, onSelect, userName = "Aminata Touré", userRole = "Analyste conformité", onLogout }: SidebarProps) {
+  const initials = userName.split(" ").map((n) => n[0]).join("").slice(0, 2)
   return (
-    <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-[260px] shrink-0 flex-col border-r border-slate-200 bg-white">
+    <>
       {/* Logo */}
       <div className="flex h-16 items-center gap-2.5 px-5 border-b border-slate-100">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-sm">
           <ShieldAlert className="h-5 w-5 text-white" />
         </div>
         <div className="flex items-baseline">
-          <span className="text-[17px] font-bold tracking-tight text-slate-900">
-            LAKANA
-          </span>
-          <span className="ml-1.5 text-[11px] font-medium text-slate-400">
-            le bouclier
-          </span>
+          <span className="text-[17px] font-bold tracking-tight text-slate-900">LAKANA</span>
+          <span className="ml-1.5 text-[11px] font-medium text-slate-400">le bouclier</span>
         </div>
       </div>
 
@@ -137,9 +131,7 @@ export function DashboardSidebar({
                     )}
                   />
                   <span className="truncate">{item.label}</span>
-                  {isActive && (
-                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-600" />
-                  )}
+                  {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-600" />}
                 </button>
               )
             })}
@@ -151,9 +143,7 @@ export function DashboardSidebar({
       <div className="border-t border-slate-100 p-3">
         <div className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-slate-50 cursor-pointer">
           <Avatar className="h-9 w-9 border border-slate-200">
-            <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs font-semibold">
-              {userName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-            </AvatarFallback>
+            <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs font-semibold">{initials}</AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-slate-900">{userName}</p>
@@ -173,6 +163,49 @@ export function DashboardSidebar({
           </button>
         </div>
       </div>
+    </>
+  )
+}
+
+export function DashboardSidebar(props: SidebarProps) {
+  return (
+    <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-[260px] shrink-0 flex-col border-r border-slate-200 bg-white">
+      <SidebarContent {...props} />
     </aside>
+  )
+}
+
+export function MobileSidebar({
+  open,
+  onClose,
+  ...props
+}: SidebarProps & { open: boolean; onClose: () => void }) {
+  if (!open) return null
+  return (
+    <div className="lg:hidden fixed inset-0 z-50">
+      {/* Overlay */}
+      <div
+        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden
+      />
+      {/* Drawer */}
+      <aside className="absolute inset-y-0 left-0 flex w-[280px] flex-col border-r border-slate-200 bg-white shadow-2xl animate-in slide-in-from-left duration-200">
+        <button
+          onClick={onClose}
+          className="absolute right-3 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+          aria-label="Fermer le menu"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <SidebarContent
+          {...props}
+          onSelect={(label) => {
+            props.onSelect(label)
+            onClose()
+          }}
+        />
+      </aside>
+    </div>
   )
 }

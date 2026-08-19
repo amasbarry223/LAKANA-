@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { DashboardSidebar } from "@/components/dashboard/sidebar"
+import { DashboardSidebar, MobileSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
 import { LoginScreen } from "@/components/dashboard/login-screen"
 import { AlertsCenterView } from "@/components/dashboard/views/alerts-center"
@@ -46,6 +46,7 @@ export default function Home() {
   const [authed, setAuthed] = useState(false)
   const [role, setRole] = useState("Analyste conformité")
   const [active, setActive] = useState("Centre d'alertes")
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   const handleLogin = (r: string) => {
     setAuthed(true)
@@ -82,7 +83,16 @@ export default function Home() {
         userRole={role}
         onLogout={handleLogout}
       />
-      <DashboardHeader />
+      <MobileSidebar
+        open={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+        active={active}
+        onSelect={setActive}
+        userName={userName}
+        userRole={role}
+        onLogout={handleLogout}
+      />
+      <DashboardHeader onMenuClick={() => setMobileNavOpen(true)} />
 
       {/* Main content offset for fixed sidebar (lg+) and fixed header */}
       <main className="lg:pl-[260px] pt-16">

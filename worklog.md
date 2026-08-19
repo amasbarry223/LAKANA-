@@ -123,3 +123,19 @@ Work Log:
 
 Stage Summary:
 - 5 modules manquants implémentés. Le projet couvre maintenant TOUS les modules du cahier des charges côté frontend : INT, FLT, SCR, CMP, FRC, GRF, ALR, C360, INV, IA, OFF, BO-01 à 09, AUTH-01 à 09. 17 vues navigables + écran de connexion avec MFA. Lot MVP 1 (Auth & RBAC) entièrement représenté.
+
+---
+Task ID: LAKANA-mobile-and-final
+Agent: main
+Task: Comblement des écarts UX — sidebar mobile + vérification finale complète
+
+Work Log:
+- Refactorisé sidebar.tsx : extrait SidebarContent (logo/nav/profil) réutilisable, créé DashboardSidebar (desktop fixed) + MobileSidebar (drawer overlay z-50 avec backdrop, animation slide-in, bouton fermer, fermeture auto après sélection).
+- Mis à jour header.tsx : ajout bouton hamburger (Menu icon, lg:hidden) avec prop onMenuClick.
+- Mis à jour page.tsx : état mobileNavOpen, rendu MobileSidebar + passage onMenuClick au header.
+- Lint propre.
+- Vérification browser mobile (800px) : dashboard rendu sans sidebar fixe, hamburger visible, drawer s'ouvre avec navigation LAKANA complète (confirmé par VLM).
+- Vérification finale desktop (1440px) : les 17 vues naviguent SANS AUCUNE erreur runtime (Tableau de bord, Centre d'alertes, Client 360°, Graphe, Investigations, Assistant IA, Filtrage sanctions, Risk Score, Détection comportementale, Fractionnement, Intégration, Utilisateurs, Journal d'audit, Rapports, Paramètres, Synchronisation, Notifications).
+
+Stage Summary:
+- Application LAKANA responsive : sidebar fixe sur desktop (≥1024px), drawer mobile avec hamburger en dessous. 17 vues + écran de connexion tous fonctionnels sans erreur. Projet frontend complet et vérifié end-to-end.
