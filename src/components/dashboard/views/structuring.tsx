@@ -117,7 +117,7 @@ export function StructuringView() {
       {/* Sequences */}
       <div className="space-y-4">
         {sequences.map((s) => (
-          <div key={s.id} className="rounded-xl border border-slate-200 bg-white p-5">
+          <div key={s.id} onClick={() => toast.info(`Séquence ${s.id}`, { description: `${s.client} — ${s.txCount} transactions, cumul ${s.totalAmount.toLocaleString("fr-FR")} FCFA.` })} className="cursor-pointer rounded-xl border border-slate-200 bg-white p-5 transition hover:border-slate-300 hover:shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50">
@@ -156,7 +156,10 @@ export function StructuringView() {
                   <p className="text-[10px] text-slate-400">FCFA / tx</p>
                 </div>
                 <button
-                  onClick={() => toast.success("Investigation ouverte", { description: `Dossier ouvert pour ${s.client} — séquence ${s.id}.` })}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toast.success("Investigation ouverte", { description: `Dossier ouvert pour ${s.client} — séquence ${s.id}.` })
+                  }}
                   className="ml-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700"
                 >
                   Ouvrir investigation

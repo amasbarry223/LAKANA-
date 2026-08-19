@@ -13,6 +13,7 @@ import {
   Legend,
 } from "recharts"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 type Series = {
   key: string
@@ -68,6 +69,11 @@ function CustomTooltip({ active, payload, label }: any) {
 export function TrendChartWidget() {
   const [metric, setMetric] = useState("Volume d'alertes")
   const [granularity, setGranularity] = useState("Jour")
+  const [metricOpen, setMetricOpen] = useState(false)
+  const [granularityOpen, setGranularityOpen] = useState(false)
+
+  const metricOptions = ["Volume d'alertes", "Risk Score moyen", "Taux de faux positifs"]
+  const granularityOptions = ["Jour", "Semaine", "Mois"]
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5">
@@ -82,20 +88,66 @@ export function TrendChartWidget() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setMetric(metric === "Volume d'alertes" ? "Risk Score moyen" : "Volume d'alertes")}
-            className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            {metric}
-            <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-          </button>
-          <button
-            onClick={() => setGranularity(granularity === "Jour" ? "Semaine" : "Jour")}
-            className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            {granularity}
-            <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setMetricOpen(!metricOpen)}
+              className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              {metric}
+              <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+            </button>
+            {metricOpen && (
+              <div className="absolute right-0 top-10 z-50 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+                <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Métrique</p>
+                {metricOptions.map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => {
+                      setMetric(m)
+                      setMetricOpen(false)
+                      toast.success("Métrique mise à jour", { description: m })
+                    }}
+                    className={cn(
+                      "block w-full rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-slate-50",
+                      metric === m ? "font-semibold text-indigo-700" : "text-slate-600"
+                    )}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="relative">
+            <button
+              onClick={() => setGranularityOpen(!granularityOpen)}
+              className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              {granularity}
+              <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+            </button>
+            {granularityOpen && (
+              <div className="absolute right-0 top-10 z-50 w-44 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+                <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Granularité</p>
+                {granularityOptions.map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => {
+                      setGranularity(g)
+                      setGranularityOpen(false)
+                      toast.success("Granularité mise à jour", { description: g })
+                    }}
+                    className={cn(
+                      "block w-full rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-slate-50",
+                      granularity === g ? "font-semibold text-indigo-700" : "text-slate-600"
+                    )}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button onClick={() => toast.info("Options du graphique")} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100">
             <MoreHorizontal className="h-4 w-4" />
           </button>

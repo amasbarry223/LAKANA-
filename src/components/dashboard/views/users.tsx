@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Users, Plus, MoreHorizontal, ShieldCheck, Lock, Search, X } from "lucide-react"
+import { Users, Plus, MoreHorizontal, ShieldCheck, Lock, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
@@ -64,15 +65,41 @@ const accessColor: Record<string, string> = {
   "—": "bg-slate-50 text-slate-300",
 }
 
+type SortColumn = "name" | "lastLogin"
+type SortDir = "asc" | "desc"
+
+function SortIcon({ column, sortBy, sortDir }: { column: SortColumn; sortBy: SortColumn | null; sortDir: SortDir }) {
+  const Icon: LucideIcon = sortBy !== column ? ArrowUpDown : sortDir === "asc" ? ArrowUp : ArrowDown
+  return <Icon className="h-3 w-3" />
+}
+
 export function UsersView() {
   const [items, setItems] = useState<User[]>(users)
   const [query, setQuery] = useState("")
   const [createOpen, setCreateOpen] = useState(false)
   const [form, setForm] = useState({ name: "", email: "", role: "Analyste conformité" as Role, institution: "SFD Bamako", mfa: false })
+  const [sortBy, setSortBy] = useState<SortColumn | null>(null)
+  const [sortDir, setSortDir] = useState<SortDir>("asc")
+
+  const toggleSort = (col: SortColumn) => {
+    if (sortBy === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+    } else {
+      setSortBy(col)
+      setSortDir("asc")
+    }
+  }
 
   const filtered = items.filter((u) =>
     !query || u.name.toLowerCase().includes(query.toLowerCase()) || u.role.toLowerCase().includes(query.toLowerCase())
   )
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (!sortBy) return 0
+    const dir = sortDir === "asc" ? 1 : -1
+    if (sortBy === "name") return a.name.localeCompare(b.name) * dir
+    return a.lastLogin.localeCompare(b.lastLogin) * dir
+  })
 
   const submitUser = () => {
     if (!form.name.trim() || !form.email.trim()) {
@@ -149,17 +176,39 @@ export function UsersView() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50 text-left text-[11px] uppercase tracking-wide text-slate-400">
-                <th className="px-5 py-2.5 font-semibold">Utilisateur</th>
+                <th className="px-5 py-2.5 font-semibold">
+                  <button
+                    onClick={() => toggleSort("name")}
+                    className={cn(
+                      "inline-flex items-center gap-1 transition cursor-pointer",
+                      sortBy === "name" ? "text-indigo-600" : "hover:text-slate-600"
+                    )}
+                  >
+                    Utilisateur
+                    <SortIcon column="name" sortBy={sortBy} sortDir={sortDir} />
+                  </button>
+                </th>
                 <th className="px-3 py-2.5 font-semibold">Rôle</th>
                 <th className="px-3 py-2.5 font-semibold">Institution</th>
                 <th className="px-3 py-2.5 text-center font-semibold">MFA</th>
                 <th className="px-3 py-2.5 font-semibold">Statut</th>
-                <th className="px-3 py-2.5 font-semibold">Dernière connexion</th>
+                <th className="px-3 py-2.5 font-semibold">
+                  <button
+                    onClick={() => toggleSort("lastLogin")}
+                    className={cn(
+                      "inline-flex items-center gap-1 transition cursor-pointer",
+                      sortBy === "lastLogin" ? "text-indigo-600" : "hover:text-slate-600"
+                    )}
+                  >
+                    Dernière connexion
+                    <SortIcon column="lastLogin" sortBy={sortBy} sortDir={sortDir} />
+                  </button>
+                </th>
                 <th className="px-5 py-2.5"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((u) => (
+              {sorted.map((u) => (
                 <tr key={u.id} className="hover:bg-slate-50">
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2.5">

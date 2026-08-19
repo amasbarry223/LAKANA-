@@ -2,6 +2,7 @@
 
 import { ArrowUp, ArrowDown } from "lucide-react"
 import { Area, AreaChart, ResponsiveContainer } from "recharts"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
 type Metric = {
@@ -110,7 +111,8 @@ export function MetricCards() {
         return (
           <div
             key={m.label}
-            className="group rounded-xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:shadow-sm"
+            onClick={() => toast.info(m.label, { description: `Détail de la métrique : ${m.value}` })}
+            className="group cursor-pointer rounded-xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:shadow-sm"
           >
             <p className="text-[13px] font-medium text-slate-500">{m.label}</p>
             <p className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900">

@@ -433,7 +433,7 @@ export function Client360View() {
           <h3 className="text-base font-semibold text-slate-900">
             Historique des alertes
           </h3>
-          <button className="text-xs font-semibold text-indigo-600 hover:underline">
+          <button onClick={() => toast.info("Centre d'alertes", { description: "Redirection vers le centre d'alertes." })} className="cursor-pointer text-xs font-semibold text-indigo-600 hover:underline">
             Voir le centre d'alertes
           </button>
         </div>

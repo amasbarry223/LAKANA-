@@ -1,5 +1,7 @@
 "use client"
 
+import { toast } from "sonner"
+
 // Top motifs d'alerte — basés sur les critères de scoring (section 14 du cahier des charges)
 type Reason = {
   label: string
@@ -30,7 +32,7 @@ export function DropoffReasons() {
 
       <div className="mt-5 space-y-3.5">
         {reasons.map((r) => (
-          <div key={r.label}>
+          <div key={r.label} onClick={() => toast.info(r.label, { description: `${r.pct}% des alertes ce mois.` })} className="cursor-pointer">
             <div className="mb-1.5 flex items-center justify-between text-sm">
               <span className="font-medium text-slate-700">{r.label}</span>
               <span className="font-semibold text-slate-900">{r.pct}%</span>

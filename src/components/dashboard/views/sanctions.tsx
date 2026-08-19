@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { ShieldAlert, Search, Check, X, ChevronDown } from "lucide-react"
+import { ShieldAlert, Search, Check, X, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -43,10 +44,29 @@ const statusConfig: Record<Match["status"], { label: string; color: string }> = 
 
 const filters = ["Toutes", "En attente", "Confirmées", "Rejetées"] as const
 
+type SortColumn = "similarity" | "date"
+type SortDir = "asc" | "desc"
+
+function SortIcon({ column, sortBy, sortDir }: { column: SortColumn; sortBy: SortColumn | null; sortDir: SortDir }) {
+  const Icon: LucideIcon = sortBy !== column ? ArrowUpDown : sortDir === "asc" ? ArrowUp : ArrowDown
+  return <Icon className="h-3 w-3" />
+}
+
 export function SanctionsView() {
   const [items, setItems] = useState<Match[]>(matches)
   const [filter, setFilter] = useState<(typeof filters)[number]>("Toutes")
   const [query, setQuery] = useState("")
+  const [sortBy, setSortBy] = useState<SortColumn | null>(null)
+  const [sortDir, setSortDir] = useState<SortDir>("asc")
+
+  const toggleSort = (col: SortColumn) => {
+    if (sortBy === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+    } else {
+      setSortBy(col)
+      setSortDir("desc")
+    }
+  }
 
   const setStatus = (id: string, status: Match["status"]) => {
     setItems((arr) => arr.map((m) => (m.id === id ? { ...m, status } : m)))
@@ -60,6 +80,13 @@ export function SanctionsView() {
       (filter === "Rejetées" && m.status === "rejete")
     const queryOk = !query || m.client.toLowerCase().includes(query.toLowerCase()) || m.matchedEntry.toLowerCase().includes(query.toLowerCase())
     return statusOk && queryOk
+  })
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (!sortBy) return 0
+    const dir = sortDir === "asc" ? 1 : -1
+    if (sortBy === "similarity") return (a.similarity - b.similarity) * dir
+    return a.date.localeCompare(b.date) * dir
   })
 
   return (
@@ -116,11 +143,33 @@ export function SanctionsView() {
 
       {/* Matches list */}
       <div className="rounded-xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-100 px-5 py-3">
-          <h3 className="text-sm font-semibold text-slate-900">Correspondances ({filtered.length})</h3>
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+          <h3 className="text-sm font-semibold text-slate-900">Correspondances ({sorted.length})</h3>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => toggleSort("date")}
+              className={cn(
+                "inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide transition cursor-pointer",
+                sortBy === "date" ? "text-indigo-600" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              Date
+              <SortIcon column="date" sortBy={sortBy} sortDir={sortDir} />
+            </button>
+            <button
+              onClick={() => toggleSort("similarity")}
+              className={cn(
+                "inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide transition cursor-pointer",
+                sortBy === "similarity" ? "text-indigo-600" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              Similarité
+              <SortIcon column="similarity" sortBy={sortBy} sortDir={sortDir} />
+            </button>
+          </div>
         </div>
         <div className="divide-y divide-slate-100">
-          {filtered.map((m) => (
+          {sorted.map((m) => (
             <div key={m.id} className="flex flex-wrap items-center gap-3 px-5 py-4 hover:bg-slate-50">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100">
                 <ShieldAlert className="h-5 w-5 text-slate-500" />

@@ -88,7 +88,7 @@ export function OverviewView() {
           <h3 className="text-base font-semibold text-slate-900">Activité par module</h3>
           <div className="mt-4 space-y-3">
             {modules.map((m) => (
-              <div key={m.code} onClick={() => toast.info(`Module ${m.code}`, { description: `${m.count.toLocaleString("fr-FR")} signaux — ${m.name}` })} className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-100 p-3 hover:bg-slate-50">
+              <div key={m.code} onClick={() => toast.info("Module ouvert", { description: m.name })} className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-100 p-3 hover:bg-slate-50">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: `${m.color}15` }}>
                   <Activity className="h-4 w-4" style={{ color: m.color }} />
                 </div>

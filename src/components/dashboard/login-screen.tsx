@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ShieldAlert, Eye, EyeOff, Lock, User, ShieldCheck, AlertCircle, KeyRound, Mail, X } from "lucide-react"
+import { ShieldAlert, Eye, EyeOff, Lock, User, ShieldCheck, AlertCircle, KeyRound } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
@@ -21,8 +21,6 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
   const [mfaCode, setMfaCode] = useState("")
   const [error, setError] = useState("")
   const [attempts, setAttempts] = useState(0)
-  const [forgotOpen, setForgotOpen] = useState(false)
-  const [forgotEmail, setForgotEmail] = useState("")
 
   const selectedRole = roles.find((r) => r.value === role)!
 
@@ -57,18 +55,6 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
   const failAttempt = () => {
     setAttempts((a) => a + 1)
     setError(`Tentative échouée. ${5 - attempts - 1} restantes avant verrouillage (AUTH-04).`)
-  }
-
-  const handleForgotSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!forgotEmail.trim()) {
-      return
-    }
-    toast.success("Demande envoyée", {
-      description: "Si un compte existe pour cette adresse, un lien de réinitialisation a été envoyé (AUTH-09).",
-    })
-    setForgotEmail("")
-    setForgotOpen(false)
   }
 
   return (
@@ -164,8 +150,8 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
               <div className="mt-4 flex items-center justify-between text-xs">
                 <button
                   type="button"
-                  onClick={() => setForgotOpen(true)}
-                  className="font-medium text-indigo-600 hover:underline"
+                  onClick={() => toast.info("Réinitialisation", { description: "Si ce compte existe, un email de réinitialisation a été envoyé (AUTH-09)." })}
+                  className="cursor-pointer font-medium text-indigo-600 hover:underline"
                 >
                   Mot de passe oublié ? (AUTH-09)
                 </button>
@@ -231,75 +217,6 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
           Déconnexion automatique après inactivité (AUTH-07) · © Digi.Dev — Hackathon CIF 2026
         </p>
       </div>
-
-      {/* Forgot password dialog (AUTH-09) */}
-      {forgotOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setForgotOpen(false)}
-        >
-          <div
-            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50">
-                  <Mail className="h-4 w-4 text-indigo-600" />
-                </div>
-                <div>
-                  <h2 className="text-base font-semibold text-slate-900">Mot de passe oublié</h2>
-                  <p className="text-[11px] text-slate-400">Réinitialisation (AUTH-09)</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setForgotOpen(false)}
-                className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-                aria-label="Fermer"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleForgotSubmit} className="mt-4 space-y-4">
-              <div>
-                <label className="text-xs font-medium text-slate-600">Adresse e-mail</label>
-                <div className="relative mt-1">
-                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="email"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    placeholder="a.toure@sfd.ml"
-                    className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-                    required
-                  />
-                </div>
-                <p className="mt-1.5 text-[11px] text-slate-400">
-                  Si un compte existe pour cette adresse, un lien de réinitialisation vous sera envoyé.
-                </p>
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setForgotOpen(false)}
-                  className="h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="h-10 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700"
-                >
-                  Envoyer la demande
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -50,7 +50,7 @@ export function ReportsView() {
   const [period, setPeriod] = useState("Août 2026")
   const [periodOpen, setPeriodOpen] = useState(false)
 
-  const periodOptions = ["Cette semaine", "Ce mois", "Ce trimestre", "Cette année"]
+  const periodOptions = ["Juillet 2026", "Août 2026", "T2 2026", "T3 2026", "Année 2026"]
 
   const selectPeriod = (p: string) => {
     setPeriod(p)

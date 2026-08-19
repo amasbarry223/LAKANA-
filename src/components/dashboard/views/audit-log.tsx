@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { ScrollText, Search, Download, ChevronDown } from "lucide-react"
+import { ScrollText, Search, Download, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -34,14 +35,43 @@ const logs: LogEntry[] = [
 
 const modules = ["Tous modules", "Authentification", "Centre d'alertes", "Client 360°", "Investigations", "Risk Score", "Filtrage sanctions", "Utilisateurs", "Journal d'audit"]
 
+type SortColumn = "date" | "user"
+type SortDir = "asc" | "desc"
+
+const moreModules = ["Client 360°", "Investigations", "Risk Score", "Filtrage sanctions", "Utilisateurs", "Journal d'audit"]
+
+function SortIcon({ column, sortBy, sortDir }: { column: SortColumn; sortBy: SortColumn | null; sortDir: SortDir }) {
+  const Icon: LucideIcon = sortBy !== column ? ArrowUpDown : sortDir === "asc" ? ArrowUp : ArrowDown
+  return <Icon className="h-3 w-3" />
+}
+
 export function AuditLogView() {
   const [query, setQuery] = useState("")
   const [module, setModule] = useState("Tous modules")
+  const [sortBy, setSortBy] = useState<SortColumn | null>(null)
+  const [sortDir, setSortDir] = useState<SortDir>("asc")
+  const [moreOpen, setMoreOpen] = useState(false)
+
+  const toggleSort = (col: SortColumn) => {
+    if (sortBy === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+    } else {
+      setSortBy(col)
+      setSortDir("asc")
+    }
+  }
 
   const filtered = logs.filter((l) => {
     const queryOk = !query || l.user.toLowerCase().includes(query.toLowerCase()) || l.action.toLowerCase().includes(query.toLowerCase())
     const moduleOk = module === "Tous modules" || l.module === module
     return queryOk && moduleOk
+  })
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (!sortBy) return 0
+    const dir = sortDir === "asc" ? 1 : -1
+    if (sortBy === "user") return a.user.localeCompare(b.user) * dir
+    return a.date.localeCompare(b.date) * dir
   })
 
   const exportLogsCsv = () => {
@@ -127,13 +157,36 @@ export function AuditLogView() {
               {m}
             </button>
           ))}
-          <button
-            onClick={() => toast.info("Plus de filtres", { description: "Filtres avancés par module." })}
-            className="flex h-9 items-center gap-1 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-600 hover:bg-slate-50"
-          >
-            Plus
-            <ChevronDown className="h-3.5 w-3.5" />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setMoreOpen(!moreOpen)}
+              className="flex h-9 items-center gap-1 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Plus
+              <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+            {moreOpen && (
+              <div className="absolute right-0 top-11 z-50 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+                <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Modules</p>
+                {moreModules.map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => {
+                      setModule(m)
+                      setMoreOpen(false)
+                      toast.info("Filtre appliqué", { description: m })
+                    }}
+                    className={cn(
+                      "block w-full rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-slate-50",
+                      module === m ? "font-semibold text-indigo-700" : "text-slate-600"
+                    )}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -143,8 +196,30 @@ export function AuditLogView() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50 text-left text-[11px] uppercase tracking-wide text-slate-400">
-                <th className="px-5 py-2.5 font-semibold">Horodatage</th>
-                <th className="px-3 py-2.5 font-semibold">Utilisateur</th>
+                <th className="px-5 py-2.5 font-semibold">
+                  <button
+                    onClick={() => toggleSort("date")}
+                    className={cn(
+                      "inline-flex items-center gap-1 transition cursor-pointer",
+                      sortBy === "date" ? "text-indigo-600" : "hover:text-slate-600"
+                    )}
+                  >
+                    Horodatage
+                    <SortIcon column="date" sortBy={sortBy} sortDir={sortDir} />
+                  </button>
+                </th>
+                <th className="px-3 py-2.5 font-semibold">
+                  <button
+                    onClick={() => toggleSort("user")}
+                    className={cn(
+                      "inline-flex items-center gap-1 transition cursor-pointer",
+                      sortBy === "user" ? "text-indigo-600" : "hover:text-slate-600"
+                    )}
+                  >
+                    Utilisateur
+                    <SortIcon column="user" sortBy={sortBy} sortDir={sortDir} />
+                  </button>
+                </th>
                 <th className="px-3 py-2.5 font-semibold">Module</th>
                 <th className="px-3 py-2.5 font-semibold">Action</th>
                 <th className="px-3 py-2.5 font-semibold">Résultat</th>
@@ -152,7 +227,7 @@ export function AuditLogView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((l) => (
+              {sorted.map((l) => (
                 <tr key={l.id} onClick={() => toast.info(`Entrée ${l.id}`, { description: `${l.user} — ${l.action}` })} className="cursor-pointer hover:bg-slate-50">
                   <td className="px-5 py-3 font-mono text-xs text-slate-500">{l.date}</td>
                   <td className="px-3 py-3">
