@@ -58,3 +58,22 @@ Work Log:
 
 Stage Summary:
 - Dashboard LAKANA entièrement adapté au cahier des charges, frontend uniquement (pas de backend). Couvre les modules Centre d'alertes (ALR), Risk Score (SCR), Filtrage PPE (FLT), Détection comportementale (CMP), Fractionnement (FRC), Investigations (INV), Assistant IA (IA rappel), mode hors ligne (OFF-03). Navigation reflète l'architecture fonctionnelle section 9. Données métier réalistes (noms maliens, montants, seuils réglementaires).
+
+---
+Task ID: LAKANA-views
+Agent: main
+Task: Rendre la navigation fonctionnelle — 4 vues du MVP LAKANA (frontend uniquement)
+
+Work Log:
+- Refactorisé sidebar.tsx : active state levé en props (active/onSelect) contrôlé par page.tsx.
+- Créé 4 vues dans src/components/dashboard/views/ :
+  * alerts-center.tsx : Centre d'alertes (vue existante extraite en composant).
+  * client-360.tsx : Vue Client 360° (C360) — sélecteur de 3 clients, carte profil (avatar, badges risque/PPE, profession, DOB, ville, comptes FCFA), jauge Risk Score circulaire SVG + 5 barres de facteurs pondérés, chart historique transactions, graphe de relations SVG (nœud client + comptes + bénéficiaire signalé en rouge), historique des alertes.
+  * investigations.tsx : Vue Investigations (INV) — 4 cartes stats, filtres par statut (Toutes/En cours/Classées/Transmises) avec compteurs, liste de 6 dossiers cliquables, panneau détail (client, alerte, type, score, analyste, dates, décision motivée, notes/pièces, bouton documenter ou rouvrir).
+  * risk-score.tsx : Vue Risk Score (SCR) — 5 cartes critères section 14 (Fractionnement 30, Volume 25, Fréquence 20, PPE 15, Relations 10) avec sliders ajustables (SCR-04), note traçabilité, chart distribution scores clients (barres colorées par niveau), line chart évolution score moyen, tableau 7 règles de scoring actives.
+- page.tsx transformé en client component avec useState pour la vue active, rendu conditionnel des 4 vues.
+- Lint propre. Serveur HTTP 200, aucune erreur runtime sur les 4 vues.
+- Vérification browser + VLM : les 4 vues (Centre d'alertes, Client 360°, Investigations, Risk Score) s'affichent correctement et le switching par sidebar fonctionne.
+
+Stage Summary:
+- 4 vues MVP LAKANA opérationnelles et navigables. Couvre Lots MVP 3, 4, 5 (§19) : Filtrage & alertes, Client 360° & graphe, Investigations & scoring. Le header et sidebar restent fixes pendant la navigation entre vues.
