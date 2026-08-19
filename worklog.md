@@ -77,3 +77,27 @@ Work Log:
 
 Stage Summary:
 - 4 vues MVP LAKANA opérationnelles et navigables. Couvre Lots MVP 3, 4, 5 (§19) : Filtrage & alertes, Client 360° & graphe, Investigations & scoring. Le header et sidebar restent fixes pendant la navigation entre vues.
+
+---
+Task ID: LAKANA-all-views
+Agent: main
+Task: Implémenter toutes les autres pages/vues LAKANA (frontend uniquement)
+
+Work Log:
+- Créé 9 nouvelles vues dans src/components/dashboard/views/ :
+  * overview.tsx : Tableau de bord — KPIs cross-module (clients filtrés, alertes actives, investigations, score moyen), chart activité 8 semaines, activité par module, état de conformité.
+  * graph.tsx : Graphe de relations — réseau SVG interactif (client/comptes/bénéficiaires), zoom, nœud signalé en rouge, panneau détail nœud, export (GRF-01/02/03/04).
+  * sanctions.tsx : Filtrage sanctions/PPE — 4 stats, recherche, filtres statut, liste 7 correspondances avec similarité %, badges listes (ONU/GAFI/CENTIF/PPE), actions confirmer/rejeter (FLT-01/02/04/05).
+  * behavioral.tsx : Détection comportementale — 4 stats, chart comparaison habituel vs récent, tableau 6 écarts (montant/fréquence/solde) avec % écart et niveaux (CMP-01/02/03).
+  * structuring.tsx : Fractionnement — 4 stats, 4 séquences détaillées (txs individuelles sous seuil, cumul, fenêtre temporelle, barre progression) (FRC-01/02/03).
+  * users.tsx : Utilisateurs & rôles — 4 stats, recherche, table 8 utilisateurs (rôle, institution, MFA, statut, dernière connexion), matrice des droits section 12.3 (L/E/—) (BO-01).
+  * audit-log.tsx : Journal d'audit — 4 stats, recherche, filtres module, table 12 entrées (horodatage, utilisateur, module, action, résultat, IP) (BO-05/AUTH-08).
+  * reports.tsx : Rapports réglementaires — 4 stats, 4 modèles générables (CENTIF/BCEAO/interne/synthèse), historique 6 rapports avec statut et téléchargement (BO-06).
+  * sync.tsx : Synchronisation — bannière statut en ligne/hors ligne (toggle), 4 stats, liste 8 sources (listes ONU/GAFI/CENTIF/PPE, connecteurs SFD, base locale), file d'attente hors ligne (OFF-01/02/03/04), indicateur ancienneté.
+- Refactorisé page.tsx : map views→composants, rendu dynamique selon active.
+- Corrigé 1 erreur lint (caractère '>' non échappé dans overview.tsx).
+- Lint propre. Serveur HTTP 200.
+- Vérification browser : les 13 vues naviguent sans erreur runtime. VLM confirme le rendu correct de Tableau de bord, Graphe, Sanctions, Utilisateurs, Synchronisation.
+
+Stage Summary:
+- 13 vues LAKANA opérationnelles couvrant toute la navigation (Tableau de bord, ANALYSE: Centre d'alertes/Client 360°/Graphe/Investigations, CONFORMITÉ: Filtrage sanctions-PPE/Risk Score/Détection comportementale/Fractionnement, ADMINISTRATION: Utilisateurs/Journal audit/Rapports, PARAMÈTRES: Synchronisation). Couvre les modules INT, FLT, SCR, CMP, FRC, GRF, ALR, C360, INV, OFF et back-office BO-01/05/06 du cahier des charges. Lots MVP 1-6 (§19) représentés côté frontend.
