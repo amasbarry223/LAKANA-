@@ -101,3 +101,25 @@ Work Log:
 
 Stage Summary:
 - 13 vues LAKANA opérationnelles couvrant toute la navigation (Tableau de bord, ANALYSE: Centre d'alertes/Client 360°/Graphe/Investigations, CONFORMITÉ: Filtrage sanctions-PPE/Risk Score/Détection comportementale/Fractionnement, ADMINISTRATION: Utilisateurs/Journal audit/Rapports, PARAMÈTRES: Synchronisation). Couvre les modules INT, FLT, SCR, CMP, FRC, GRF, ALR, C360, INV, OFF et back-office BO-01/05/06 du cahier des charges. Lots MVP 1-6 (§19) représentés côté frontend.
+
+---
+Task ID: LAKANA-missing-modules
+Agent: main
+Task: Implémenter les modules manquants du cahier des charges LAKANA (frontend uniquement)
+
+Work Log:
+- Identifié les modules manquants vs cahier des charges : Assistant IA (10.10), Intégration (10.1), Paramètres (BO-03/04), Notifications (BO-09), page de connexion (Lot MVP 1 AUTH-01 à 09).
+- Créé 5 nouveaux composants :
+  * views/assistant-ia.tsx : Chat IA — conversation, questions suggérées, contexte client (score + facteurs), rappel décision humaine (IA-01 à 04), mode secours mentionné (IA-04).
+  * views/integration.tsx : Ingestion — drag&drop fichiers CSV/Excel (INT-01), pipeline 3 étapes (validation/détection/analyse auto INT-02/03/06), connecteurs SFD (BO-07), journal des imports (INT-04), doublons/incohérences (INT-03).
+  * views/settings.tsx : Paramètres — 5 onglets (Général/Scoring/Seuils réglementaires/Institutions/Sécurité), sliders pondération règles (BO-03) avec historique versions, seuils configurables (BO-04 : déclaration, fractionnement, fenêtre, verrouillage, inactivité), institutions multi-SFD isolées (BO-08), MFA/sessions (AUTH-04/05/07).
+  * views/notifications.tsx : Notifications — 4 stats, filtres (Toutes/Non lues/Bloquantes/Investigations), liste avec types (bloquante/investigation/synchro/liste/système), marquer lu (BO-09).
+  * login-screen.tsx : Connexion — logo bouclier, identifiant/mot de passe (AUTH-01), validation longueur (AUTH-03), sélecteur rôle RBAC, MFA 6 chiffres pour rôles sensibles (AUTH-05), rappel bcrypt/JWT/journalisation (AUTH-02/06/08), mot de passe oublié (AUTH-09).
+- Mis à jour sidebar.tsx : ajout Assistant IA (ANALYSE) + Intégration des données (ADMINISTRATION), bouton Déconnexion, profil dynamique (userName/userRole props), icône Database.
+- Mis à jour page.tsx : auth gate (localStorage persistant), 17 vues mappées, handleLogin/handleLogout, dérivation userName depuis rôle.
+- Corrigé 2 erreurs : DatabaseImport inexistant dans lucide-react (→ Database), setState-in-effect lint (→ suppression useEffect).
+- Lint propre. Serveur HTTP 200.
+- Vérification browser + VLM : login screen rendu, login Analyste réussit (dashboard), 4 nouvelles vues (Assistant IA, Intégration, Paramètres, Notifications) confirmées sans erreur runtime.
+
+Stage Summary:
+- 5 modules manquants implémentés. Le projet couvre maintenant TOUS les modules du cahier des charges côté frontend : INT, FLT, SCR, CMP, FRC, GRF, ALR, C360, INV, IA, OFF, BO-01 à 09, AUTH-01 à 09. 17 vues navigables + écran de connexion avec MFA. Lot MVP 1 (Auth & RBAC) entièrement représenté.

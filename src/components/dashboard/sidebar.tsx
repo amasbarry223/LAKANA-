@@ -6,6 +6,7 @@ import {
   UserRound,
   Share2,
   FolderSearch,
+  Sparkles,
   ShieldAlert,
   Gauge,
   Activity,
@@ -13,13 +14,15 @@ import {
   Users,
   ScrollText,
   FileBarChart,
+  Database,
   Settings,
   RefreshCw,
   Bell,
   MoreVertical,
+  LogOut,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 type NavItem = {
   label: string
@@ -44,6 +47,7 @@ const sections: NavSection[] = [
       { label: "Client 360°", icon: UserRound },
       { label: "Graphe de relations", icon: Share2 },
       { label: "Investigations", icon: FolderSearch },
+      { label: "Assistant IA", icon: Sparkles },
     ],
   },
   {
@@ -58,6 +62,7 @@ const sections: NavSection[] = [
   {
     title: "ADMINISTRATION",
     items: [
+      { label: "Intégration des données", icon: Database },
       { label: "Utilisateurs & rôles", icon: Users },
       { label: "Journal d'audit", icon: ScrollText },
       { label: "Rapports réglementaires", icon: FileBarChart },
@@ -76,9 +81,15 @@ const sections: NavSection[] = [
 export function DashboardSidebar({
   active,
   onSelect,
+  userName = "Aminata Touré",
+  userRole = "Analyste conformité",
+  onLogout,
 }: {
   active: string
   onSelect: (label: string) => void
+  userName?: string
+  userRole?: string
+  onLogout?: () => void
 }) {
   return (
     <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-[260px] shrink-0 flex-col border-r border-slate-200 bg-white">
@@ -140,15 +151,23 @@ export function DashboardSidebar({
       <div className="border-t border-slate-100 p-3">
         <div className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-slate-50 cursor-pointer">
           <Avatar className="h-9 w-9 border border-slate-200">
-            <AvatarImage src="https://i.pravatar.cc/80?img=47" alt="Aminata Touré" />
             <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs font-semibold">
-              AT
+              {userName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-slate-900">Aminata Touré</p>
-            <p className="truncate text-xs text-slate-400">Analyste conformité</p>
+            <p className="truncate text-sm font-semibold text-slate-900">{userName}</p>
+            <p className="truncate text-xs text-slate-400">{userRole}</p>
           </div>
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              title="Déconnexion"
+              className="rounded-md p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          )}
           <button className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
             <MoreVertical className="h-4 w-4" />
           </button>
