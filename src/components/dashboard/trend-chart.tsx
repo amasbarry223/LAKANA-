@@ -19,30 +19,26 @@ type Series = {
   color: string
 }
 
+// Niveaux d'alerte — ALR-01 : bloquante, à analyser, informative
 const series: Series[] = [
-  { key: "signup", name: "Signup to Paid", color: "#6366F1" },
-  { key: "trial", name: "Free Trial to Paid", color: "#3B82F6" },
-  { key: "activation", name: "Product Activation", color: "#14B8A6" },
-  { key: "lead", name: "Lead to Opportunity", color: "#EF4444" },
+  { key: "bloquante", name: "Bloquante", color: "#EF4444" },
+  { key: "analyser", name: "À analyser", color: "#F59E0B" },
+  { key: "informative", name: "Informative", color: "#06B6D4" },
 ]
 
-// Build ~6 weeks of daily-ish points
 const dates: string[] = []
-const start = new Date("2024-04-18")
-for (let i = 0; i <= 37; i += 3) {
+const start = new Date("2026-07-07")
+for (let i = 0; i <= 49; i += 4) {
   const d = new Date(start)
   d.setDate(start.getDate() + i)
-  dates.push(
-    d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-  )
+  dates.push(d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }))
 }
 
 const data = dates.map((date, i) => ({
   date,
-  signup: +(22 + Math.sin(i * 0.9) * 4 + Math.cos(i * 0.4) * 2).toFixed(1),
-  trial: +(17 + Math.sin(i * 0.7) * 2.5).toFixed(1),
-  activation: +(12 + Math.sin(i * 0.6 + 1) * 2).toFixed(1),
-  lead: +(6 + Math.sin(i * 0.8 + 2) * 3).toFixed(1),
+  bloquante: Math.round(18 + Math.sin(i * 0.9) * 6 + i * 0.2),
+  analyser: Math.round(80 + Math.sin(i * 0.7) * 15 + i * 0.3),
+  informative: Math.round(45 + Math.sin(i * 0.6 + 1) * 12),
 }))
 
 function CustomTooltip({ active, payload, label }: any) {
@@ -59,7 +55,7 @@ function CustomTooltip({ active, payload, label }: any) {
             />
             <span className="text-slate-500">{p.name}</span>
             <span className="ml-auto font-semibold text-slate-900">
-              {p.value}%
+              {p.value} alertes
             </span>
           </div>
         ))}
@@ -69,8 +65,8 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export function TrendChartWidget() {
-  const [metric, setMetric] = useState("Conversion Rate")
-  const [granularity, setGranularity] = useState("Day")
+  const [metric, setMetric] = useState("Volume d'alertes")
+  const [granularity, setGranularity] = useState("Jour")
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5">
@@ -78,22 +74,22 @@ export function TrendChartWidget() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-semibold text-slate-900">
-            Funnel Trend Over Time
+            Évolution des alertes
           </h3>
           <p className="mt-1 text-xs text-slate-400">
-            Conversion rate across funnels • Apr 18 - May 25
+            Par niveau de criticité • 7 juil. - 25 août 2026
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setMetric(metric === "Conversion Rate" ? "Completions" : "Conversion Rate")}
+            onClick={() => setMetric(metric === "Volume d'alertes" ? "Risk Score moyen" : "Volume d'alertes")}
             className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             {metric}
             <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
           </button>
           <button
-            onClick={() => setGranularity(granularity === "Day" ? "Week" : "Day")}
+            onClick={() => setGranularity(granularity === "Jour" ? "Semaine" : "Jour")}
             className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             {granularity}
@@ -129,9 +125,8 @@ export function TrendChartWidget() {
               tick={{ fontSize: 11, fill: "#94A3B8" }}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v) => `${v}%`}
-              domain={[0, 32]}
-              ticks={[0, 8, 16, 24, 32]}
+              domain={[0, 120]}
+              ticks={[0, 30, 60, 90, 120]}
             />
             <Tooltip content={<CustomTooltip />} />
             {series.map((s) => (

@@ -1,0 +1,446 @@
+     1→# Cahier des charges du projet LAKANA
+     2→
+     3→**Projet :** Plateforme de filtrage clients et de conformité LBC/FT/FP pour les Systèmes Financiers Décentralisés (SFD) au Mali
+     4→**Nom du produit :** LAKANA — « le bouclier », en bambara
+     5→**Programme :** Hackathon National d'Innovation CIF 2026 — DigiCoop-WA+
+     6→**Thématique :** Thématique 1 — Filtrage des clients et conformité LBC/FT/FP
+     7→**Équipe :** Digi.Dev
+     8→**Version :** 1.0
+     9→**Date :** 19 août 2026
+    10→
+    11→---
+    12→
+    13→## 1. Résumé exécutif
+    14→
+    15→LAKANA est une plateforme numérique de filtrage clients et de conformité LBC/FT/FP destinée aux Systèmes Financiers Décentralisés (SFD) du Mali. Plutôt que de remplacer les applications de gestion des membres, comptes et opérations déjà utilisées par les institutions, LAKANA se branche sur ces systèmes existants pour analyser en continu les clients et leurs transactions, détecter les comportements financiers inhabituels, filtrer les personnes politiquement exposées et les listes de sanctions, puis transformer ces signaux en dossiers d'investigation exploitables par le responsable conformité.
+    16→
+    17→Le projet repose sur une idée centrale : disposer de données ne signifie pas être en mesure d'identifier rapidement un comportement financier inhabituel, surtout lorsque les volumes sont importants et que les équipes conformité disposent de ressources limitées. LAKANA ne vise donc pas à stocker davantage de données, mais à transformer les données déjà détenues par les institutions en informations exploitables, priorisées et défendables devant un contrôle réglementaire.
+    18→
+    19→Le nom LAKANA — « le bouclier », en bambara — porte la promesse du projet : détecter les signaux à risque, permettre à l'analyste de comprendre pourquoi un client ou une opération est signalé, et l'aider à agir rapidement, sans jamais se substituer à la décision humaine finale.
+    20→
+    21→## 2. Contexte et justification du projet
+    22→
+    23→Les institutions de microfinance disposent aujourd'hui de systèmes informatiques pour enregistrer clients, comptes et transactions. Mais l'analyse de ces données reste largement manuelle, ponctuelle ou limitée à des règles isolées, alors que le risque de blanchiment de capitaux, de financement du terrorisme ou de la prolifération se révèle souvent dans le comportement global d'un client plutôt que dans une transaction prise isolément.
+    24→
+    25→Exemple concret : une transaction de 950 000 FCFA peut sembler normale isolément. Mais si le même client réalise dans les heures suivantes plusieurs opérations de 920 000, 980 000 et 870 000 FCFA — soit 4 710 000 FCFA au total — l'analyse de l'ensemble du comportement révèle une situation nécessitant une investigation, alors qu'aucune transaction individuelle ne dépasse un seuil isolé. C'est ce type de signal que les outils actuels des SFD ne mettent pas en évidence.
+    26→
+    27→LAKANA répond à ce besoin en proposant une couche d'analyse complémentaire, non intrusive, qui réduit le coût et le risque d'adoption pour des institutions ayant déjà investi dans leurs outils de gestion, tout en les alignant sur les exigences réglementaires en vigueur dans l'espace UMOA.
+    28→
+    29→## 3. Vision du projet
+    30→
+    31→La vision de LAKANA est de devenir la couche de conformité intelligente de référence pour les Systèmes Financiers Décentralisés en Afrique de l'Ouest : une solution qui s'intègre aux outils existants plutôt que de les remplacer, qui explique chacune de ses décisions plutôt que de fonctionner comme une boîte noire, et qui reste utilisable par des agents non spécialistes de la data.
+    32→
+    33→LAKANA n'a pas vocation à remplacer le jugement du responsable conformité. Son rôle est de détecter précocement les comportements à risque, de prioriser les dossiers à traiter en premier, de produire une première analyse structurée et explicable, et de laisser la décision finale — gel, blocage, déclaration de soupçon — entièrement entre les mains de l'agent habilité.
+    34→
+    35→| Élément de vision | Description opérationnelle |
+    36→|---|---|
+    37→| Détection explicable | Chaque score et chaque alerte doit être accompagné des facteurs qui l'expliquent, condition indispensable pour qu'un agent conformité documente et défende sa décision. |
+    38→| Complémentarité | LAKANA se branche sur les systèmes existants (API, fichiers d'échange) plutôt que de remplacer les outils de gestion déjà en place. |
+    39→| Ancrage régional | Le moteur de filtrage et les règles de scoring doivent être calibrés sur les réalités ouest-africaines : noms, volumes, connectivité, cadre BCEAO/UMOA. |
+    40→| Décision humaine | Une alerte n'est ni une preuve ni une déclaration de soupçon ; elle déclenche une analyse dont la décision reste soumise aux procédures de l'institution. |
+    41→| Continuité hors ligne | Le système doit rester fiable et sûr même en connectivité limitée, sans jamais faire l'impasse sur une mise à jour critique des listes de sanctions. |
+    42→
+    43→## 4. Objectifs du projet
+    44→
+    45→L'objectif général de LAKANA est de fournir aux Systèmes Financiers Décentralisés une couche d'analyse comportementale et de filtrage capable de transformer leurs données transactionnelles en alertes priorisées et en dossiers d'investigation exploitables. Cet objectif général se décline en objectifs spécifiques.
+    46→
+    47→| Catégorie | Objectifs spécifiques |
+    48→|---|---|
+    49→| Objectifs de détection | Identifier les comportements financiers inhabituels, les tentatives de fractionnement et les correspondances avec les listes de sanctions ou de PPE, y compris lorsqu'aucune transaction individuelle ne dépasse un seuil isolé. |
+    50→| Objectifs de conformité réglementaire | Aligner le système sur la loi uniforme LBC/FT/FP de l'UMOA et sur les instructions d'application de la BCEAO, notamment la classification des clients par niveau de risque et la piste d'audit complète. |
+    51→| Objectifs d'efficacité opérationnelle | Réduire le temps d'analyse manuelle des équipes conformité et prioriser les dossiers critiques plutôt que de traiter les alertes dans l'ordre d'arrivée. |
+    52→| Objectifs d'intégration | S'interfacer avec les systèmes de gestion existants des SFD (API, fichiers d'échange) sans exiger leur remplacement. |
+    53→| Objectifs de gouvernance | Garantir la traçabilité de chaque alerte et de chaque décision, et maintenir une frontière claire entre l'analyse automatisée et la décision humaine. |
+    54→| Objectifs d'accessibilité | Rester utilisable en connectivité instable, adapté aux réalités opérationnelles des coopératives ouest-africaines. |
+    55→
+    56→## 5. Périmètre du projet
+    57→
+    58→Le périmètre fonctionnel initial de LAKANA couvre l'intégration aux systèmes existants, le filtrage sanctions/PPE, le scoring comportemental, la détection du fractionnement, la visualisation des relations financières et la gestion des alertes et investigations. Le projet pourra ensuite évoluer vers des modules complémentaires tels que la déduplication biométrique à l'enrôlement.
+    59→
+    60→| Périmètre | Inclus dans le MVP | Évolution future |
+    61→|---|---|---|
+    62→| Filtrage sanctions & PPE (fuzzy matching) | Oui | Oui — élargissement des sources |
+    63→| Risk Score explicable | Oui | Oui |
+    64→| Détection comportementale | Oui | Oui |
+    65→| Détection du fractionnement | Oui | Oui |
+    66→| Graphe des relations financières | Oui | Oui |
+    67→| Centre d'alertes priorisées | Oui | Oui |
+    68→| Client 360° | Oui | Oui |
+    69→| Gestion des investigations | Oui | Oui |
+    70→| Assistant IA d'aide à l'analyse | Oui | Oui |
+    71→| Back-office d'administration | Oui | Oui — multi-institutions |
+    72→| Authentification et RBAC | Oui | Oui — MFA généralisée |
+    73→| Fonctionnement à connectivité limitée | Partielle | Oui |
+    74→| Module anti-structuration (biométrie) | Non | Oui — V2 |
+    75→| API publique pour éditeurs partenaires | Non | Oui |
+    76→
+    77→## 6. Publics cibles et parties prenantes
+    78→
+    79→LAKANA doit être conçu comme une plateforme multi-acteurs, où chaque profil dispose d'un niveau d'accès et d'une expérience adaptés à son rôle dans le dispositif de conformité.
+    80→
+    81→| Partie prenante | Besoin principal | Valeur apportée par LAKANA |
+    82→|---|---|---|
+    83→| Analystes conformité | Traiter les alertes prioritaires sans être submergés de faux positifs. | Centre d'alertes priorisées, Client 360°, assistant IA explicatif. |
+    84→| Responsables conformité / superviseurs | Superviser l'activité, ajuster les règles, produire des rapports défendables. | Back-office de paramétrage, tableaux de bord, export réglementaire. |
+    85→| Directions des SFD | Adopter une solution peu coûteuse à intégrer et à faible risque opérationnel. | Couche complémentaire branchée sur les systèmes existants, sans remplacement. |
+    86→| Administrateurs système | Gérer les comptes, les droits d'accès et la disponibilité technique. | Back-office technique, gestion des rôles, supervision des synchronisations. |
+    87→| Auditeurs internes / externes | Vérifier la traçabilité des décisions et la conformité des procédures. | Journal d'audit complet, piste d'audit par alerte et par utilisateur. |
+    88→| BCEAO / CENTIF-Mali | Disposer d'un dispositif de conformité aligné sur le cadre réglementaire. | Classification des risques, filtrage PPE, piste d'audit conforme aux textes en vigueur. |
+    89→
+    90→## 7. Cadre réglementaire
+    91→
+    92→Au Mali, les Systèmes Financiers Décentralisés sont assujettis à la Loi uniforme relative à la LBC/FT/FP adoptée par le Conseil des Ministres de l'UMOA le 31 mars 2023, ainsi qu'aux instructions d'application de la BCEAO — en particulier l'Instruction n°003-03-2025 du 18 mars 2025, qui précise les modalités d'identification, de vérification de l'identité et de connaissance de la clientèle (KYC). L'UEMOA a par ailleurs harmonisé à 10 millions FCFA le seuil de déclaration pour les transports physiques d'espèces entre États membres.
+    93→
+    94→LAKANA est conçu pour s'aligner directement sur ce cadre : classification des clients par niveau de risque, filtrage des Personnes Politiquement Exposées, et piste d'audit complète pour chaque alerte — trois exigences explicitement portées par ces textes. Les listes de sanctions et de PPE utilisées par le système doivent provenir de sources officielles ou autorisées (ONU, GAFI, CENTIF), et toute correspondance automatique doit être confirmée par une revue humaine avant toute mesure de gel ou de blocage.
+    95→
+    96→## 8. Parcours opérationnel attendu
+    97→
+    98→Le parcours principal part des systèmes existants des SFD et se termine par une décision humaine documentée, en passant par une chaîne d'analyse automatisée qui priorise le travail de l'analyste plutôt que de décider à sa place.
+    99→
+   100→| Étape | Description | Résultat attendu |
+   101→|---|---|---|
+   102→| Ingestion | Réception des données clients, comptes et transactions depuis les systèmes existants (API, fichiers d'échange, synchronisation). | Les données sont disponibles et horodatées dans LAKANA. |
+   103→| Filtrage sanctions/PPE | Vérification du client contre les listes de sanctions et PPE via fuzzy matching. | Les correspondances potentielles sont identifiées et scorées. |
+   104→| Scoring comportemental | Calcul d'un Risk Score explicable à partir de règles pondérées. | Un score et ses facteurs explicatifs sont produits. |
+   105→| Détection comportementale | Comparaison du comportement récent au comportement historique du client. | Les écarts significatifs sont signalés. |
+   106→| Détection du fractionnement | Repérage de séquences de transactions groupées sous le seuil de déclaration. | Les séquences suspectes sont regroupées et présentées. |
+   107→| Génération de l'alerte | Consolidation des signaux en une alerte classée par niveau. | Une alerte bloquante, à analyser ou informative est créée. |
+   108→| Priorisation | Classement des alertes dans le centre d'alertes. | Les dossiers critiques apparaissent en premier. |
+   109→| Investigation | Prise en charge de l'alerte par un analyste, consultation du Client 360° et du graphe de relations. | Un dossier d'investigation documenté est constitué. |
+   110→| Décision humaine | Clôture de l'investigation par l'analyste ou le responsable conformité. | Une décision motivée est enregistrée et tracée. |
+   111→| Traçabilité continue | Journalisation de chaque étape et de chaque accès. | Le dossier est intégralement auditable a posteriori. |
+   112→
+   113→## 9. Architecture fonctionnelle proposée
+   114→
+   115→L'architecture de LAKANA sépare clairement les systèmes sources, la couche d'intégration, le moteur d'analyse, le référentiel de sanctions/PPE, l'interface conformité, le back-office d'administration et la couche d'authentification. Cette séparation permet de faire évoluer chaque brique — notamment les règles de scoring ou les sources de sanctions — sans remettre en cause l'ensemble de la plateforme.
+   116→
+   117→| Couche | Composants | Rôle |
+   118→|---|---|---|
+   119→| Systèmes sources | Applications de gestion membres/comptes/opérations déjà utilisées par les SFD. | Fournir les données brutes de clients, comptes et transactions. |
+   120→| Couche d'intégration | Connecteurs API, import de fichiers d'échange, synchronisation différée. | Alimenter LAKANA sans dupliquer la gestion opérationnelle des SFD. |
+   121→| Référentiel sanctions/PPE | Listes ONU, GAFI, CENTIF, moteur de fuzzy matching orthographique/phonétique. | Détecter les correspondances avec les listes officielles. |
+   122→| Moteur d'analyse | Règles de scoring, détection comportementale, détection du fractionnement, calcul du graphe. | Transformer les données en scores, écarts et alertes explicables. |
+   123→| Interface conformité (front-office) | Dashboard, centre d'alertes, Client 360°, graphe, investigations, assistant IA. | Permettre à l'analyste de traiter les alertes et documenter ses décisions. |
+   124→| Back-office d'administration | Gestion des utilisateurs, des listes, des règles et des seuils, rapports réglementaires. | Permettre au responsable conformité et à l'administrateur de configurer et superviser le système. |
+   125→| Authentification & contrôle d'accès | Login, gestion des sessions, rôles et permissions (RBAC). | Garantir que chaque utilisateur n'accède qu'aux fonctions autorisées par son rôle. |
+   126→| Observabilité | Journal d'audit, logs techniques, indicateurs de synchronisation. | Auditer les décisions et diagnostiquer les incidents. |
+   127→
+   128→## 10. Fonctionnalités par module
+   129→
+   130→Cette section détaille les exigences fonctionnelles de LAKANA, organisées par module. Chaque exigence est identifiée par un code utilisable pour les tests d'acceptation et la priorisation du développement.
+   131→
+   132→### 10.1 Module Intégration & Ingestion des données
+   133→
+   134→| Code | Exigence fonctionnelle | Priorité |
+   135→|---|---|---|
+   136→| INT-01 | Importer les données clients, comptes et transactions depuis les systèmes existants via API ou fichiers d'échange (CSV, Excel). | Haute |
+   137→| INT-02 | Valider le format et la complétude des données importées avant intégration. | Haute |
+   138→| INT-03 | Détecter et signaler les doublons ou incohérences lors de l'import. | Moyenne |
+   139→| INT-04 | Journaliser chaque import : source, date, volume, résultat. | Haute |
+   140→| INT-05 | Permettre une synchronisation différée en cas de connectivité instable. | Haute |
+   141→| INT-06 | Déclencher automatiquement l'analyse (scoring, filtrage) dès qu'une nouvelle transaction est intégrée. | Haute |
+   142→
+   143→### 10.2 Module Filtrage Sanctions & PPE
+   144→
+   145→| Code | Exigence fonctionnelle | Priorité |
+   146→|---|---|---|
+   147→| FLT-01 | Comparer chaque client aux listes de sanctions et de PPE (ONU, GAFI, CENTIF) par correspondance exacte et approximative (fuzzy matching). | Haute |
+   148→| FLT-02 | Calibrer le moteur de correspondance sur les variations orthographiques et phonétiques des noms ouest-africains (ex. Traoré/Traore). | Haute |
+   149→| FLT-03 | Afficher un score de similarité pour chaque correspondance potentielle. | Haute |
+   150→| FLT-04 | Exiger une revue humaine avant toute mesure de gel ou de blocage liée à une correspondance. | Haute |
+   151→| FLT-05 | Permettre le rejet motivé d'une correspondance identifiée comme faux positif. | Moyenne |
+   152→| FLT-06 | Relancer automatiquement le filtrage de la base clients après chaque mise à jour des listes. | Haute |
+   153→
+   154→### 10.3 Module Risk Score
+   155→
+   156→| Code | Exigence fonctionnelle | Priorité |
+   157→|---|---|---|
+   158→| SCR-01 | Calculer un score de risque dynamique par client, exprimé sur 100 points. | Haute |
+   159→| SCR-02 | Associer à chaque score la liste des facteurs qui l'expliquent (volume, fréquence, écart historique, relations). | Haute |
+   160→| SCR-03 | Recalculer le score à chaque nouvelle transaction ou changement de statut du client. | Haute |
+   161→| SCR-04 | Permettre au responsable conformité de consulter et d'ajuster la pondération des règles depuis le back-office. | Moyenne |
+   162→| SCR-05 | Conserver l'historique des scores successifs d'un client. | Moyenne |
+   163→
+   164→### 10.4 Module Détection comportementale
+   165→
+   166→| Code | Exigence fonctionnelle | Priorité |
+   167→|---|---|---|
+   168→| CMP-01 | Comparer automatiquement le comportement récent d'un client à son historique (montant moyen, fréquence). | Haute |
+   169→| CMP-02 | Déclencher un facteur de risque en cas d'écart significatif au comportement habituel. | Haute |
+   170→| CMP-03 | Prendre en compte le solde consolidé d'un même client sur plusieurs comptes. | Moyenne |
+   171→| CMP-04 | Permettre l'ajustement des seuils de détection par le responsable conformité. | Moyenne |
+   172→
+   173→### 10.5 Module Détection du fractionnement
+   174→
+   175→| Code | Exigence fonctionnelle | Priorité |
+   176→|---|---|---|
+   177→| FRC-01 | Repérer les séquences de transactions individuellement sous le seuil de déclaration mais dont le cumul le dépasse. | Haute |
+   178→| FRC-02 | Regrouper ces séquences et les présenter à l'analyste comme un ensemble cohérent, pas comme des alertes isolées. | Haute |
+   179→| FRC-03 | Paramétrer la fenêtre temporelle et le seuil de proximité utilisés pour la détection. | Moyenne |
+   180→
+   181→### 10.6 Module Graphe des relations financières
+   182→
+   183→| Code | Exigence fonctionnelle | Priorité |
+   184→|---|---|---|
+   185→| GRF-01 | Visualiser les liens entre un client, ses comptes et les bénéficiaires de ses transactions. | Haute |
+   186→| GRF-02 | Permettre la navigation interactive dans le graphe (zoom, exploration des nœuds liés). | Moyenne |
+   187→| GRF-03 | Mettre en évidence les nœuds associés à une alerte active. | Moyenne |
+   188→| GRF-04 | Exporter le graphe d'un client comme pièce jointe d'un dossier d'investigation. | Basse |
+   189→
+   190→### 10.7 Module Centre d'alertes
+   191→
+   192→| Code | Exigence fonctionnelle | Priorité |
+   193→|---|---|---|
+   194→| ALR-01 | Classer les alertes selon trois niveaux : bloquante, à analyser, informative. | Haute |
+   195→| ALR-02 | Permettre le filtrage des alertes par statut, priorité, module d'origine et analyste assigné. | Haute |
+   196→| ALR-03 | Afficher pour chaque alerte les facteurs de risque qui l'ont déclenchée. | Haute |
+   197→| ALR-04 | Permettre l'assignation d'une alerte à un analyste et le suivi de son traitement. | Haute |
+   198→| ALR-05 | Notifier le responsable conformité en cas d'alerte bloquante non traitée après un délai paramétrable. | Moyenne |
+   199→
+   200→### 10.8 Module Client 360°
+   201→
+   202→| Code | Exigence fonctionnelle | Priorité |
+   203→|---|---|---|
+   204→| C360-01 | Afficher en une seule vue le profil, les comptes, l'historique, le score, les alertes et les relations d'un client. | Haute |
+   205→| C360-02 | Afficher l'historique des investigations antérieures liées au client. | Haute |
+   206→| C360-03 | Permettre l'accès direct au graphe de relations et au détail des alertes depuis la fiche client. | Moyenne |
+   207→
+   208→### 10.9 Module Gestion des investigations
+   209→
+   210→| Code | Exigence fonctionnelle | Priorité |
+   211→|---|---|---|
+   212→| INV-01 | Permettre à un analyste de prendre en charge une alerte et d'ouvrir un dossier d'investigation. | Haute |
+   213→| INV-02 | Documenter le dossier par des notes, pièces jointes et une décision motivée. | Haute |
+   214→| INV-03 | Clôturer une investigation avec un statut (classée, transmise, déclaration de soupçon envisagée). | Haute |
+   215→| INV-04 | Conserver la traçabilité complète : qui a agi, quand, et quelle décision a été prise. | Haute |
+   216→| INV-05 | Permettre la réouverture motivée d'un dossier clôturé par un responsable conformité. | Basse |
+   217→
+   218→### 10.10 Module Assistant IA d'aide à l'analyse
+   219→
+   220→| Code | Exigence fonctionnelle | Priorité |
+   221→|---|---|---|
+   222→| IA-01 | Générer une explication en langage clair du score et des facteurs de risque d'un client. | Haute |
+   223→| IA-02 | Fonder l'explication exclusivement sur les facteurs déjà calculés par les règles métier, sans rien inventer. | Haute |
+   224→| IA-03 | Rappeler systématiquement que la décision finale revient à l'analyste habilité. | Haute |
+   225→| IA-04 | Prévoir un mode de secours fondé sur des modèles de phrases si l'API IA est indisponible. | Moyenne |
+   226→
+   227→### 10.11 Module Synchronisation & mode hors ligne
+   228→
+   229→| Code | Exigence fonctionnelle | Priorité |
+   230→|---|---|---|
+   231→| OFF-01 | Maintenir une base locale chiffrée des listes de sanctions/PPE utilisable hors connexion. | Haute |
+   232→| OFF-02 | Resynchroniser automatiquement la base locale à chaque fenêtre de connectivité disponible. | Haute |
+   233→| OFF-03 | Afficher un indicateur visuel de l'ancienneté des données locales au-delà d'un seuil paramétrable. | Moyenne |
+   234→| OFF-04 | Mettre en file d'attente les alertes générées hors ligne et les remonter au responsable conformité à la reconnexion, sans perte de traçabilité. | Haute |
+   235→
+   236→## 11. Back-office / Administration
+   237→
+   238→Le back-office de LAKANA est l'espace réservé aux responsables conformité et aux administrateurs système. Il permet de configurer le comportement du moteur d'analyse, d'administrer les comptes utilisateurs, de superviser l'état technique de la plateforme et de produire les rapports destinés au régulateur — sans jamais exposer ces fonctions aux analystes en charge du seul traitement des alertes.
+   239→
+   240→| Fonction back-office | Description | Utilisateurs concernés |
+   241→|---|---|---|
+   242→| Gestion des utilisateurs et des rôles | Créer, désactiver et modifier les comptes ; attribuer un rôle et un périmètre d'accès. | Administrateur système |
+   243→| Gestion des listes de sanctions/PPE | Importer, mettre à jour et historiser les listes officielles utilisées par le filtrage. | Responsable conformité, Administrateur |
+   244→| Paramétrage du scoring | Ajuster la pondération des règles de calcul du Risk Score et les seuils de déclenchement. | Responsable conformité |
+   245→| Paramétrage des seuils réglementaires | Configurer les seuils de déclaration, de fractionnement et les fenêtres temporelles associées. | Responsable conformité |
+   246→| Journal d'audit | Consulter l'historique complet des connexions, actions et décisions de tous les utilisateurs. | Responsable conformité, Auditeur |
+   247→| Rapports réglementaires | Générer des exports destinés à la BCEAO, au CENTIF-Mali ou aux contrôles internes. | Responsable conformité |
+   248→| Supervision technique | Suivre l'état des connecteurs d'intégration, des synchronisations et des files d'attente hors ligne. | Administrateur système |
+   249→| Gestion des institutions (multi-SFD) | Isoler les données et les paramétrages propres à chaque institution cliente. | Super administrateur Digi.Dev |
+   250→| Gestion des notifications | Configurer les alertes internes (délais de traitement, seuils dépassés). | Responsable conformité, Administrateur |
+   251→
+   252→**Exigences fonctionnelles associées au back-office :**
+   253→
+   254→| Code | Exigence fonctionnelle | Priorité |
+   255→|---|---|---|
+   256→| BO-01 | Permettre la création, la modification et la désactivation d'un compte utilisateur avec attribution d'un rôle. | Haute |
+   257→| BO-02 | Permettre l'import d'une nouvelle version des listes de sanctions/PPE avec horodatage et traçabilité de la source. | Haute |
+   258→| BO-03 | Permettre la modification des pondérations du Risk Score avec conservation d'un historique des versions appliquées. | Haute |
+   259→| BO-04 | Permettre la configuration des seuils de déclaration et de fractionnement par institution. | Haute |
+   260→| BO-05 | Fournir une vue consultable et exportable du journal d'audit, filtrable par utilisateur, module et période. | Haute |
+   261→| BO-06 | Générer un export réglementaire structuré (PDF ou tableur) sur une période donnée. | Moyenne |
+   262→| BO-07 | Afficher l'état des connecteurs d'intégration et la date de dernière synchronisation par source. | Moyenne |
+   263→| BO-08 | Isoler strictement les données de chaque institution dans une architecture multi-institutions. | Moyenne |
+   264→| BO-09 | Empêcher toute modification des paramètres critiques (listes, seuils, rôles) par un utilisateur non habilité. | Haute |
+   265→
+   266→## 12. Authentification, rôles et contrôle d'accès (RBAC)
+   267→
+   268→LAKANA traite des données clients et financières sensibles ; l'authentification et le contrôle d'accès constituent donc une exigence non négociable, distincte des autres modules fonctionnels. Le système repose sur une authentification forte et sur un modèle de contrôle d'accès basé sur les rôles (Role-Based Access Control — RBAC), où chaque utilisateur n'accède qu'aux fonctions et aux données strictement nécessaires à son rôle.
+   269→
+   270→### 12.1 Authentification
+   271→
+   272→| Code | Exigence d'authentification | Priorité |
+   273→|---|---|---|
+   274→| AUTH-01 | Authentifier chaque utilisateur par identifiant et mot de passe avant tout accès à la plateforme. | Haute |
+   275→| AUTH-02 | Hacher les mots de passe avec un algorithme robuste (bcrypt ou équivalent) ; aucun mot de passe en clair ne doit être stocké. | Haute |
+   276→| AUTH-03 | Imposer une politique de mot de passe (longueur minimale, complexité) et son renouvellement périodique. | Haute |
+   277→| AUTH-04 | Verrouiller temporairement un compte après un nombre défini de tentatives de connexion échouées. | Haute |
+   278→| AUTH-05 | Exiger une authentification à deux facteurs (MFA) pour les rôles Responsable conformité, Administrateur et Super administrateur. | Haute |
+   279→| AUTH-06 | Émettre un jeton de session (JWT) à durée de vie limitée, renouvelable par un jeton de rafraîchissement. | Haute |
+   280→| AUTH-07 | Déconnecter automatiquement une session inactive au-delà d'un délai paramétrable. | Moyenne |
+   281→| AUTH-08 | Journaliser chaque tentative de connexion, réussie ou échouée, avec horodatage et adresse d'origine. | Haute |
+   282→| AUTH-09 | Permettre la réinitialisation sécurisée d'un mot de passe oublié, sans divulguer d'information sur l'existence du compte. | Moyenne |
+   283→
+   284→### 12.2 Rôles utilisateurs
+   285→
+   286→La plateforme distingue six rôles, chacun avec des droits spécifiques. Cette séparation est indispensable pour protéger les données clients, éviter les manipulations du moteur de scoring et garantir que seules les personnes habilitées peuvent modifier les paramètres réglementaires de la plateforme.
+   287→
+   288→| Rôle | Droits principaux |
+   289→|---|---|
+   290→| Analyste conformité | Consulter le centre d'alertes, la fiche Client 360° et le graphe de relations ; prendre en charge et documenter des investigations. Aucun accès au back-office. |
+   291→| Responsable conformité / Superviseur | Tous les droits de l'analyste, plus l'accès au back-office fonctionnel : paramétrage du scoring, des seuils, des listes, génération des rapports réglementaires. |
+   292→| Administrateur système | Gestion des comptes utilisateurs et des rôles, supervision technique des connecteurs et synchronisations. Pas d'accès aux paramètres métier de scoring. |
+   293→| Auditeur (lecture seule) | Consultation intégrale du journal d'audit et des dossiers d'investigation clôturés, sans droit de modification. |
+   294→| Agent guichet (optionnel, lecture limitée) | Consultation du statut de filtrage d'un client au moment de l'ouverture d'un compte, sans accès aux détails de scoring ni aux alertes en cours. |
+   295→| Super administrateur Digi.Dev | Gestion multi-institutions : création d'une nouvelle institution cliente, isolation des données, supervision globale de la plateforme. |
+   296→
+   297→### 12.3 Matrice des droits par module
+   298→
+   299→Lecture (L) — Écriture (E) — Aucun accès (—)
+   300→
+   301→| Module / Fonction | Analyste | Responsable | Administrateur | Auditeur |
+   302→|---|---|---|---|---|
+   303→| Centre d'alertes | E | E | — | L |
+   304→| Client 360° et graphe | L | L | — | L |
+   305→| Investigations | E | E | — | L |
+   306→| Paramétrage du scoring | — | E | — | L |
+   307→| Listes sanctions/PPE | L | E | — | L |
+   308→| Gestion des utilisateurs | — | — | E | L |
+   309→| Rapports réglementaires | — | E | L | L |
+   310→| Journal d'audit | — | L | L | L |
+   311→
+   312→## 13. Modèle de données (aperçu)
+   313→
+   314→Le modèle de données détaillé (champs, types, contraintes) est décrit dans le cahier des charges technique de LAKANA. Les entités principales sont résumées ci-dessous, à titre de référence pour la conception fonctionnelle.
+   315→
+   316→| Entité | Rôle | Champs clés indicatifs |
+   317→|---|---|---|
+   318→| Clients | Identité et classification du client. | id, nom, date de naissance, profession, est_ppe, niveau_risque |
+   319→| Comptes | Comptes détenus par un client. | id, client_id, type_compte, solde |
+   320→| Transactions | Mouvements financiers analysés. | id, compte_source, compte_destination, montant, date, type |
+   321→| Alertes | Signaux générés par le moteur d'analyse. | id, client_id, type_alerte, score, facteurs, statut |
+   322→| Investigations | Dossiers ouverts par les analystes. | id, alerte_id, analyste_id, notes, décision, date_clôture |
+   323→| Utilisateurs | Comptes et rôles d'accès à la plateforme. | id, nom, rôle, mot_de_passe_hash, statut MFA |
+   324→| Listes de sanctions/PPE | Référentiel officiel utilisé par le filtrage. | id, nom, source, date_import, version |
+   325→| Journal d'audit | Traçabilité de toutes les actions. | id, utilisateur_id, action, module, date, résultat |
+   326→
+   327→## 14. Système de scoring
+   328→
+   329→Le Risk Score doit rester compréhensible, auditable et révisable. Il est exprimé sur 100 points et toujours accompagné des facteurs qui l'expliquent. Un score élevé ne signifie pas qu'une fraude est avérée ; il signifie que le comportement observé s'écarte fortement du profil attendu et justifie une revue humaine.
+   330→
+   331→| Critère | Pondération indicative | Description |
+   332→|---|---|---|
+   333→| Volume inhabituel | 25 points | Écart significatif entre le montant moyen récent et le montant moyen historique du client. |
+   334→| Fréquence anormale | 20 points | Nombre de transactions récentes largement supérieur à la fréquence habituelle. |
+   335→| Fractionnement potentiel | 30 points | Transactions groupées juste sous le seuil de déclaration. |
+   336→| Correspondance PPE/sanctions | 15 points | Client classé Personne Politiquement Exposée ou correspondance sur une liste officielle. |
+   337→| Relations inhabituelles | 10 points | Liens avec des comptes ou bénéficiaires déjà signalés dans le graphe de relations. |
+   338→
+   339→## 15. Exigences non fonctionnelles
+   340→
+   341→| Catégorie | Exigence |
+   342→|---|---|
+   343→| Sécurité | Authentification forte, chiffrement des données sensibles au repos et en transit, journalisation de tous les accès. |
+   344→| Confidentialité | Les données clients et transactionnelles ne sont accessibles qu'aux rôles habilités, selon la matrice de droits définie en section 12.3. |
+   345→| Performance | Le calcul du Risk Score et le filtrage sanctions doivent produire un résultat en quelques secondes pour une transaction standard. |
+   346→| Disponibilité | La plateforme doit rester opérationnelle en continu, avec un mode dégradé fonctionnel en cas de connectivité instable. |
+   347→| Traçabilité | Chaque alerte, décision et action d'administration conserve son auteur, sa date et son contexte. |
+   348→| Explicabilité | Aucune décision automatisée n'est présentée sans les facteurs qui la justifient. |
+   349→| Évolutivité | L'architecture doit permettre l'ajout de nouvelles institutions, de nouvelles règles et de nouvelles sources de listes sans refonte. |
+   350→| Accessibilité | L'interface doit rester utilisable en connectivité limitée et sur des postes aux ressources modestes. |
+   351→| Résilience aux abus | Le système doit détecter les tentatives de connexion anormales et les usages atypiques des comptes analystes. |
+   352→
+   353→## 16. Données et gouvernance
+   354→
+   355→LAKANA traite des données financières et personnelles sensibles. La gouvernance des données doit donc être définie dès la conception, avec une distinction claire entre les données conservées durablement à des fins de traçabilité réglementaire et celles dont la conservation doit être limitée.
+   356→
+   357→| Donnée | Utilisation | Sensibilité | Conservation proposée |
+   358→|---|---|---|---|
+   359→| Données d'identité client | Filtrage, scoring, Client 360°. | Élevée | Conservation durable, accès restreint |
+   360→| Transactions | Scoring, détection comportementale, fractionnement. | Élevée | Conservation durable, conforme aux obligations LBC/FT |
+   361→| Alertes et facteurs | Priorisation, investigation. | Élevée | Conservation durable pour piste d'audit |
+   362→| Notes d'investigation | Documentation des décisions. | Élevée | Conservation durable, accès restreint |
+   363→| Listes de sanctions/PPE | Filtrage. | Faible (source publique) | Conservation durable avec historique des versions |
+   364→| Journal d'audit / logs techniques | Sécurité, diagnostic, contrôle. | Moyenne | Conservation conforme à la politique de rétention de l'institution |
+   365→
+   366→## 17. Gestion des risques et points de vigilance
+   367→
+   368→| Risque | Impact possible | Mesure d'atténuation |
+   369→|---|---|---|
+   370→| Excès de faux positifs | Surcharge des analystes, perte de confiance dans les alertes. | Calibrage du fuzzy matching, ajustement continu des seuils, retours terrain en phase pilote. |
+   371→| Faux négatif (alerte manquée) | Comportement à risque non détecté. | Revue régulière des règles, détection comportementale complémentaire au filtrage listes. |
+   372→| Dérive du mode hors ligne | Base locale non synchronisée laissant passer une mise à jour critique des listes. | Resynchronisation automatique, indicateur d'ancienneté, file d'attente des alertes hors ligne. |
+   373→| Usurpation d'un compte analyste | Accès non autorisé à des données clients sensibles. | MFA obligatoire pour les rôles sensibles, verrouillage après tentatives échouées, journalisation des connexions. |
+   374→| Modification non autorisée des règles de scoring | Contournement volontaire ou accidentel du dispositif de détection. | RBAC strict, historique des versions de paramétrage, revue par le responsable conformité. |
+   375→| Fuite de données clients | Atteinte à la confidentialité, risque réputationnel et réglementaire. | Chiffrement des données sensibles, cloisonnement multi-institutions, contrôle d'accès par rôle. |
+   376→
+   377→## 18. Indicateurs de réussite
+   378→
+   379→| Indicateur | Description | Cible indicative |
+   380→|---|---|---|
+   381→| Taux d'alertes explicées | Part des alertes accompagnées de facteurs de risque clairs. | 100 % |
+   382→| Temps moyen de traitement d'une alerte | Délai entre la création de l'alerte et sa clôture. | Réduction mesurable par rapport au traitement manuel actuel |
+   383→| Taux de faux positifs | Part des alertes classées sans suite après investigation. | À réduire en continu grâce au calibrage du fuzzy matching |
+   384→| Taux de disponibilité | Disponibilité de la plateforme sur la période pilote. | Élevé, avec continuité en mode hors ligne |
+   385→| Taux de satisfaction des analystes | Retours qualitatifs sur la clarté et l'utilité des alertes. | À mesurer en phase pilote |
+   386→| Nombre d'institutions déployées | Adoption progressive au sein du réseau CIF. | Une institution pilote, puis extension |
+   387→
+   388→## 19. MVP recommandé
+   389→
+   390→Compte tenu du format hackathon (72h), le MVP doit démontrer un parcours complet plutôt qu'une couverture exhaustive : Transaction → Détection → Risk Score → Alerte → Analyse → Graphe → Investigation → Décision humaine, incluant le back-office minimal et l'authentification par rôle.
+   391→
+   392→| Lot MVP | Contenu | Résultat attendu |
+   393→|---|---|---|
+   394→| Lot 1 — Authentification & RBAC | Login, gestion basique des rôles (analyste, responsable, administrateur). | Chaque utilisateur accède uniquement aux fonctions de son rôle. |
+   395→| Lot 2 — Import & Risk Score | Import ou simulation de données, calcul du Risk Score explicable. | Les clients et transactions sont scorés automatiquement. |
+   396→| Lot 3 — Filtrage & alertes | Fuzzy matching sanctions/PPE, détection comportementale et fractionnement, centre d'alertes. | Les comportements à risque génèrent des alertes priorisées. |
+   397→| Lot 4 — Client 360° & graphe | Fiche client consolidée et graphe des relations financières. | L'analyste dispose d'une vue complète pour investiguer. |
+   398→| Lot 5 — Investigations & IA | Dossier d'investigation, assistant IA d'aide à l'analyse. | Chaque alerte peut être documentée et expliquée en langage clair. |
+   399→| Lot 6 — Back-office minimal | Gestion des utilisateurs, des listes et des seuils de base. | Le responsable conformité peut paramétrer le système sans intervention technique. |
+   400→
+   401→## 20. Roadmap indicative
+   402→
+   403→| Phase | Durée indicative | Objectif | Livrables |
+   404→|---|---|---|---|
+   405→| Phase 1 — Pilote | J+0 à J+90 | Déployer LAKANA sur une institution volontaire du réseau CIF, intégration au système existant, formation des analystes. | Version pilote, retours terrain, mesure du gain de temps d'analyse. |
+   406→| Phase 2 — Itération | M+3 à M+9 | Ajuster les règles de scoring et le filtrage sur la base des retours pilote ; renforcer le mode hors ligne. | Version consolidée, seuils recalibrés. |
+   407→| Phase 3 — Extension | M+9 à M+18 | Déployer progressivement à d'autres institutions du réseau CIF au Mali puis dans les pays DigiCoop-WA+. | Architecture multi-institutions opérationnelle. |
+   408→| Phase 4 — V2 Anti-structuration | Après validation du pilote | Étudier un module de déduplication biométrique à l'enrôlement, en interfaçage avec les registres nationaux. | Étude de faisabilité et prototype du module V2. |
+   409→| Continu | Permanent | Veille réglementaire BCEAO/GAFI/CENTIF et mise à jour des listes et seuils. | Listes et paramétrage toujours à jour. |
+   410→
+   411→## 21. Contraintes techniques et recommandations
+   412→
+   413→Le détail complet de la stack technique, du modèle de données et de la méthodologie de développement est disponible dans le cahier des charges technique de LAKANA, conçu pour une équipe sans expérience préalable en IA. Les grandes lignes sont résumées ci-dessous.
+   414→
+   415→| Domaine | Recommandation |
+   416→|---|---|
+   417→| Frontend | Application web (React + Vite + TailwindCSS), pensée pour une utilisation par des agents non spécialistes de la data. |
+   418→| Backend | API sécurisée (Python/FastAPI), séparation claire des rôles et journalisation systématique des actions. |
+   419→| Base de données | Base relationnelle (PostgreSQL) pour clients, comptes, transactions, alertes, investigations et utilisateurs. |
+   420→| Scoring | Règles pondérées explicites plutôt qu'un modèle de Machine Learning entraîné, pour rester auditable dès le MVP. |
+   421→| Filtrage | Fuzzy matching (ex. RapidFuzz) calibré sur les variantes orthographiques des noms ouest-africains. |
+   422→| Graphe de relations | Calcul en backend (ex. NetworkX) et affichage interactif côté frontend (ex. React Flow). |
+   423→| Authentification | JWT avec jeton de rafraîchissement, mots de passe hachés (bcrypt), MFA pour les rôles sensibles. |
+   424→| Assistant IA | Appel à une API d'intelligence artificielle existante pour l'explication en langage naturel, sans entraînement de modèle propre. |
+   425→| Déploiement | Conteneurisation (Docker Compose) en développement ; hébergement simple pour la démonstration. |
+   426→
+   427→## 22. Critères d'acceptation
+   428→
+   429→| Critère | Condition de validation |
+   430→|---|---|
+   431→| Authentification fonctionnelle | Un utilisateur peut se connecter avec son rôle et n'accède qu'aux fonctions autorisées par la matrice de droits. |
+   432→| Filtrage opérationnel | Le système détecte une correspondance sur un nom proche d'une entrée de la liste de sanctions/PPE de test. |
+   433→| Scoring explicable | Chaque score affiché est accompagné d'au moins un facteur de risque identifié. |
+   434→| Détection du fractionnement | Une séquence de transactions sous le seuil de déclaration génère une alerte consolidée. |
+   435→| Centre d'alertes fonctionnel | Les alertes sont classées et filtrables par niveau et par statut. |
+   436→| Investigation traçable | Chaque dossier d'investigation conserve l'auteur, la date et la décision prise. |
+   437→| Back-office opérationnel | Un responsable conformité peut créer un utilisateur, importer une liste et ajuster un seuil sans intervention technique. |
+   438→| Journal d'audit complet | Chaque connexion et chaque action d'administration sont retrouvables dans le journal d'audit. |
+   439→| Continuité hors ligne | Une alerte générée hors connexion est remontée sans perte de traçabilité à la reconnexion. |
+   440→
+   441→## 23. Conclusion
+   442→
+   443→LAKANA ne propose pas une nouvelle application de gestion de la microfinance : elle ajoute une intelligence de détection, d'analyse et de contrôle d'accès aux systèmes que les institutions utilisent déjà. La structuration par modules fonctionnels, la séparation claire entre front-office analyste et back-office d'administration, et un modèle d'authentification RBAC rigoureux constituent le socle technique et organisationnel indispensable à un dispositif de conformité crédible.
+   444→
+   445→La réussite du projet dépendra principalement de quatre facteurs : la qualité et l'actualité du référentiel de sanctions/PPE, l'explicabilité continue du scoring, la rigueur du contrôle d'accès par rôle, et l'adhésion des équipes conformité des SFD. En plaçant l'explicabilité et la traçabilité au cœur du système, LAKANA peut devenir un outil de confiance pour renforcer la conformité LBC/FT/FP au Mali et, à terme, dans les pays du programme DigiCoop-WA+.
+   446→

@@ -33,3 +33,28 @@ Work Log:
 
 Stage Summary:
 - Dashboard complete and verified end-to-end in the browser. Dev server running on port 3000. All widgets render with correct data and the layout matches the modele.jpg mockup.
+
+---
+Task ID: LAKANA-adaptation
+Agent: main
+Task: Adapter le cahier des charges LAKANA (conformité LBC/FT/FP pour SFD au Mali) à l'interface dashboard existante — frontend uniquement
+
+Work Log:
+- Lu et analysé le cahier des charges LAKANA complet (445 lignes) : 11 modules fonctionnels, système de scoring sur 100 points, 6 rôles RBAC, parcours opérationnel en 10 étapes.
+- Identifié les correspondances entre la maquette RevenuePulse et les besoins LAKANA : funnel → pipeline de détection, métriques SaaS → KPIs conformité, etc.
+- Adapté les 9 composants frontend avec données métier LAKANA :
+  * sidebar.tsx : Logo LAKANA "le bouclier" + navigation (Tableau de bord, ANALYSE: Centre d'alertes/Client 360°/Graphe/Investigations, CONFORMITÉ: Filtrage sanctions-PPE/Risk Score/Détection comportementale/Fractionnement, ADMINISTRATION: Utilisateurs/Journal audit/Rapports, PARAMÈTRES). Profil "Aminata Touré, Analyste conformité".
+  * header.tsx : Recherche "client, alerte", indicateur synchro hors ligne (OFF-03), date range FR, bouton "Nouvelle investigation".
+  * metric-cards.tsx : 5 KPIs (Alertes bloquantes 24, Alertes à analyser 87, Score moyen 42/100, Temps moyen traitement 4h32min, Taux faux positifs 23%).
+  * filter-bar.tsx : Filtres alertes (Tous statuts/niveaux/modules/analystes).
+  * funnel-chart.tsx → "Pipeline de détection et traitement" (5 étapes section 8: Transactions analysées 12847 → Correspondances PPE 1203 → Alertes générées 456 → Investigations ouvertes 124 → Décisions documentées 89).
+  * trend-chart.tsx → "Évolution des alertes" par niveau (Bloquante/À analyser/Informative — ALR-01).
+  * funnel-performance.tsx → "Alertes prioritaires" (clients maliens: Traoré, Diarra, Keïta, Coulibaly, Touré, Sangaré avec scores/100).
+  * dropoff-reasons.tsx → "Top motifs d'alerte" (Fractionnement 34.9%, Volume inhabituel 23.1%, Correspondance PPE 18.3%, Fréquence anormale 14.7%, Relations inhabituelles 8.9% — section 14 scoring).
+  * funnel-insights.tsx → "Insights conformité" (Score critique détecté, Correspondances PPE en attente, Investigation clôturée + rappel décision humaine IA-03).
+- Mis à jour page.tsx (titre "Centre d'alertes") et layout.tsx (métadonnées LAKANA).
+- Lint propre, serveur HTTP 200, aucune erreur runtime.
+- Vérification VLM : tous les éléments confirmés présents et corrects.
+
+Stage Summary:
+- Dashboard LAKANA entièrement adapté au cahier des charges, frontend uniquement (pas de backend). Couvre les modules Centre d'alertes (ALR), Risk Score (SCR), Filtrage PPE (FLT), Détection comportementale (CMP), Fractionnement (FRC), Investigations (INV), Assistant IA (IA rappel), mode hors ligne (OFF-03). Navigation reflète l'architecture fonctionnelle section 9. Données métier réalistes (noms maliens, montants, seuils réglementaires).

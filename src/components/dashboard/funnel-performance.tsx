@@ -1,14 +1,17 @@
 "use client"
 
-import { ChevronRight, ArrowUpRight, ArrowDownRight, Filter, Sparkles, Zap, UserPlus, Target, Trophy } from "lucide-react"
+import { ChevronRight, ArrowUpRight, ArrowDownRight, Split, ShieldAlert, Activity, UserPlus, Gauge, FileSearch } from "lucide-react"
 import { Line, LineChart, ResponsiveContainer } from "recharts"
 import { cn } from "@/lib/utils"
 
-type Funnel = {
-  name: string
-  rate: number
-  delta: string
+type Alert = {
+  ref: string
+  client: string
+  score: number
+  type: string
+  level: "bloquante" | "analyser" | "informative"
   up: boolean
+  delta: string
   color: string
   data: { v: number }[]
   icon: React.ComponentType<{ className?: string }>
@@ -22,62 +25,86 @@ const spark = (n: number, base: number, vol: number, trend: number) => {
   return arr
 }
 
-const funnels: Funnel[] = [
+const alerts: Alert[] = [
   {
-    name: "Signup to Paid",
-    rate: 12.48,
-    delta: "2.1%",
+    ref: "ALR-241",
+    client: "Traoré, Moussa",
+    score: 87,
+    type: "Fractionnement",
+    level: "bloquante",
     up: true,
+    delta: "9 pts",
+    color: "#EF4444",
+    data: spark(14, 70, 3, 1.2),
+    icon: Split,
+  },
+  {
+    ref: "ALR-238",
+    client: "Diarra, Fatoumata",
+    score: 72,
+    type: "Correspondance PPE",
+    level: "bloquante",
+    up: true,
+    delta: "5 pts",
+    color: "#EF4444",
+    data: spark(14, 60, 2.5, 0.9),
+    icon: ShieldAlert,
+  },
+  {
+    ref: "ALR-235",
+    client: "Keïta, Ibrahim",
+    score: 64,
+    type: "Volume inhabituel",
+    level: "analyser",
+    up: true,
+    delta: "4 pts",
+    color: "#F59E0B",
+    data: spark(14, 55, 2, 0.6),
+    icon: Activity,
+  },
+  {
+    ref: "ALR-229",
+    client: "Coulibaly, Aïssata",
+    score: 58,
+    type: "Fréquence anormale",
+    level: "analyser",
+    up: true,
+    delta: "3 pts",
+    color: "#F59E0B",
+    data: spark(14, 50, 2.5, 0.5),
+    icon: Gauge,
+  },
+  {
+    ref: "ALR-225",
+    client: "Touré, Seydou",
+    score: 41,
+    type: "Relations inhabituelles",
+    level: "informative",
+    up: false,
+    delta: "2 pts",
     color: "#06B6D4",
-    data: spark(14, 10, 0.8, 0.2),
-    icon: Filter,
-  },
-  {
-    name: "Free Trial to Paid",
-    rate: 18.72,
-    delta: "1.4%",
-    up: true,
-    color: "#14B8A6",
-    data: spark(14, 16, 0.6, 0.2),
-    icon: Sparkles,
-  },
-  {
-    name: "Product Activation",
-    rate: 31.43,
-    delta: "0.8%",
-    up: true,
-    color: "#14B8A6",
-    data: spark(14, 30, 0.5, 0.1),
-    icon: Zap,
-  },
-  {
-    name: "Demo to Trial",
-    rate: 24.18,
-    delta: "1.2%",
-    up: true,
-    color: "#06B6D4",
-    data: spark(14, 23, 0.7, 0.1),
+    data: spark(14, 46, 2, -0.4),
     icon: UserPlus,
   },
   {
-    name: "Lead to Opportunity",
-    rate: 16.09,
-    delta: "1.7%",
+    ref: "ALR-219",
+    client: "Sangaré, Mariam",
+    score: 36,
+    type: "Comportement atypique",
+    level: "informative",
     up: false,
-    color: "#EF4444",
-    data: spark(14, 18, 0.9, -0.15),
-    icon: Target,
-  },
-  {
-    name: "Opportunity to Win",
-    rate: 28.91,
-    delta: "2.4%",
-    up: false,
-    color: "#EF4444",
-    data: spark(14, 31, 1.1, -0.2),
-    icon: Trophy,
+    delta: "6 pts",
+    color: "#06B6D4",
+    data: spark(14, 44, 1.8, -0.6),
+    icon: FileSearch,
   },
 ]
+
+const levelLabel: Record<Alert["level"], string> = {
+  bloquante: "Bloquante",
+  analyser: "À analyser",
+  informative: "Informative",
+}
 
 function MiniSpark({ color, data }: { color: string; data: { v: number }[] }) {
   return (
@@ -103,60 +130,62 @@ export function FunnelPerformance() {
     <div className="rounded-xl border border-slate-200 bg-white p-5">
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-slate-900">
-          Funnel Performance
+          Alertes prioritaires
         </h3>
         <button className="text-xs font-semibold text-indigo-600 hover:underline">
-          View All
+          Tout voir
         </button>
       </div>
 
       <div className="mt-4 space-y-1">
         <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 px-2 pb-2 text-[11px] font-medium uppercase tracking-wide text-slate-400">
-          <span>Funnel</span>
-          <span className="text-right">Rate</span>
-          <span className="text-right">Trend</span>
+          <span>Client</span>
+          <span className="text-right">Score</span>
+          <span className="text-right">Tendance</span>
         </div>
 
-        {funnels.map((f) => (
+        {alerts.map((a) => (
           <div
-            key={f.name}
+            key={a.ref}
             className="grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-slate-50"
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <div
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-                style={{ background: `${f.color}15` }}
+                style={{ background: `${a.color}15` }}
               >
-                <f.icon className="h-4 w-4" style={{ color: f.color }} />
+                <a.icon className="h-4 w-4" style={{ color: a.color }} />
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-slate-800">{f.name}</p>
-                <p className="text-[11px] text-slate-400">Last 14 days</p>
+                <p className="truncate text-sm font-medium text-slate-800">{a.client}</p>
+                <p className="text-[11px] text-slate-400">
+                  {a.ref} • {a.type}
+                </p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-sm font-semibold text-slate-900">{f.rate}%</p>
+              <p className="text-sm font-semibold text-slate-900">{a.score}/100</p>
               <p
                 className={cn(
                   "flex items-center justify-end gap-0.5 text-[11px] font-medium",
-                  f.up ? "text-emerald-600" : "text-rose-600"
+                  a.up ? "text-rose-600" : "text-emerald-600"
                 )}
               >
-                {f.up ? (
+                {a.up ? (
                   <ArrowUpRight className="h-3 w-3" />
                 ) : (
                   <ArrowDownRight className="h-3 w-3" />
                 )}
-                {f.delta}
+                {a.delta}
               </p>
             </div>
-            <MiniSpark color={f.color} data={f.data} />
+            <MiniSpark color={a.color} data={a.data} />
           </div>
         ))}
       </div>
 
       <button className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg border border-slate-200 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50">
-        View all funnels
+        Voir toutes les alertes
         <ChevronRight className="h-3.5 w-3.5" />
       </button>
     </div>

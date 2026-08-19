@@ -14,10 +14,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RevenuePulse AI - Funnels Analytics",
-  description: "Analyze user journeys and optimize conversion funnels with RevenuePulse AI.",
-  keywords: ["RevenuePulse", "funnels", "analytics", "conversion", "dashboard"],
-  authors: [{ name: "RevenuePulse AI" }],
+  title: "LAKANA — Centre d'alertes | Conformité LBC/FT/FP",
+  description: "Plateforme de filtrage clients et de conformité LBC/FT/FP pour les SFD au Mali.",
+  keywords: ["LAKANA", "LBC", "FT", "FP", "conformité", "SFD", "Mali", "CENTIF"],
+  authors: [{ name: "Digi.Dev" }],
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },

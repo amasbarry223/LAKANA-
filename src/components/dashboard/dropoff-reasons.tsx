@@ -1,5 +1,6 @@
 "use client"
 
+// Top motifs d'alerte — basés sur les critères de scoring (section 14 du cahier des charges)
 type Reason = {
   label: string
   pct: number
@@ -7,11 +8,11 @@ type Reason = {
 }
 
 const reasons: Reason[] = [
-  { label: "Too early in buying journey", pct: 34.9, color: "#6366F1" },
-  { label: "Not enough product info", pct: 23.1, color: "#3B82F6" },
-  { label: "Confusing steps", pct: 18.3, color: "#06B6D4" },
-  { label: "Too long process", pct: 14.7, color: "#67E8F9" },
-  { label: "Other", pct: 8.9, color: "#CBD5E1" },
+  { label: "Fractionnement potentiel", pct: 34.9, color: "#6366F1" },
+  { label: "Volume inhabituel", pct: 23.1, color: "#3B82F6" },
+  { label: "Correspondance PPE/sanctions", pct: 18.3, color: "#06B6D4" },
+  { label: "Fréquence anormale", pct: 14.7, color: "#67E8F9" },
+  { label: "Relations inhabituelles", pct: 8.9, color: "#CBD5E1" },
 ]
 
 export function DropoffReasons() {
@@ -20,10 +21,10 @@ export function DropoffReasons() {
     <div className="rounded-xl border border-slate-200 bg-white p-5">
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-slate-900">
-          Top Drop-off Reasons
+          Top motifs d'alerte
         </h3>
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
-          This month
+          Ce mois
         </span>
       </div>
 
@@ -48,7 +49,7 @@ export function DropoffReasons() {
       </div>
 
       <p className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-400">
-        Based on 2,143 Responses
+        Basé sur 456 alertes ce mois
       </p>
     </div>
   )

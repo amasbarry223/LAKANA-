@@ -1,16 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import {
-  ChevronDown,
-  List,
-  LayoutGrid,
-  Maximize2,
-} from "lucide-react"
+import { ChevronDown, List, LayoutGrid, Maximize2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Switch } from "@/components/ui/switch"
 
-const dropdowns = ["All Funnels", "Daily", "All Devices", "All Segments"]
+const dropdowns = ["Tous statuts", "Tous niveaux", "Tous modules", "Tous analystes"]
 
 export function FilterBar() {
   const [compare, setCompare] = useState(false)
@@ -32,7 +27,7 @@ export function FilterBar() {
 
       <div className="ml-auto flex items-center gap-3">
         <label className="flex items-center gap-2 cursor-pointer select-none">
-          <span className="text-sm font-medium text-slate-600">Compare</span>
+          <span className="text-sm font-medium text-slate-600">Comparer</span>
           <Switch checked={compare} onCheckedChange={setCompare} />
         </label>
 
@@ -45,7 +40,7 @@ export function FilterBar() {
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-400 hover:text-slate-600"
             )}
-            aria-label="List view"
+            aria-label="Vue liste"
           >
             <List className="h-4 w-4" />
           </button>
@@ -57,13 +52,13 @@ export function FilterBar() {
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-400 hover:text-slate-600"
             )}
-            aria-label="Grid view"
+            aria-label="Vue grille"
           >
             <LayoutGrid className="h-4 w-4" />
           </button>
           <button
             className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition hover:text-slate-600"
-            aria-label="Fullscreen"
+            aria-label="Plein écran"
           >
             <Maximize2 className="h-4 w-4" />
           </button>

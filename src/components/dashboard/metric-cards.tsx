@@ -1,6 +1,6 @@
 "use client"
 
-import { TrendingUp, TrendingDown, ArrowUp, ArrowDown } from "lucide-react"
+import { ArrowUp, ArrowDown } from "lucide-react"
 import { Area, AreaChart, ResponsiveContainer } from "recharts"
 import { cn } from "@/lib/utils"
 
@@ -9,7 +9,7 @@ type Metric = {
   value: string
   delta: string
   positive: boolean
-  // when true, a downward delta is good (green) — e.g. faster time
+  // when true, a downward delta is good (e.g. fewer alerts = good)
   invertDelta?: boolean
   chartColor: string
   chartId: string
@@ -18,62 +18,62 @@ type Metric = {
 
 const seed = (n: number, start: number, end: number, vol: number) => {
   const arr: { v: number }[] = []
-  let v = start
   for (let i = 0; i < n; i++) {
     const t = i / (n - 1)
     const trend = start + (end - start) * t
-    v = trend + (Math.sin(i * 1.7) * vol)
-    arr.push({ v: Math.max(0, v) })
+    arr.push({ v: Math.max(0, trend + Math.sin(i * 1.7) * vol) })
   }
   return arr
 }
 
 const metrics: Metric[] = [
   {
-    label: "Overall Conversion Rate",
-    value: "12.48%",
-    delta: "18.0% vs Apr 30",
-    positive: true,
-    chartColor: "#6366F1",
+    label: "Alertes bloquantes",
+    value: "24",
+    delta: "12% vs hier",
+    positive: false,
+    chartColor: "#EF4444",
     chartId: "m1",
-    data: seed(16, 9, 12.5, 1.2),
+    data: seed(16, 18, 24, 2),
   },
   {
-    label: "Total Completions",
-    value: "8,540",
-    delta: "$12.3k vs Apr 30",
+    label: "Alertes à analyser",
+    value: "87",
+    delta: "5% vs hier",
     positive: true,
-    chartColor: "#14B8A6",
+    invertDelta: true,
+    chartColor: "#F59E0B",
     chartId: "m2",
-    data: seed(16, 6000, 8540, 600),
+    data: seed(16, 102, 87, 5),
   },
   {
-    label: "Total Users",
-    value: "68,412",
-    delta: "14.7% vs Apr 30",
-    positive: true,
-    chartColor: "#3B82F6",
+    label: "Score moyen",
+    value: "42/100",
+    delta: "3 pts vs hier",
+    positive: false,
+    chartColor: "#6366F1",
     chartId: "m3",
-    data: seed(16, 52000, 68412, 3500),
+    data: seed(16, 36, 42, 2.5),
   },
   {
-    label: "Avg. Time to Convert",
-    value: "2d 14h",
-    delta: "5.3% vs Apr 30",
+    label: "Temps moyen traitement",
+    value: "4h 32min",
+    delta: "18% vs hier",
     positive: true,
     invertDelta: true,
     chartColor: "#10B981",
     chartId: "m4",
-    data: seed(16, 3.2, 2.6, 0.4),
+    data: seed(16, 5.8, 4.5, 0.4),
   },
   {
-    label: "Abandonment Rate",
-    value: "67.52%",
-    delta: "6.1% vs Apr 30",
-    positive: false,
-    chartColor: "#EF4444",
+    label: "Taux faux positifs",
+    value: "23%",
+    delta: "4% vs hier",
+    positive: true,
+    invertDelta: true,
+    chartColor: "#06B6D4",
     chartId: "m5",
-    data: seed(16, 60, 67.5, 2.5),
+    data: seed(16, 29, 23, 1.8),
   },
 ]
 
@@ -106,7 +106,7 @@ export function MetricCards() {
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
       {metrics.map((m) => {
-        const good = m.invertDelta ? true : m.positive
+        const good = m.invertDelta ? m.positive : !m.positive
         return (
           <div
             key={m.label}
@@ -123,16 +123,14 @@ export function MetricCards() {
                   good ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
                 )}
               >
-                {m.invertDelta ? (
+                {good ? (
                   <ArrowDown className="h-3 w-3" />
-                ) : m.positive ? (
-                  <ArrowUp className="h-3 w-3" />
                 ) : (
                   <ArrowUp className="h-3 w-3" />
                 )}
                 {m.delta.split(" ")[0]}
               </span>
-              <span className="text-[11px] text-slate-400">vs Apr 30</span>
+              <span className="text-[11px] text-slate-400">{m.delta.split(" ").slice(1).join(" ")}</span>
             </div>
             <div className="mt-3 -mx-1">
               <Sparkline color={m.chartColor} data={m.data} id={m.chartId} />

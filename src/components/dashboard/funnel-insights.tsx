@@ -14,27 +14,27 @@ type Insight = {
 const insights: Insight[] = [
   {
     icon: AlertTriangle,
-    iconBg: "bg-amber-50",
-    iconColor: "text-amber-500",
-    title: "High Drop-off Detected",
-    desc: "Users drop by 27.8% at the Email Verification step.",
-    accent: "text-amber-600",
+    iconBg: "bg-rose-50",
+    iconColor: "text-rose-500",
+    title: "Score critique détecté",
+    desc: "Le client Traoré M. a atteint un score de 87/100 — investigation requise.",
+    accent: "text-rose-600",
   },
   {
     icon: Sparkles,
     iconBg: "bg-cyan-50",
     iconColor: "text-cyan-500",
-    title: "Optimization Opportunity",
-    desc: "Users who add a payment method convert 3.2x higher.",
+    title: "Correspondances PPE en attente",
+    desc: "3 correspondances PPE nécessitent une revue humaine avant tout blocage.",
     accent: "text-cyan-600",
   },
   {
     icon: Trophy,
-    iconBg: "bg-yellow-50",
-    iconColor: "text-yellow-500",
-    title: "Winning Segment",
-    desc: "Users from Organic Search convert 3.4x better.",
-    accent: "text-yellow-600",
+    iconBg: "bg-emerald-50",
+    iconColor: "text-emerald-500",
+    title: "Investigation clôturée",
+    desc: "L'alerte ALR-124 a été classée et tracée dans le journal d'audit.",
+    accent: "text-emerald-600",
   },
 ]
 
@@ -42,9 +42,9 @@ export function FunnelInsights() {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5">
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-slate-900">Funnel Insights</h3>
+        <h3 className="text-base font-semibold text-slate-900">Insights conformité</h3>
         <button className="text-xs font-semibold text-indigo-600 hover:underline">
-          View All
+          Tout voir
         </button>
       </div>
 
@@ -67,12 +67,19 @@ export function FunnelInsights() {
               <button
                 className={`mt-2 inline-flex items-center gap-0.5 text-xs font-semibold ${ins.accent} hover:underline`}
               >
-                View Insight
+                Voir le détail
                 <ChevronRight className="h-3 w-3" />
               </button>
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="mt-4 rounded-lg bg-slate-50 p-3 text-center">
+        <p className="text-[11px] leading-relaxed text-slate-400">
+          L'assistant IA rappelle que la décision finale revient à l'analyste
+          habilité.
+        </p>
       </div>
     </div>
   )

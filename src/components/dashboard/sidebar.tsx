@@ -3,20 +3,20 @@
 import { useState } from "react"
 import {
   LayoutGrid,
-  FileText,
-  Filter,
-  Users2,
-  Lightbulb,
-  User,
-  Building2,
-  Layers,
+  BellRing,
+  UserRound,
+  Share2,
+  FolderSearch,
+  ShieldAlert,
+  Gauge,
   Activity,
-  Puzzle,
-  Zap,
-  Megaphone,
+  Split,
   Users,
+  ScrollText,
+  FileBarChart,
   Settings,
-  CreditCard,
+  RefreshCw,
+  Bell,
   MoreVertical,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -36,61 +36,61 @@ type NavSection = {
 const sections: NavSection[] = [
   {
     title: "",
-    items: [{ label: "Overview", icon: LayoutGrid }],
+    items: [{ label: "Tableau de bord", icon: LayoutGrid }],
   },
   {
-    title: "ANALYTICS",
+    title: "ANALYSE",
     items: [
-      { label: "Reports", icon: FileText },
-      { label: "Funnels", icon: Filter, active: true },
-      { label: "Cohorts", icon: Users2 },
-      { label: "Insights", icon: Lightbulb },
+      { label: "Centre d'alertes", icon: BellRing, active: true },
+      { label: "Client 360°", icon: UserRound },
+      { label: "Graphe de relations", icon: Share2 },
+      { label: "Investigations", icon: FolderSearch },
     ],
   },
   {
-    title: "ENGAGEMENT",
+    title: "CONFORMITÉ",
     items: [
-      { label: "Users", icon: User },
-      { label: "Accounts", icon: Building2 },
-      { label: "Segments", icon: Layers },
-      { label: "Activity", icon: Activity },
+      { label: "Filtrage sanctions/PPE", icon: ShieldAlert },
+      { label: "Risk Score", icon: Gauge },
+      { label: "Détection comportementale", icon: Activity },
+      { label: "Fractionnement", icon: Split },
     ],
   },
   {
-    title: "OPERATIONS",
+    title: "ADMINISTRATION",
     items: [
-      { label: "Integrations", icon: Puzzle },
-      { label: "Automations", icon: Zap },
-      { label: "Campaigns", icon: Megaphone },
+      { label: "Utilisateurs & rôles", icon: Users },
+      { label: "Journal d'audit", icon: ScrollText },
+      { label: "Rapports réglementaires", icon: FileBarChart },
     ],
   },
   {
-    title: "SETTINGS",
+    title: "PARAMÈTRES",
     items: [
-      { label: "Teams", icon: Users },
-      { label: "Settings", icon: Settings },
-      { label: "Billings", icon: CreditCard },
+      { label: "Paramètres", icon: Settings },
+      { label: "Synchronisation", icon: RefreshCw },
+      { label: "Notifications", icon: Bell },
     ],
   },
 ]
 
 export function DashboardSidebar() {
-  const [active, setActive] = useState("Funnels")
+  const [active, setActive] = useState("Centre d'alertes")
 
   return (
     <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-[260px] shrink-0 flex-col border-r border-slate-200 bg-white">
       {/* Logo */}
       <div className="flex h-16 items-center gap-2.5 px-5 border-b border-slate-100">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-sm">
-          <svg viewBox="0 0 24 24" className="h-5 w-5 text-white" fill="currentColor">
-            <path d="M12 2L2 8.5 12 15l10-6.5L12 2zm0 14.5L2 10v6.5L12 23l10-6.5V10l-10 6.5z" />
-          </svg>
+          <ShieldAlert className="h-5 w-5 text-white" />
         </div>
         <div className="flex items-baseline">
           <span className="text-[17px] font-bold tracking-tight text-slate-900">
-            RevenuePulse
+            LAKANA
           </span>
-          <span className="ml-1 text-[17px] font-light text-slate-900">AI</span>
+          <span className="ml-1.5 text-[11px] font-medium text-slate-400">
+            le bouclier
+          </span>
         </div>
       </div>
 
@@ -122,7 +122,7 @@ export function DashboardSidebar() {
                       isActive ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"
                     )}
                   />
-                  <span>{item.label}</span>
+                  <span className="truncate">{item.label}</span>
                   {isActive && (
                     <span className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-600" />
                   )}
@@ -137,14 +137,14 @@ export function DashboardSidebar() {
       <div className="border-t border-slate-100 p-3">
         <div className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-slate-50 cursor-pointer">
           <Avatar className="h-9 w-9 border border-slate-200">
-            <AvatarImage src="https://i.pravatar.cc/80?img=47" alt="Alex Morgan" />
+            <AvatarImage src="https://i.pravatar.cc/80?img=47" alt="Aminata Touré" />
             <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs font-semibold">
-              AM
+              AT
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-slate-900">Alex Morgan</p>
-            <p className="truncate text-xs text-slate-400">Admin</p>
+            <p className="truncate text-sm font-semibold text-slate-900">Aminata Touré</p>
+            <p className="truncate text-xs text-slate-400">Analyste conformité</p>
           </div>
           <button className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
             <MoreVertical className="h-4 w-4" />

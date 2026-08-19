@@ -20,10 +20,10 @@ export default function Home() {
           {/* Page title */}
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px]">
-              Funnels
+              Centre d'alertes
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              Analyze user journeys and optimize conversion funnels.
+              Surveillez, priorisez et traitez les alertes de conformité LBC/FT/FP.
             </p>
           </div>
 
