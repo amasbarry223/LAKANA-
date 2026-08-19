@@ -12,6 +12,7 @@ import {
   YAxis,
   Legend,
 } from "recharts"
+import { toast } from "sonner"
 
 type Series = {
   key: string
@@ -95,7 +96,7 @@ export function TrendChartWidget() {
             {granularity}
             <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
           </button>
-          <button className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100">
+          <button onClick={() => toast.info("Options du graphique")} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100">
             <MoreHorizontal className="h-4 w-4" />
           </button>
         </div>

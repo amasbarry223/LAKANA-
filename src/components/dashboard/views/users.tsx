@@ -1,9 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { Users, Plus, MoreHorizontal, ShieldCheck, Lock, Search } from "lucide-react"
+import { Users, Plus, MoreHorizontal, ShieldCheck, Lock, Search, X } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 
 type Role = "Analyste conformité" | "Responsable conformité" | "Administrateur système" | "Auditeur" | "Agent guichet" | "Super administrateur"
@@ -64,11 +65,36 @@ const accessColor: Record<string, string> = {
 }
 
 export function UsersView() {
+  const [items, setItems] = useState<User[]>(users)
   const [query, setQuery] = useState("")
+  const [createOpen, setCreateOpen] = useState(false)
+  const [form, setForm] = useState({ name: "", email: "", role: "Analyste conformité" as Role, institution: "SFD Bamako", mfa: false })
 
-  const filtered = users.filter((u) =>
+  const filtered = items.filter((u) =>
     !query || u.name.toLowerCase().includes(query.toLowerCase()) || u.role.toLowerCase().includes(query.toLowerCase())
   )
+
+  const submitUser = () => {
+    if (!form.name.trim() || !form.email.trim()) {
+      toast.error("Champs requis", { description: "Veuillez renseigner le nom et l'email." })
+      return
+    }
+    const id = `USR-${String(items.length + 1).padStart(2, "0")}`
+    const newUser: User = {
+      id,
+      name: form.name,
+      email: form.email,
+      role: form.role,
+      mfa: form.mfa,
+      status: "Actif",
+      lastLogin: "—",
+      institution: form.institution,
+    }
+    setItems((arr) => [newUser, ...arr])
+    toast.success("Utilisateur créé", { description: `${form.name} (${form.role}) — compte actif (BO-01).` })
+    setForm({ name: "", email: "", role: "Analyste conformité", institution: "SFD Bamako", mfa: false })
+    setCreateOpen(false)
+  }
 
   return (
     <div className="space-y-5">
@@ -78,7 +104,7 @@ export function UsersView() {
           <p className="mt-1 text-sm text-slate-500">Gestion des comptes et contrôle d'accès RBAC (BO-01, section 12).</p>
         </div>
         <button
-          onClick={() => toast.info("Nouvel utilisateur", { description: "Formulaire de création de compte avec attribution de rôle (BO-01)." })}
+          onClick={() => setCreateOpen(true)}
           className="flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 text-sm font-semibold text-white hover:bg-indigo-700"
         >
           <Plus className="h-4 w-4" />
@@ -89,9 +115,9 @@ export function UsersView() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
-          { label: "Utilisateurs actifs", value: users.filter((u) => u.status === "Actif").length, color: "#10B981" },
-          { label: "Avec MFA", value: users.filter((u) => u.mfa).length, color: "#6366F1" },
-          { label: "Verrouillés", value: users.filter((u) => u.status === "Verrouillé").length, color: "#EF4444" },
+          { label: "Utilisateurs actifs", value: items.filter((u) => u.status === "Actif").length, color: "#10B981" },
+          { label: "Avec MFA", value: items.filter((u) => u.mfa).length, color: "#6366F1" },
+          { label: "Verrouillés", value: items.filter((u) => u.status === "Verrouillé").length, color: "#EF4444" },
           { label: "Rôles définis", value: 6, color: "#06B6D4" },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4">
@@ -222,6 +248,94 @@ export function UsersView() {
           </table>
         </div>
       </div>
+
+      {/* Create user modal (BO-01) */}
+      {createOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4" onClick={() => setCreateOpen(false)}>
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Nouvel utilisateur</h3>
+                <p className="mt-0.5 text-xs text-slate-400">Création de compte avec attribution de rôle (BO-01)</p>
+              </div>
+              <button onClick={() => setCreateOpen(false)} className="rounded-md p-1 text-slate-400 hover:bg-slate-100">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-600">Nom complet</label>
+                  <input
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="ex. Awa Diarra"
+                    className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-600">Email</label>
+                  <input
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    placeholder="a.diarra@sfd.ml"
+                    className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-600">Rôle</label>
+                  <select
+                    value={form.role}
+                    onChange={(e) => setForm({ ...form, role: e.target.value as Role })}
+                    className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                  >
+                    {(["Analyste conformité", "Responsable conformité", "Administrateur système", "Auditeur", "Agent guichet", "Super administrateur"] as Role[]).map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-600">Institution</label>
+                  <select
+                    value={form.institution}
+                    onChange={(e) => setForm({ ...form, institution: e.target.value })}
+                    className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                  >
+                    <option>SFD Bamako</option>
+                    <option>SFD Sikasso</option>
+                    <option>SFD Kayes</option>
+                    <option>Multi-institutions</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-slate-400" />
+                  <div>
+                    <p className="text-sm font-medium text-slate-700">MFA obligatoire</p>
+                    <p className="text-[11px] text-slate-400">Pour les rôles sensibles (AUTH-05)</p>
+                  </div>
+                </div>
+                <Switch checked={form.mfa} onCheckedChange={(v) => setForm({ ...form, mfa: v })} />
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button onClick={() => setCreateOpen(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                Annuler
+              </button>
+              <button onClick={submitUser} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+                Créer le compte
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

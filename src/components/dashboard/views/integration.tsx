@@ -182,7 +182,7 @@ export function IntegrationView() {
                 const sc = statusConfig[im.status]
                 const Icon = sc.icon
                 return (
-                  <tr key={im.id} className="hover:bg-slate-50">
+                  <tr key={im.id} onClick={() => toast.info(`Import ${im.id}`, { description: `${im.source} — ${im.records.toLocaleString("fr-FR")} enregistrements` })} className="cursor-pointer hover:bg-slate-50">
                     <td className="px-5 py-3">
                       <p className="font-medium text-slate-800">{im.source}</p>
                       <p className="text-[11px] text-slate-400">{im.id}</p>

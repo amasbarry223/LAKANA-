@@ -281,7 +281,7 @@ export function RiskScoreView() {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {rules.map((r) => (
-                <tr key={r.id} className="py-2">
+                <tr key={r.id} onClick={() => toast.info(`Règle ${r.id}`, { description: r.desc })} className="cursor-pointer py-2">
                   <td className="py-2.5 pr-4">
                     <span className="font-mono text-xs font-semibold text-indigo-600">{r.id}</span>
                   </td>

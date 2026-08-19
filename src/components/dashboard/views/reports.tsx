@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { FileBarChart, Download, Calendar, CheckCircle2, Clock, FileText, ChevronRight } from "lucide-react"
+import { FileBarChart, Download, Calendar, CheckCircle2, Clock, FileText, ChevronRight, ChevronDown } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -48,6 +48,15 @@ const templates = [
 
 export function ReportsView() {
   const [period, setPeriod] = useState("Août 2026")
+  const [periodOpen, setPeriodOpen] = useState(false)
+
+  const periodOptions = ["Cette semaine", "Ce mois", "Ce trimestre", "Cette année"]
+
+  const selectPeriod = (p: string) => {
+    setPeriod(p)
+    setPeriodOpen(false)
+    toast.success("Période mise à jour", { description: p })
+  }
 
   return (
     <div className="space-y-5">
@@ -56,10 +65,33 @@ export function ReportsView() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px]">Rapports réglementaires</h1>
           <p className="mt-1 text-sm text-slate-500">Génération d'exports destinés à la BCEAO, au CENTIF et aux contrôles internes (BO-06).</p>
         </div>
-        <button className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50">
-          <Calendar className="h-3.5 w-3.5" />
-          Période : {period}
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setPeriodOpen(!periodOpen)}
+            className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <Calendar className="h-3.5 w-3.5" />
+            Période : {period}
+            <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+          </button>
+          {periodOpen && (
+            <div className="absolute right-0 top-11 z-50 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+              <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Période</p>
+              {periodOptions.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => selectPeriod(p)}
+                  className={cn(
+                    "block w-full rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-slate-50",
+                    period === p ? "font-semibold text-indigo-700" : "text-slate-600"
+                  )}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Stats */}

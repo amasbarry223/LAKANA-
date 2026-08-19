@@ -5,7 +5,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
-export function DashboardHeader({ onMenuClick }: { onMenuClick?: () => void }) {
+export function DashboardHeader({ onMenuClick, onOpenSearch }: { onMenuClick?: () => void; onOpenSearch?: () => void }) {
   const [online, setOnline] = useState(true)
   const [showNotifs, setShowNotifs] = useState(false)
   const [showDates, setShowDates] = useState(false)
@@ -30,17 +30,16 @@ export function DashboardHeader({ onMenuClick }: { onMenuClick?: () => void }) {
       )}
 
       {/* Search */}
-      <div className="relative flex-1 max-w-md">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <input
-          type="text"
-          placeholder="Rechercher un client, une alerte..."
-          className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-12 text-sm text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-        />
-        <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 hidden rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-slate-400 sm:inline-block">
+      <button
+        onClick={onOpenSearch}
+        className="relative flex h-9 w-full max-w-md items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-400 transition hover:bg-white hover:border-slate-300"
+      >
+        <Search className="h-4 w-4 shrink-0 text-slate-400" />
+        <span className="flex-1 text-left">Rechercher un client, une alerte...</span>
+        <kbd className="hidden rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-slate-400 sm:inline-block">
           ⌘K
         </kbd>
-      </div>
+      </button>
 
       <div className="ml-auto flex items-center gap-2 md:gap-3">
         {/* Sync / offline indicator (OFF-03) */}

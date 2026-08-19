@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { DashboardSidebar, MobileSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
+import { CommandPalette } from "@/components/dashboard/command-palette"
 import { LoginScreen } from "@/components/dashboard/login-screen"
 import { AlertsCenterView } from "@/components/dashboard/views/alerts-center"
 import { OverviewView } from "@/components/dashboard/views/overview"
@@ -47,6 +48,19 @@ export default function Home() {
   const [role, setRole] = useState("Analyste conformité")
   const [active, setActive] = useState("Centre d'alertes")
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
+
+  // ⌘K / Ctrl+K to open command palette
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault()
+        setPaletteOpen((v) => !v)
+      }
+    }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [])
 
   const handleLogin = (r: string) => {
     setAuthed(true)
@@ -92,7 +106,8 @@ export default function Home() {
         userRole={role}
         onLogout={handleLogout}
       />
-      <DashboardHeader onMenuClick={() => setMobileNavOpen(true)} />
+      <DashboardHeader onMenuClick={() => setMobileNavOpen(true)} onOpenSearch={() => setPaletteOpen(true)} />
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} onNavigate={setActive} />
 
       {/* Main content offset for fixed sidebar (lg+) and fixed header */}
       <main className="lg:pl-[260px] pt-16">

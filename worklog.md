@@ -199,3 +199,86 @@ Work Log:
 
 Stage Summary:
 - Tous les boutons/éléments statiques sont maintenant interactifs : toasts de feedback sur toute l'application, interactions avec état (sanctions confirm/reject, investigations décision+modal, notifications delete/read, sync queue). Export CSV réel pour le journal d'audit. Dropdowns fonctionnels (header, filter-bar). 0 erreur lint, 0 erreur runtime sur 17 vues.
+
+---
+Task ID: wiring-deep
+Agent: sub-agent (general-purpose)
+Task: Câbler les éléments statiques restants du dashboard LAKANA — login mot de passe oublié, lignes de tables/	listes cliquables, dropdown période rapports, boutons settings, options trend chart (frontend uniquement)
+
+Work Log:
+- Lu `/home/z/my-project/worklog.md` pour comprendre le contexte (wiring-views et wiring-all-buttons précédents : tous les boutons statiques déjà câblés via sonner).
+- Lu les 9 fichiers cibles pour comprendre la structure existante.
+
+1. **Login "Mot de passe oublié" (login-screen.tsx)** :
+   - Ajouté imports `Mail`, `X` (lucide-react) et `toast` (sonner).
+   - Ajouté 2 states locaux : `forgotOpen`, `forgotEmail`.
+   - Ajouté `handleForgotSubmit` qui toast.success("Demande envoyée", { description: "Si un compte existe pour cette adresse, un lien de réinitialisation a été envoyé (AUTH-09)." }) et ferme le dialog.
+   - Le bouton "Mot de passe oublié ? (AUTH-09)" déclenche `setForgotOpen(true)`.
+   - Ajouté un dialog modal inline (fixed inset-0, backdrop bg-black/50, fermeture par clic backdrop ou bouton X/Annuler) avec icône Mail, champ e-mail (type=email, required), boutons Annuler/Envoyer. Le dialog est rendu après le `<p>` de copyright à l'intérieur du root div.
+
+2. **Lignes de tables cliquables** (cursor-pointer + onClick → toast.info) :
+   - **audit-log.tsx** : `<tr key={l.id} onClick={() => toast.info(\`Entrée ${l.id}\`, { description: \`${l.user} — ${l.action}\` })} className="cursor-pointer hover:bg-slate-50">`. (toast déjà importé)
+   - **integration.tsx** : `<tr key={im.id} onClick={() => toast.info(\`Import ${im.id}\`, { description: \`${im.source} — ${im.records.toLocaleString("fr-FR")} enregistrements\` })} className="cursor-pointer hover:bg-slate-50">`. (toast déjà importé)
+   - **behavioral.tsx** : ajouté `import { toast } from "sonner"` ; `<tr key={d.id} onClick={() => toast.info(\`Écart ${d.id}\`, { description: \`${d.client} — ${d.metric} — écart +${d.ecart}%\` })} className="cursor-pointer hover:bg-slate-50">`.
+   - **risk-score.tsx** : `<tr key={r.id} onClick={() => toast.info(\`Règle ${r.id}\`, { description: r.desc })} className="cursor-pointer py-2">`. (toast déjà importé)
+
+3. **Overview (overview.tsx)** : ajouté `import { toast } from "sonner"`.
+   - Activité par module : `<div key={m.code} onClick={() => toast.info(\`Module ${m.code}\`, { description: \`${m.count.toLocaleString("fr-FR")} signaux — ${m.name}\` })} className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-100 p-3 hover:bg-slate-50">`.
+   - 4 items de conformité : chacun a reçu `onClick` + `cursor-pointer` :
+     * Listes sanctions → toast.success("Listes sanctions", { description: "ONU · GAFI · CENTIF — à jour." })
+     * Connecteurs → toast.success("Connecteurs", { description: "3/3 connecteurs opérationnels." })
+     * Investigations > 24h → toast.warning("Investigations en attente", { description: "2 investigations dépassent 24h." })
+     * Alertes bloquantes → toast.error("Alertes critiques", { description: "5 alertes bloquantes non traitées." })
+
+4. **Client 360° (client-360.tsx)** : `<div key={i} onClick={() => toast.info(\`Compte ${acc.number}\`, { description: \`${acc.type} — solde ${acc.balance.toLocaleString("fr-FR")} FCFA\` })} className="flex cursor-pointer items-center gap-2.5 rounded-lg bg-slate-50 p-2.5">`. (toast déjà importé)
+
+5. **Reports période dropdown (reports.tsx)** :
+   - Ajouté `ChevronDown` (lucide-react).
+   - Ajouté state `periodOpen` et helper `selectPeriod(p)` qui setPeriod + setPeriodOpen(false) + toast.success("Période mise à jour", { description: p }).
+   - Options : "Cette semaine", "Ce mois", "Ce trimestre", "Cette année".
+   - Bouton statique remplacé par `<div className="relative">` contenant le bouton toggle + dropdown menu (pattern identique au header date picker : absolute right-0 top-11 z-50 w-56, options surlignées si actives via cn/conditional).
+
+6. **Settings (settings.tsx)** :
+   - Bouton "+ Ajouter" (Institutions) : ajouté `onClick={() => toast.info("Nouvelle institution", { description: "Ajout d'une institution SFD avec isolation des données (BO-08)." })}`. (toast déjà importé)
+   - Bouton "Déconnecter" (Sécurité, sessions non-current) : ajouté `onClick={() => toast.success("Session déconnectée", { description: \`${s.user} a été déconnecté.\` })}`. La closure capture `s.user` à chaque itération du map.
+
+7. **Trend chart (trend-chart.tsx)** :
+   - Ajouté `import { toast } from "sonner"`.
+   - Bouton MoreHorizontal : ajouté `onClick={() => toast.info("Options du graphique")}`.
+
+Lint final : `bun run lint` → exit 0, 0 erreur, 0 warning.
+Vérification serveur dev : `pkill -f "next dev"; pkill -f "start-dev"; sleep 2; nohup setsid bash start-dev.sh ; sleep 8; curl http://localhost:3000` → HTTP 200, log propre (✓ Ready in 690ms, GET / 200 in 6.1s), aucune erreur de compilation. Tous les fichiers modifiés sont dans le graphe d'imports statiques de `page.tsx` (views importées en haut + alerts-center importe trend-chart), donc tous compilés au moment du GET /.
+
+Stage Summary:
+- Tous les éléments statiques restants du dashboard LAKANA sont maintenant interactifs : dialog "Mot de passe oublié" (AUTH-09) sur l'écran de connexion, 5 tables à lignes cliquables (audit-log, integration, behavioral, risk-score rules, plus déjà-fait client-360 alerts), 4 items d'activité module + 4 items de statut conformité dans l'overview, comptes bancaires cliquables dans client-360, dropdown de période fonctionnel dans reports (4 options), bouton "+ Ajouter" institution et boutons "Déconnecter" session dans settings, bouton MoreHorizontal dans trend-chart. Aucune modification visuelle ou de styling au-delà de l'ajout de `cursor-pointer` là où spécifié. `bun run lint` passe sans erreur ni warning. Serveur dev compile et répond HTTP 200.
+
+---
+Task ID: wiring-deep
+Agent: main + subagent (wiring-deep)
+Task: Recensement en profondeur et implémentation de tous les éléments encore statiques (frontend uniquement)
+
+Work Log:
+- Audit approfondi : identifié les éléments statiques restants (search input, profile MoreVertical, Users modal, login forgot-password, lignes de tableaux non cliquables, period selector, settings buttons, trend chart options).
+- Implémenté directement (main agent) :
+  * command-palette.tsx : palette de commandes globale avec cmdk/shadcn — recherche vues/clients/alertes, navigation directe, raccourci ⌘K/Ctrl+K (useEffect keyboard listener), 17 vues + 3 clients + 3 alertes indexés.
+  * page.tsx : état paletteOpen, listener ⌘K, header search button ouvre la palette, CommandPalette rendu conditionnel.
+  * header.tsx : search bar transformée en bouton qui ouvre la palette (avec placeholder + ⌘K hint).
+  * sidebar.tsx : profile MoreVertical → menu déroulant (Mon profil, Paramètres, Notifications, Déconnexion) avec navigation + toasts.
+  * users.tsx : Nouvel utilisateur → vrai MODAL avec formulaire (nom, email, rôle select, institution select, MFA toggle Switch), validation champs requis, ajout à la liste (state), toast success, stats recalculées dynamiquement.
+- Délégué au subagent (wiring-deep) :
+  * login-screen.tsx : Mot de passe oublié → dialog de réinitialisation email + toast AUTH-09.
+  * audit-log.tsx, integration.tsx, behavioral.tsx, risk-score.tsx : lignes de tableaux cliquables (toasts détail).
+  * overview.tsx : module activity items cliquables + 4 compliance status items cliquables (toasts success/warning/error selon le type).
+  * client-360.tsx : accounts cliquables (toast détail compte + solde).
+  * reports.tsx : period selector dropdown (Cette semaine/mois/trimestre/année) + toasts.
+  * settings.tsx : Institutions +Ajouter (toast BO-08) + Sessions Déconnecter (toast).
+  * trend-chart.tsx : MoreHorizontal options (toast).
+- Lint propre (0 erreur). Serveur HTTP 200.
+- Vérification browser :
+  * Command palette : DIALOG OPEN confirmé + VLM Yes (ouverture via search button + ⌘K listener).
+  * Profile menu : dropdown confirmé (VLM Yes).
+  * Users modal : ouverture confirmée (VLM Yes), validation "Champs requis" fonctionne.
+  * 17 vues : 0 erreur runtime.
+
+Stage Summary:
+- Tous les éléments statiques sont maintenant interactifs en profondeur : command palette globale (⌘K), menu profil, modal création utilisateur, dialog mot de passe oublié, toutes les lignes de tableaux cliquables, dropdowns period selector, boutons settings. Le projet est maintenant entièrement interactif côté frontend. 0 erreur lint, 0 erreur runtime sur 17 vues.

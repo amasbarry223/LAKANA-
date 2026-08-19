@@ -232,7 +232,7 @@ export function SettingsView() {
               <Building2 className="h-4 w-4 text-slate-400" />
               <h3 className="text-base font-semibold text-slate-900">Institutions (multi-SFD, BO-08)</h3>
             </div>
-            <button className="flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-sm font-semibold text-white hover:bg-indigo-700">
+            <button onClick={() => toast.info("Nouvelle institution", { description: "Ajout d'une institution SFD avec isolation des données (BO-08)." })} className="flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-sm font-semibold text-white hover:bg-indigo-700">
               + Ajouter
             </button>
           </div>
@@ -312,7 +312,7 @@ export function SettingsView() {
                   {s.current ? (
                     <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">Vous</Badge>
                   ) : (
-                    <button className="text-xs font-semibold text-rose-600 hover:underline">Déconnecter</button>
+                    <button onClick={() => toast.success("Session déconnectée", { description: `${s.user} a été déconnecté.` })} className="text-xs font-semibold text-rose-600 hover:underline">Déconnecter</button>
                   )}
                 </div>
               ))}

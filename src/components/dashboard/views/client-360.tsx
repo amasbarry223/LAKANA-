@@ -268,7 +268,7 @@ export function Client360View() {
             </p>
             <div className="space-y-2">
               {client.accounts.map((acc, i) => (
-                <div key={i} className="flex items-center gap-2.5 rounded-lg bg-slate-50 p-2.5">
+                <div key={i} onClick={() => toast.info(`Compte ${acc.number}`, { description: `${acc.type} — solde ${acc.balance.toLocaleString("fr-FR")} FCFA` })} className="flex cursor-pointer items-center gap-2.5 rounded-lg bg-slate-50 p-2.5">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white">
                     <CreditCard className="h-4 w-4 text-slate-500" />
                   </div>

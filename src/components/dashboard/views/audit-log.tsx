@@ -153,7 +153,7 @@ export function AuditLogView() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filtered.map((l) => (
-                <tr key={l.id} className="hover:bg-slate-50">
+                <tr key={l.id} onClick={() => toast.info(`Entrée ${l.id}`, { description: `${l.user} — ${l.action}` })} className="cursor-pointer hover:bg-slate-50">
                   <td className="px-5 py-3 font-mono text-xs text-slate-500">{l.date}</td>
                   <td className="px-3 py-3">
                     <p className="font-medium text-slate-800">{l.user}</p>
