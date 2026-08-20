@@ -1,6 +1,7 @@
 "use client"
 
-import { MoreHorizontal, ChevronRight, ShieldCheck } from "lucide-react"
+import { useState, useEffect } from "react"
+import { MoreHorizontal, ChevronRight, ShieldCheck, X } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { navigateTo } from "@/lib/navigate"
@@ -24,6 +25,18 @@ const steps: Step[] = [
 const fmt = (n: number) => n.toLocaleString("fr-FR")
 
 export function FunnelChartWidget() {
+  const [detailOpen, setDetailOpen] = useState(false)
+
+  // Escape key closes the detail modal
+  useEffect(() => {
+    if (!detailOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDetailOpen(false)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [detailOpen])
+
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5">
       {/* Header */}
@@ -47,7 +60,7 @@ export function FunnelChartWidget() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => toast.info("Détails du pipeline", { description: "Vue détaillée des 5 étapes de traitement LBC/FT." })}
+            onClick={() => setDetailOpen(true)}
             className="flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             Détails
@@ -136,6 +149,99 @@ export function FunnelChartWidget() {
       >
         Voir les insights conformité
       </button>
+
+      {/* Pipeline detail modal */}
+      {detailOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+          onClick={() => setDetailOpen(false)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Détails du pipeline de détection</h3>
+                <p className="mt-0.5 text-xs text-slate-400">5 étapes de traitement LBC/FT — mise à jour il y a 12 min</p>
+              </div>
+              <button
+                onClick={() => setDetailOpen(false)}
+                className="rounded-md p-1 text-slate-400 hover:bg-slate-100"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Steps detail */}
+            <div className="mt-4 space-y-3">
+              {steps.map((s, i) => {
+                const convRate = i === 0 ? 100 : (s.value / steps[i - 1].value) * 100
+                return (
+                  <div key={s.name} className="rounded-lg border border-slate-100 p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                          style={{ background: s.color }}
+                        >
+                          {i + 1}
+                        </span>
+                        <span className="text-sm font-semibold text-slate-800">{s.name}</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-slate-900">{fmt(s.value)}</p>
+                        <p className="text-[11px] text-slate-400">{s.pct}% du total</p>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex items-center gap-3">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${Math.max(s.pct, 4)}%`,
+                            background: `linear-gradient(90deg, ${s.color}DD, ${s.color})`,
+                          }}
+                        />
+                      </div>
+                      {i > 0 && (
+                        <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                          {convRate.toFixed(1)}% conv. depuis étape {i}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Summary footer */}
+            <div className="mt-5 grid grid-cols-1 gap-2.5 rounded-lg bg-slate-50 p-4 sm:grid-cols-3">
+              <div>
+                <p className="text-[11px] text-slate-400">Total traité</p>
+                <p className="mt-0.5 text-sm font-semibold text-slate-900">12 847 transactions</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-slate-400">Taux d'alerte global</p>
+                <p className="mt-0.5 text-sm font-semibold text-indigo-600">3,55%</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-slate-400">Plus grosse source</p>
+                <p className="mt-0.5 text-sm font-semibold text-rose-600">Fractionnement (167)</p>
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setDetailOpen(false)}
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

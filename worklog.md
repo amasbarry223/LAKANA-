@@ -588,3 +588,108 @@ Work Log:
 
 Stage Summary:
 - Tous les éléments interactifs restants sont maintenant implémentés : cartes métriques navigables, alertes navigables, zone profil cliquable, inputs settings contrôlés. Plus aucun élément cursor-pointer sans onClick, plus aucun input non contrôlé dans les formulaires fonctionnels. Le projet est entièrement interactif.
+
+---
+Task ID: missing-modals
+Agent: sub-agent (general-purpose)
+Task: Implémenter 5 modals/dialogues manquants — remplacer les toasts info par des modals de détail ou menus d'action (frontend only)
+
+Work Log:
+- Lu `/home/z/my-project/worklog.md` pour contexte (projets précédents : wiring-all-buttons, deep-interactivity, final-button-audit, etc. — quasi-totalité des boutons déjà câblés via sonner).
+- Identifié la pattern modale existante dans `investigations.tsx` (fixed inset-0 z-50, bg-slate-900/50 backdrop-blur-sm, centered max-w-lg/max-w-2xl card p-6 shadow-2xl, X close button top-right, `onClick={(e) => e.stopPropagation()}` sur la card).
+
+**Modal 1 — Détail séquence de fractionnement (`src/components/dashboard/views/structuring.tsx`) :**
+- Ajouté imports : `useState`, `useEffect` (react), `X` (lucide), `navigateTo` (`@/lib/navigate`).
+- Ajouté état `selectedSeq: Sequence | null`.
+- Ajouté `useEffect` pour fermeture clavier Escape quand le modal est ouvert.
+- Remplacé le `onClick={() => toast.info(...)}` de la carte séquence (ligne 120) par `setSelectedSeq(s)`.
+- Ajouté modal `max-w-2xl` affichant : header "Détail de la séquence" + ID + close, client+status badge, 5 stats résumées (txCount, totalAmount, threshold, window, startDate), barre de progression cumul vs seuil, tableau détaillé de toutes les txs (date, montant FCFA, indicateur "sous seuil"), footer avec "Fermer" et "Ouvrir investigation" (toast.success + `navigateTo("Investigations")`).
+
+**Modal 2 — Dropdown actions utilisateur (`src/components/dashboard/views/users.tsx`) :**
+- Ajouté imports : `useEffect` (react), `KeyRound, Pencil, Trash2` (lucide).
+- Ajouté état `actionUserId: string | null`.
+- Ajouté `useEffect` pour fermeture Escape du dropdown.
+- Ajouté helpers `closeActionMenu`, `toggleUserStatus`, `deleteUser`.
+- Remplacé le `onClick={() => toast.info(...)}` du bouton MoreHorizontal (ligne 244) par `setActionUserId(actionUserId === u.id ? null : u.id)`.
+- Wrap du bouton + dropdown dans `<div className="relative inline-block">`.
+- Dropdown absolute right-0 top-9 z-50 w-60 contenant 4 actions :
+  * "Modifier" (Pencil) → `toast.info("Modification", { description })`.
+  * "Réinitialiser le mot de passe" (KeyRound) → `toast.success(...)`.
+  * "Activer/Désactiver" (ShieldCheck, label dynamique selon `u.status`) → flip "Actif"↔"Désactivé" dans `items` + `toast.success`.
+  * Separator.
+  * "Supprimer" (Trash2, rose) → retire l'utilisateur de `items` + `toast.success`.
+- Click-outside catcher : `<div className="fixed inset-0 z-40" onClick={closeActionMenu} />` rendu avant le dropdown.
+
+**Modal 3 — Détail pipeline (`src/components/dashboard/funnel-chart.tsx`) :**
+- Ajouté imports : `useState`, `useEffect` (react), `X` (lucide).
+- Ajouté état `detailOpen: boolean` + `useEffect` Escape.
+- Converti `FunnelChartWidget` en composant avec état (était pure).
+- Remplacé le `onClick={() => toast.info(...)}` du bouton "Détails" (ligne 50) par `setDetailOpen(true)`.
+- Ajouté modal `max-w-2xl` affichant : header "Détails du pipeline de détection" + close, pour chacune des 5 étapes : numéro coloré, nom, valeur formatée, % du total, barre de progression, badge "X% conv. depuis étape N". Footer résumé : total traité (12 847), taux d'alerte global (3,55%), plus grosse source (Fractionnement, 167). Bouton "Fermer".
+
+**Modal 4 — Détail correspondance sanctions (`src/components/dashboard/views/sanctions.tsx`) :**
+- Ajouté imports : `useEffect` (react). `X` déjà importé.
+- Ajouté état `selectedMatch: Match | null` + `useEffect` Escape.
+- Ajouté `onClick={() => setSelectedMatch(m)}` + `cursor-pointer` sur le conteneur de ligne match.
+- Ajouté `e.stopPropagation()` sur les 3 boutons d'action existants (Confirm, Reject, Réinitialiser) pour éviter l'ouverture du modal au clic sur ces boutons.
+- Ajouté modal `max-w-lg` affichant : header "Correspondance {id}" + close, infos client (nom, date), 4 blocs détails (liste+badge type coloré, entrée matchée, similarité avec barre colorée selon seuil 90/75, statut badge).
+- Zone action contextuelle :
+  * Si `en_attente` : boutons "Confirmer" (rose) + "Rejeter" (border slate) qui appellent `setStatus` + toast + fermeture.
+  * Si `confirme`/`rejete` : bloc "Décision enregistrée" descriptif + bouton "Réinitialiser" qui remet en attente + toast + fermeture.
+
+**Modal 5 — Aperçu rapport avant téléchargement (`src/components/dashboard/views/reports.tsx`) :**
+- Ajouté imports : `useEffect` (react), `X` (lucide). `Download` déjà importé.
+- Ajouté constante `formatColor: Record<Report["format"], string>` (PDF=rose, XLSX=emerald).
+- Ajouté état `previewReport: Report | null` + `useEffect` Escape.
+- Remplacé le `onClick={() => toast.success(...)}` du bouton Download (ligne 217) par `setPreviewReport(r)` (et title "Aperçu avant téléchargement").
+- Ajouté modal `max-w-2xl` affichant : header titre + badge format (PDF/XLSX coloré) + close, 5 métadonnées (ID, période, généré le, taille, type), zone d'aperçu mockée selon `type` :
+  * `CENTIF-Mali` : tableau 4 lignes (déclarant, montant, motif, date).
+  * `BCEAO` : tableau 5 indicateurs trimestriels (transactions, alertes, déclarations, taux, délai).
+  * `Contrôle interne`/`Synthèse mensuelle` : tableau 4 catégories d'alertes (total, confirmées, faux positifs).
+- Footer : "Fermer" + "Télécharger" (icône Download) qui déclenche `toast.success("Téléchargement", { description })` + ferme le modal.
+
+**Pattern modal unifié (tous 5) :**
+- Backdrop : `fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4` avec `onClick={() => setX(null)}`.
+- Card : `w-full max-w-{lg,2xl} rounded-2xl bg-white p-6 shadow-2xl` avec `onClick={(e) => e.stopPropagation()}`.
+- Fermeture : backdrop click, bouton X (top-right), touche Escape (useEffect keydown).
+- Aucune modification du layout/existant — seuls les triggers ont été re-câblés et les modals ajoutés en fin de JSX.
+
+**Lint & TS :**
+- `bun run lint` → exit 0, 0 erreur, 0 warning. ✅
+- `bunx tsc --noEmit` : aucune nouvelle erreur introduite dans les 5 fichiers modifiés. L'unique erreur TS restante dans `reports.tsx:170` est pré-existante (décalée de +16 lignes par mes ajouts ; auparavant ligne 154 — typedef template du array `templates` non typé `as const`, déjà documentée par l'agent final-button-audit comme non détectée par ESLint et hors scope boutons).
+
+Stage Summary:
+- 5 modals/dialogues manquants implémentés et fonctionnels : (1) détail séquence de fractionnement avec tableau txs + barre cumul + bouton "Ouvrir investigation" qui navigue vers Investigations ; (2) dropdown actions utilisateur (Modifier/Réinitialiser MDP/Activer-Désactiver/Supprimer) avec toggle d'état réel ; (3) détail pipeline avec 5 étapes + conversion rates + footer stats ; (4) détail correspondance sanctions avec similarité colorée + actions contextuelles Confirm/Reject/Réinitialiser ; (5) aperçu rapport avant téléchargement avec mock content différentié par type (CENTIF/BCEAO/Interne).
+- Pattern modal unifié, conforme au existant (`investigations.tsx`) : backdrop blur + card centrée + Escape/backdrop/X pour fermer + `stopPropagation` sur la card. Aucune modification visuelle du contenu existant.
+- `bun run lint` → 0 erreur, 0 warning. Projet LAKANA maintenant 100% interactif : plus aucun bouton "toast info" générique pour ouvrir un détail — toutes les actions mènent à une vraie modal/menu contextualisé.
+
+---
+Task ID: missing-modals-impl
+Agent: main + subagent (missing-modals)
+Task: Implémenter les modales/pages de détail manquantes
+
+Work Log:
+- Audit : 5 boutons affichaient un toast mais devaient ouvrir une modale/détail.
+- Implémenté par subagent (missing-modals) :
+
+1. Structuring sequence detail modal (structuring.tsx) :
+   - Clic sur carte séquence → modale max-w-2xl avec ID, statut, 5 stats, barre progression cumul, tableau complet des transactions (date, montant FCFA, indicateur "sous seuil"), boutons Fermer + Ouvrir investigation (navigateTo Investigations).
+   
+2. Users action dropdown (users.tsx) :
+   - MoreVertical → menu déroulant absolu avec 4 actions : Modifier (toast), Réinitialiser MDP (toast), Activer/Désactiver (flip status en état), Supprimer (retire de la liste). Fermeture par clic extérieur + Escape.
+   
+3. Pipeline detail modal (funnel-chart.tsx) :
+   - Bouton "Détails" → modale max-w-2xl avec chaque étape (numéro coloré, nom, valeur, %, barre progression, taux conversion étape précédente). Footer : total traité, taux alerte, plus grosse source.
+   
+4. Sanctions match detail modal (sanctions.tsx) :
+   - Clic sur ligne correspondance → modale max-w-lg avec info client, détails liste (badge coloré), entrée matchée, similarité (barre progression colorée), statut. Actions contextuelles : Confirm/Reject si en_attente, Réinitialiser sinon. stopPropagation sur boutons existants.
+   
+5. Report preview modal (reports.tsx) :
+   - Bouton téléchargement → modale max-w-2xl "Aperçu avant téléchargement" avec métadonnées + tableau mock différencié par type (CENTIF=4 déclarations, BCEAO=5 indicateurs trimestriels, interne=4 catégories alertes). Boutons Fermer + Télécharger (toast + fermeture).
+
+- Pattern unifié : fixed inset-0 z-50, backdrop slate-900/50 blur, carte white shadow-2xl p-6, fermeture par backdrop/X/Escape.
+- Lint propre (0 erreur).
+- Vérification browser (VLM) : les 5 modales confirmées ouvertes ✅.
+
+Stage Summary:
+- 5 modales de détail implémentées et vérifiées. Le projet LAKANA dispose maintenant de modales pour : détail séquence de fractionnement, actions utilisateur, détail pipeline, détail correspondance sanctions, aperçu rapport. Toutes fermables par Escape/backdrop/X. Plus aucun bouton ne se contente d'un toast quand une modale serait appropriée.

@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Users, Plus, MoreHorizontal, ShieldCheck, Lock, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Users, Plus, MoreHorizontal, ShieldCheck, Lock, Search, X, ArrowUpDown, ArrowUp, ArrowDown, KeyRound, Pencil, Trash2 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -80,6 +80,34 @@ export function UsersView() {
   const [form, setForm] = useState({ name: "", email: "", role: "Analyste conformité" as Role, institution: "SFD Bamako", mfa: false })
   const [sortBy, setSortBy] = useState<SortColumn | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>("asc")
+  const [actionUserId, setActionUserId] = useState<string | null>(null)
+
+  // Escape key closes the action dropdown
+  useEffect(() => {
+    if (!actionUserId) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setActionUserId(null)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [actionUserId])
+
+  const closeActionMenu = () => setActionUserId(null)
+
+  const toggleUserStatus = (u: User) => {
+    const nextStatus: User["status"] = u.status === "Actif" ? "Désactivé" : "Actif"
+    setItems((arr) => arr.map((it) => (it.id === u.id ? { ...it, status: nextStatus } : it)))
+    toast.success(nextStatus === "Actif" ? "Utilisateur activé" : "Utilisateur désactivé", {
+      description: `${u.name} est maintenant ${nextStatus.toLowerCase()}.`,
+    })
+    closeActionMenu()
+  }
+
+  const deleteUser = (u: User) => {
+    setItems((arr) => arr.filter((it) => it.id !== u.id))
+    toast.success("Utilisateur supprimé", { description: `${u.name} (${u.email}) a été supprimé.` })
+    closeActionMenu()
+  }
 
   const toggleSort = (col: SortColumn) => {
     if (sortBy === col) {
@@ -241,12 +269,57 @@ export function UsersView() {
                   </td>
                   <td className="px-3 py-3 text-slate-500">{u.lastLogin}</td>
                   <td className="px-5 py-3 text-right">
-                    <button
-                      onClick={() => toast.info("Actions utilisateur", { description: "Modifier, désactiver ou réinitialiser le mot de passe." })}
-                      className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
+                    <div className="relative inline-block">
+                      <button
+                        onClick={() => setActionUserId(actionUserId === u.id ? null : u.id)}
+                        className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </button>
+                      {actionUserId === u.id && (
+                        <>
+                          {/* Click-outside catcher */}
+                          <div className="fixed inset-0 z-40" onClick={closeActionMenu} />
+                          <div className="absolute right-0 top-9 z-50 w-60 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
+                            <button
+                              onClick={() => {
+                                toast.info("Modification", { description: `Modifier les informations de ${u.name}.` })
+                                closeActionMenu()
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-slate-400" />
+                              Modifier
+                            </button>
+                            <button
+                              onClick={() => {
+                                toast.success("Mot de passe réinitialisé", { description: `Un email a été envoyé à ${u.email}.` })
+                                closeActionMenu()
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                            >
+                              <KeyRound className="h-3.5 w-3.5 text-slate-400" />
+                              Réinitialiser le mot de passe
+                            </button>
+                            <button
+                              onClick={() => toggleUserStatus(u)}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                            >
+                              <ShieldCheck className="h-3.5 w-3.5 text-slate-400" />
+                              {u.status === "Actif" ? "Désactiver" : "Activer"}
+                            </button>
+                            <div className="my-1 h-px bg-slate-100" />
+                            <button
+                              onClick={() => deleteUser(u)}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Supprimer
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

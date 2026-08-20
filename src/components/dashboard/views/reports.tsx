@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { FileBarChart, Download, Calendar, CheckCircle2, Clock, FileText, ChevronRight, ChevronDown, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { FileBarChart, Download, Calendar, CheckCircle2, Clock, FileText, ChevronRight, ChevronDown, Loader2, X } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -39,6 +39,11 @@ const typeColor: Record<Report["type"], string> = {
   "Synthèse mensuelle": "bg-indigo-50 text-indigo-700 border-indigo-200",
 }
 
+const formatColor: Record<Report["format"], string> = {
+  PDF: "bg-rose-50 text-rose-700 border-rose-200",
+  XLSX: "bg-emerald-50 text-emerald-700 border-emerald-200",
+}
+
 const templates = [
   { title: "Déclaration de soupçon CENTIF", desc: "Format réglementaire CENTIF-Mali", type: "CENTIF-Mali", color: "#EF4444" },
   { title: "Rapport trimestriel BCEAO", desc: "Conformité LBC/FT — Banque centrale", type: "BCEAO", color: "#3B82F6" },
@@ -51,6 +56,17 @@ export function ReportsView() {
   const [periodOpen, setPeriodOpen] = useState(false)
   const [reports, setReports] = useState<Report[]>(initialReports)
   const [generating, setGenerating] = useState<string | null>(null)
+  const [previewReport, setPreviewReport] = useState<Report | null>(null)
+
+  // Escape key closes the preview modal
+  useEffect(() => {
+    if (!previewReport) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPreviewReport(null)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [previewReport])
 
   const periodOptions = ["Juillet 2026", "Août 2026", "T2 2026", "T3 2026", "Année 2026"]
 
@@ -214,9 +230,9 @@ export function ReportsView() {
                   </Badge>
                   {r.status === "Généré" && (
                     <button
-                      onClick={() => toast.success("Téléchargement", { description: `${r.title} (${r.format}).` })}
+                      onClick={() => setPreviewReport(r)}
                       className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
-                      title="Télécharger"
+                      title="Aperçu avant téléchargement"
                     >
                       <Download className="h-4 w-4" />
                     </button>
@@ -232,6 +248,155 @@ export function ReportsView() {
         <FileBarChart className="h-3.5 w-3.5 shrink-0" />
         <span>Les exports sont générés au format PDF ou tableur sur une période donnée (BO-06) et conservés pour piste d'audit.</span>
       </div>
+
+      {/* Report preview modal */}
+      {previewReport && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+          onClick={() => setPreviewReport(null)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-slate-900">{previewReport.title}</h3>
+                <Badge variant="outline" className={cn("border", formatColor[previewReport.format])}>
+                  {previewReport.format}
+                </Badge>
+              </div>
+              <button
+                onClick={() => setPreviewReport(null)}
+                className="rounded-md p-1 text-slate-400 hover:bg-slate-100"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Metadata */}
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+              {[
+                { label: "ID", value: previewReport.id },
+                { label: "Période", value: previewReport.period },
+                { label: "Généré le", value: previewReport.generatedAt },
+                { label: "Taille", value: previewReport.size },
+                { label: "Type", value: previewReport.type },
+              ].map((m) => (
+                <div key={m.label} className="rounded-lg bg-slate-50 p-2.5">
+                  <p className="text-[10px] text-slate-400">{m.label}</p>
+                  <p className="mt-0.5 text-xs font-semibold text-slate-900">{m.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Preview area */}
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-semibold text-slate-600">Aperçu du contenu</p>
+              <div className="overflow-hidden rounded-lg border border-slate-100">
+                {previewReport.type === "CENTIF-Mali" && (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-slate-50 text-left text-[11px] uppercase tracking-wide text-slate-400">
+                        <th className="px-3 py-2 font-semibold">Déclarant</th>
+                        <th className="px-3 py-2 text-right font-semibold">Montant</th>
+                        <th className="px-3 py-2 font-semibold">Motif</th>
+                        <th className="px-3 py-2 font-semibold">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {[
+                        { d: "Traoré, M.", amt: "4 800 000 FCFA", motif: "Fractionnement", date: "25/08/2026" },
+                        { d: "Diarra, F.", amt: "3 650 000 FCFA", motif: "Volume inhabituel", date: "24/08/2026" },
+                        { d: "Sangaré, O.", amt: "2 100 000 FCFA", motif: "Comportement atypique", date: "23/08/2026" },
+                        { d: "Coulibaly, A.", amt: "2 850 000 FCFA", motif: "Fréquence anormale", date: "20/08/2026" },
+                      ].map((row, i) => (
+                        <tr key={i} className="hover:bg-slate-50">
+                          <td className="px-3 py-2 text-slate-700">{row.d}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-slate-900">{row.amt}</td>
+                          <td className="px-3 py-2 text-slate-600">{row.motif}</td>
+                          <td className="px-3 py-2 text-slate-500">{row.date}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                {previewReport.type === "BCEAO" && (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-slate-50 text-left text-[11px] uppercase tracking-wide text-slate-400">
+                        <th className="px-3 py-2 font-semibold">Indicateur BCEAO</th>
+                        <th className="px-3 py-2 text-right font-semibold">Valeur</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {[
+                        { k: "Transactions analysées (T2)", v: "38 612" },
+                        { k: "Alertes générées", v: "1 247" },
+                        { k: "Déclarations CENTIF transmises", v: "18" },
+                        { k: "Taux de déclaration", v: "1,44%" },
+                        { k: "Délai moyen de traitement", v: "4,2 jours" },
+                      ].map((row, i) => (
+                        <tr key={i} className="hover:bg-slate-50">
+                          <td className="px-3 py-2 text-slate-700">{row.k}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-slate-900">{row.v}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                {(previewReport.type === "Contrôle interne" || previewReport.type === "Synthèse mensuelle") && (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-slate-50 text-left text-[11px] uppercase tracking-wide text-slate-400">
+                        <th className="px-3 py-2 font-semibold">Catégorie d'alerte</th>
+                        <th className="px-3 py-2 text-right font-semibold">Total</th>
+                        <th className="px-3 py-2 text-right font-semibold">Confirmées</th>
+                        <th className="px-3 py-2 text-right font-semibold">Faux positifs</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {[
+                        { cat: "Fractionnement", tot: 167, conf: 41, fp: 126 },
+                        { cat: "Correspondances PPE", tot: 89, conf: 12, fp: 77 },
+                        { cat: "Volume inhabituel", tot: 73, conf: 9, fp: 64 },
+                        { cat: "Comportement atypique", tot: 51, conf: 7, fp: 44 },
+                      ].map((row, i) => (
+                        <tr key={i} className="hover:bg-slate-50">
+                          <td className="px-3 py-2 text-slate-700">{row.cat}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-slate-900">{row.tot}</td>
+                          <td className="px-3 py-2 text-right text-rose-600">{row.conf}</td>
+                          <td className="px-3 py-2 text-right text-slate-500">{row.fp}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setPreviewReport(null)}
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Fermer
+              </button>
+              <button
+                onClick={() => {
+                  toast.success("Téléchargement", { description: `${previewReport.title} (${previewReport.format}).` })
+                  setPreviewReport(null)
+                }}
+                className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Télécharger
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

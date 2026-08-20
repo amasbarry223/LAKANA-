@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ShieldAlert, Search, Check, X, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
@@ -58,6 +58,17 @@ export function SanctionsView() {
   const [query, setQuery] = useState("")
   const [sortBy, setSortBy] = useState<SortColumn | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>("asc")
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null)
+
+  // Escape key closes the detail modal
+  useEffect(() => {
+    if (!selectedMatch) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedMatch(null)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [selectedMatch])
 
   const toggleSort = (col: SortColumn) => {
     if (sortBy === col) {
@@ -170,7 +181,7 @@ export function SanctionsView() {
         </div>
         <div className="divide-y divide-slate-100">
           {sorted.map((m) => (
-            <div key={m.id} className="flex flex-wrap items-center gap-3 px-5 py-4 hover:bg-slate-50">
+            <div key={m.id} onClick={() => setSelectedMatch(m)} className="flex cursor-pointer flex-wrap items-center gap-3 px-5 py-4 hover:bg-slate-50">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100">
                 <ShieldAlert className="h-5 w-5 text-slate-500" />
               </div>
@@ -202,7 +213,8 @@ export function SanctionsView() {
                 {m.status === "en_attente" && (
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation()
                         setStatus(m.id, "confirme")
                         toast.error("Correspondance confirmée", { description: `${m.id} — ${m.client}. Mesure de gel requise (FLT-04).` })
                       }}
@@ -212,7 +224,8 @@ export function SanctionsView() {
                       <Check className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation()
                         setStatus(m.id, "rejete")
                         toast.success("Faux positif rejeté", { description: `${m.id} — ${m.client}. Rejet motivé (FLT-05).` })
                       }}
@@ -225,7 +238,8 @@ export function SanctionsView() {
                 )}
                 {m.status !== "en_attente" && (
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation()
                       setStatus(m.id, "en_attente")
                       toast.info("Correspondance remise en attente", { description: `${m.id} — ${m.client}.` })
                     }}
@@ -244,6 +258,134 @@ export function SanctionsView() {
         <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
         <span>Toute mesure de gel exige une revue humaine préalable (FLT-04). Le filtrage est relancé automatiquement après chaque mise à jour des listes (FLT-06).</span>
       </div>
+
+      {/* Match detail modal */}
+      {selectedMatch && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+          onClick={() => setSelectedMatch(null)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Correspondance {selectedMatch.id}</h3>
+                <p className="mt-0.5 text-xs text-slate-400">{selectedMatch.client} — {selectedMatch.clientId}</p>
+              </div>
+              <button
+                onClick={() => setSelectedMatch(null)}
+                className="rounded-md p-1 text-slate-400 hover:bg-slate-100"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Client info */}
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="rounded-lg bg-slate-50 p-3">
+                <p className="text-xs text-slate-400">Client</p>
+                <p className="mt-0.5 text-sm font-semibold text-slate-900">{selectedMatch.client}</p>
+              </div>
+              <div className="rounded-lg bg-slate-50 p-3">
+                <p className="text-xs text-slate-400">Date</p>
+                <p className="mt-0.5 text-sm font-semibold text-slate-900">{selectedMatch.date}</p>
+              </div>
+            </div>
+
+            {/* Match details */}
+            <div className="mt-3 space-y-2">
+              <div className="flex items-center justify-between rounded-lg border border-slate-100 p-3">
+                <span className="text-xs text-slate-500">Liste</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-slate-700">{selectedMatch.listName}</span>
+                  <Badge variant="outline" className={cn("border", listBadge[selectedMatch.listType])}>{selectedMatch.listType}</Badge>
+                </div>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-slate-100 p-3">
+                <span className="text-xs text-slate-500">Entrée matchée</span>
+                <span className="text-sm font-semibold text-slate-900">{selectedMatch.matchedEntry}</span>
+              </div>
+              <div className="rounded-lg border border-slate-100 p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-500">Similarité</span>
+                  <span className={cn(
+                    "text-sm font-bold",
+                    selectedMatch.similarity >= 90 ? "text-rose-600" : selectedMatch.similarity >= 75 ? "text-amber-600" : "text-slate-600"
+                  )}>
+                    {selectedMatch.similarity}%
+                  </span>
+                </div>
+                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className={cn(
+                      "h-full rounded-full",
+                      selectedMatch.similarity >= 90 ? "bg-rose-500" : selectedMatch.similarity >= 75 ? "bg-amber-500" : "bg-slate-400"
+                    )}
+                    style={{ width: `${selectedMatch.similarity}%` }}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-slate-100 p-3">
+                <span className="text-xs text-slate-500">Statut</span>
+                <Badge variant="outline" className={cn("border", statusConfig[selectedMatch.status].color)}>
+                  {statusConfig[selectedMatch.status].label}
+                </Badge>
+              </div>
+            </div>
+
+            {/* Action area */}
+            <div className="mt-5">
+              {selectedMatch.status === "en_attente" ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setStatus(selectedMatch.id, "confirme")
+                      toast.error("Correspondance confirmée", { description: `${selectedMatch.id} — ${selectedMatch.client}. Mesure de gel requise (FLT-04).` })
+                      setSelectedMatch(null)
+                    }}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-rose-600 py-2.5 text-sm font-semibold text-white hover:bg-rose-700"
+                  >
+                    <Check className="h-4 w-4" />
+                    Confirmer
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStatus(selectedMatch.id, "rejete")
+                      toast.success("Faux positif rejeté", { description: `${selectedMatch.id} — ${selectedMatch.client}. Rejet motivé (FLT-05).` })
+                      setSelectedMatch(null)
+                    }}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                  >
+                    <X className="h-4 w-4" />
+                    Rejeter
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+                    <span className="font-medium">Décision enregistrée :</span>{" "}
+                    {selectedMatch.status === "confirme"
+                      ? "correspondance confirmée — mesure de gel appliquée."
+                      : "faux positif rejeté et motivé."}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setStatus(selectedMatch.id, "en_attente")
+                      toast.info("Correspondance remise en attente", { description: `${selectedMatch.id} — ${selectedMatch.client}.` })
+                      setSelectedMatch(null)
+                    }}
+                    className="w-full rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                  >
+                    Réinitialiser
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
