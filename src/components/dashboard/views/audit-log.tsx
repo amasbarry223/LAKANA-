@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { ScrollText, Search, Download, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import { useState, useEffect } from "react"
+import { ScrollText, Search, Download, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, X } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -61,6 +61,16 @@ export function AuditLogView() {
   const [sortBy, setSortBy] = useState<SortColumn | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>("asc")
   const [moreOpen, setMoreOpen] = useState(false)
+  const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null)
+
+  useEffect(() => {
+    if (!selectedLog) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedLog(null)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [selectedLog])
 
   const toggleSort = (col: SortColumn) => {
     if (sortBy === col) {
@@ -262,7 +272,7 @@ export function AuditLogView() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {sorted.map((l) => (
-                <tr key={l.id} onClick={() => toast.info(`Entrée ${l.id}`, { description: `${l.user} — ${l.action}` })} className="cursor-pointer hover:bg-slate-50">
+                <tr key={l.id} onClick={() => setSelectedLog(l)} className="cursor-pointer hover:bg-slate-50">
                   <td className="px-5 py-3 font-mono text-xs text-slate-500">{l.date}</td>
                   <td className="px-3 py-3">
                     <p className="font-medium text-slate-800">{l.user}</p>
@@ -294,6 +304,112 @@ export function AuditLogView() {
           <span>Chaque accès est journalisé avec horodatage et origine (AUTH-08)</span>
         </div>
       </div>
+
+      {/* Log entry detail modal */}
+      {selectedLog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+          onClick={() => setSelectedLog(null)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Entrée du journal</h3>
+                <p className="mt-0.5 text-xs text-slate-400">{selectedLog.id}</p>
+              </div>
+              <button
+                onClick={() => setSelectedLog(null)}
+                className="rounded-md p-1 text-slate-400 hover:bg-slate-100"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Full details */}
+            <div className="mt-4 space-y-2.5">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-500">Horodatage</span>
+                <span className="font-mono text-slate-800">{selectedLog.date}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-500">Utilisateur</span>
+                <span className="font-medium text-slate-800">{selectedLog.user}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-500">Rôle</span>
+                <span className="text-slate-800">{selectedLog.role}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-500">Module</span>
+                <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{selectedLog.module}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="shrink-0 text-slate-500">Action</span>
+                <span className="text-right text-slate-800">{selectedLog.action}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-500">Résultat</span>
+                <Badge variant="outline" className={cn(
+                  "border",
+                  selectedLog.result === "Succès"
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "bg-rose-50 text-rose-700 border-rose-200"
+                )}>
+                  {selectedLog.result}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-500">Adresse IP</span>
+                <span className="font-mono text-slate-800">{selectedLog.ip}</span>
+              </div>
+            </div>
+
+            {/* Additional context */}
+            <div className="mt-5 border-t border-slate-100 pt-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Contexte additionnel
+              </p>
+              <div className="mt-2 space-y-1.5 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Session ID</span>
+                  <span className="font-mono text-slate-700">sess-{selectedLog.id.replace("LOG-", "")}-8f2a</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Terminal</span>
+                  <span className="text-slate-700">Chrome 124 / Windows 11</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Localisation</span>
+                  <span className="text-slate-700">
+                    {selectedLog.ip.endsWith(".42") || selectedLog.ip.endsWith(".55")
+                      ? "Bamako"
+                      : selectedLog.ip.endsWith(".12")
+                        ? "Sikasso"
+                        : "Kayes"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Traçabilité note */}
+            <div className="mt-4 rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
+              Chaque accès est journalisé avec horodatage et origine (AUTH-08)
+            </div>
+
+            <div className="mt-5 flex items-center justify-end">
+              <button
+                onClick={() => setSelectedLog(null)}
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

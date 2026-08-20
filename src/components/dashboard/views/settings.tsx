@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Settings, Save, RotateCcw, ShieldAlert, Sliders, Building2, Lock, History } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Settings, Save, RotateCcw, ShieldAlert, Sliders, Building2, Lock, History, X } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
@@ -34,6 +34,23 @@ const versions = [
   { v: "v2.1", date: "01/08/2026 09:00", author: "S. Traoré (Admin)", changes: "Verrouillage 3→5 essais" },
 ]
 
+type InstType = "SFD" | "IMF" | "Banque" | "Coopérative"
+type InstCity = "Bamako" | "Sikasso" | "Kayes" | "Ségou" | "Mopti"
+
+type Institution = {
+  name: string
+  type: InstType
+  city: InstCity
+  clients: number
+  isolated: boolean
+}
+
+const initialInstitutions: Institution[] = [
+  { name: "SFD Bamako", type: "SFD", city: "Bamako", clients: 5421, isolated: true },
+  { name: "SFD Sikasso", type: "SFD", city: "Sikasso", clients: 3120, isolated: true },
+  { name: "SFD Kayes", type: "SFD", city: "Kayes", clients: 2044, isolated: true },
+]
+
 export function SettingsView() {
   const [tab, setTab] = useState<Tab>("Général")
   const [weights, setWeights] = useState(scoringRules.map((r) => r.weight))
@@ -41,6 +58,45 @@ export function SettingsView() {
   const [mfa, setMfa] = useState(true)
   const [autoLock, setAutoLock] = useState(true)
   const [general, setGeneral] = useState({ institution: "SFD Bamako", devise: "FCFA (XOF)", langue: "Français" })
+  const [institutions, setInstitutions] = useState<Institution[]>(initialInstitutions)
+  const [createInstOpen, setCreateInstOpen] = useState(false)
+  const [instForm, setInstForm] = useState({
+    name: "",
+    type: "SFD" as "SFD" | "IMF" | "Banque" | "Coopérative",
+    city: "Bamako" as "Bamako" | "Sikasso" | "Kayes" | "Ségou" | "Mopti",
+    isolated: true,
+  })
+
+  useEffect(() => {
+    if (!createInstOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setCreateInstOpen(false)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [createInstOpen])
+
+  const submitNewInstitution = () => {
+    if (!instForm.name.trim()) {
+      toast.error("Nom requis", { description: "Veuillez saisir le nom de l'institution." })
+      return
+    }
+    setInstitutions([
+      ...institutions,
+      {
+        name: instForm.name.trim(),
+        type: instForm.type,
+        city: instForm.city,
+        clients: 0,
+        isolated: instForm.isolated,
+      },
+    ])
+    toast.success("Institution créée", {
+      description: `${instForm.name.trim()} (${instForm.type}, ${instForm.city}) ajoutée. Isolation des données ${instForm.isolated ? "activée" : "désactivée"} (BO-08).`,
+    })
+    setInstForm({ name: "", type: "SFD", city: "Bamako", isolated: true })
+    setCreateInstOpen(false)
+  }
 
   return (
     <div className="space-y-5">
@@ -238,16 +294,12 @@ export function SettingsView() {
               <Building2 className="h-4 w-4 text-slate-400" />
               <h3 className="text-base font-semibold text-slate-900">Institutions (multi-SFD, BO-08)</h3>
             </div>
-            <button onClick={() => toast.info("Nouvelle institution", { description: "Ajout d'une institution SFD avec isolation des données (BO-08)." })} className="flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-sm font-semibold text-white hover:bg-indigo-700">
+            <button onClick={() => setCreateInstOpen(true)} className="flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-sm font-semibold text-white hover:bg-indigo-700">
               + Ajouter
             </button>
           </div>
           <div className="mt-4 space-y-2">
-            {[
-              { name: "SFD Bamako", clients: 5421, isolated: true },
-              { name: "SFD Sikasso", clients: 3120, isolated: true },
-              { name: "SFD Kayes", clients: 2044, isolated: true },
-            ].map((inst) => (
+            {institutions.map((inst) => (
               <div key={inst.name} className="flex items-center gap-3 rounded-lg border border-slate-100 p-3 hover:bg-slate-50">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50">
                   <Building2 className="h-4 w-4 text-indigo-600" />
@@ -256,9 +308,11 @@ export function SettingsView() {
                   <p className="text-sm font-medium text-slate-800">{inst.name}</p>
                   <p className="text-[11px] text-slate-400">{inst.clients.toLocaleString("fr-FR")} clients</p>
                 </div>
-                <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
-                  Données isolées
-                </Badge>
+                {inst.isolated && (
+                  <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
+                    Données isolées
+                  </Badge>
+                )}
               </div>
             ))}
           </div>
@@ -322,6 +376,98 @@ export function SettingsView() {
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create institution modal */}
+      {createInstOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+          onClick={() => setCreateInstOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Nouvelle institution</h3>
+                <p className="mt-0.5 text-xs text-slate-400">Multi-SFD avec isolation des données (BO-08)</p>
+              </div>
+              <button
+                onClick={() => setCreateInstOpen(false)}
+                className="rounded-md p-1 text-slate-400 hover:bg-slate-100"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="text-xs font-medium text-slate-500">Nom de l'institution</label>
+                <input
+                  value={instForm.name}
+                  onChange={(e) => setInstForm({ ...instForm, name: e.target.value })}
+                  placeholder="Ex. SFD Mopti"
+                  className="mt-1 h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-500">Type</label>
+                  <select
+                    value={instForm.type}
+                    onChange={(e) => setInstForm({ ...instForm, type: e.target.value as Institution["type"] })}
+                    className="mt-1 h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                  >
+                    <option value="SFD">SFD</option>
+                    <option value="IMF">IMF</option>
+                    <option value="Banque">Banque</option>
+                    <option value="Coopérative">Coopérative</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500">Ville</label>
+                  <select
+                    value={instForm.city}
+                    onChange={(e) => setInstForm({ ...instForm, city: e.target.value as Institution["city"] })}
+                    className="mt-1 h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                  >
+                    <option value="Bamako">Bamako</option>
+                    <option value="Sikasso">Sikasso</option>
+                    <option value="Kayes">Kayes</option>
+                    <option value="Ségou">Ségou</option>
+                    <option value="Mopti">Mopti</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Isolation des données</p>
+                  <p className="text-[11px] text-slate-400">BO-08 — données cloisonnées par institution</p>
+                </div>
+                <Switch
+                  checked={instForm.isolated}
+                  onCheckedChange={(v) => setInstForm({ ...instForm, isolated: v })}
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setCreateInstOpen(false)}
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={submitNewInstitution}
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+              >
+                Créer l'institution
+              </button>
             </div>
           </div>
         </div>

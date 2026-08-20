@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   User,
   ShieldAlert,
@@ -13,6 +13,7 @@ import {
   Briefcase,
   Calendar,
   CreditCard,
+  X,
 } from "lucide-react"
 import {
   Area,
@@ -40,6 +41,66 @@ type Client = {
   factors: { label: string; points: number; max: number }[]
   alerts: { ref: string; type: string; date: string; level: string }[]
   txData: { date: string; montant: number }[]
+}
+
+type Account = { type: string; number: string; balance: number }
+
+const txDescriptions = [
+  "Virement reçu",
+  "Retrait",
+  "Dépôt",
+  "Transfert mobile",
+  "Prélèvement",
+  "Virement émis",
+  "Frais bancaires",
+  "Remise chèque",
+]
+
+function buildAccountTransactions(acc: Account) {
+  // Génère 8 à 10 transactions mockées aboutissant au solde actuel.
+  // On part du solde initial = balance/10 et on simule des +/- jusqu'au solde final.
+  const rows = 8 + (acc.number.charCodeAt(acc.number.length - 1) % 3) // 8-10 lignes
+  let running = Math.round(acc.balance / 10 / 1000) * 1000
+  const start = running
+  const txs: { date: string; description: string; amount: number; balance: number }[] = []
+  // seed déterministe basée sur le numéro de compte
+  let seed = acc.number.split("").reduce((a, c) => a + c.charCodeAt(0), 0)
+  const rand = () => {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff
+    return seed / 0x7fffffff
+  }
+  const days: number[] = []
+  for (let i = 0; i < rows; i++) {
+    days.push(2 + Math.floor(rand() * 26))
+  }
+  days.sort((a, b) => a - b)
+  for (let i = 0; i < rows; i++) {
+    const remaining = rows - i
+    const target = acc.balance
+    const needed = (target - running) / remaining
+    // Génère un montant autour de needed + bruit, signe aléatoire si needed ≈ 0
+    let amt = Math.round((needed + (rand() - 0.5) * Math.abs(needed) * 1.4) / 5000) * 5000
+    if (amt === 0) amt = (rand() > 0.5 ? 1 : -1) * Math.round((100000 + rand() * 400000) / 5000) * 5000
+    // Conserve parfois un flux réaliste (au hasard)
+    if (i > 0 && rand() > 0.7) {
+      amt = (amt >= 0 ? 1 : -1) * Math.round((50000 + rand() * 600000) / 5000) * 5000
+    }
+    running += amt
+    const desc = txDescriptions[Math.floor(rand() * txDescriptions.length)]
+    txs.push({
+      date: `${String(days[i]).padStart(2, "0")}/08/2026`,
+      description: desc,
+      amount: amt,
+      balance: running,
+    })
+  }
+  // Ajuste la dernière transaction pour retomber exactement sur le solde final
+  const delta = acc.balance - running
+  if (delta !== 0 && txs.length > 0) {
+    txs[txs.length - 1].amount += delta
+    txs[txs.length - 1].balance += delta
+  }
+  return { txs, start }
 }
 
 const clients: Client[] = [
@@ -172,7 +233,17 @@ function TxTooltip({ active, payload, label }: any) {
 
 export function Client360View() {
   const [selected, setSelected] = useState(0)
+  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null)
   const client = clients[selected]
+
+  useEffect(() => {
+    if (!selectedAccount) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedAccount(null)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [selectedAccount])
 
   return (
     <div className="space-y-5">
@@ -268,7 +339,7 @@ export function Client360View() {
             </p>
             <div className="space-y-2">
               {client.accounts.map((acc, i) => (
-                <div key={i} onClick={() => toast.info(`Compte ${acc.number}`, { description: `${acc.type} — solde ${acc.balance.toLocaleString("fr-FR")} FCFA` })} className="flex cursor-pointer items-center gap-2.5 rounded-lg bg-slate-50 p-2.5">
+                <div key={i} onClick={() => setSelectedAccount(acc)} className="flex cursor-pointer items-center gap-2.5 rounded-lg bg-slate-50 p-2.5">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white">
                     <CreditCard className="h-4 w-4 text-slate-500" />
                   </div>
@@ -459,6 +530,96 @@ export function Client360View() {
           ))}
         </div>
       </div>
+
+      {/* Account transactions history modal */}
+      {selectedAccount && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+          onClick={() => setSelectedAccount(null)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Transactions — {selectedAccount.type}
+                </h3>
+                <p className="mt-0.5 text-xs text-slate-400">{selectedAccount.number}</p>
+              </div>
+              <button
+                onClick={() => setSelectedAccount(null)}
+                className="rounded-md p-1 text-slate-400 hover:bg-slate-100"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Account summary */}
+            <div className="mt-4 grid grid-cols-3 gap-3">
+              <div className="rounded-lg bg-slate-50 p-3">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Type</p>
+                <p className="mt-1 text-sm font-semibold text-slate-800">{selectedAccount.type}</p>
+              </div>
+              <div className="rounded-lg bg-slate-50 p-3">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">N° compte</p>
+                <p className="mt-1 text-sm font-semibold text-slate-800">{selectedAccount.number}</p>
+              </div>
+              <div className="rounded-lg bg-slate-50 p-3">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Solde</p>
+                <p className="mt-1 text-sm font-semibold text-slate-800">
+                  {selectedAccount.balance.toLocaleString("fr-FR")}{" "}
+                  <span className="text-[10px] font-normal text-slate-400">FCFA</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Transactions table */}
+            <div className="mt-5 overflow-hidden rounded-lg border border-slate-200">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50">
+                  <tr className="text-left text-xs text-slate-500">
+                    <th className="px-3 py-2 font-medium">Date</th>
+                    <th className="px-3 py-2 font-medium">Description</th>
+                    <th className="px-3 py-2 text-right font-medium">Montant</th>
+                    <th className="px-3 py-2 text-right font-medium">Solde</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {buildAccountTransactions(selectedAccount).txs.map((tx, i) => (
+                    <tr key={i}>
+                      <td className="px-3 py-2 text-slate-600">{tx.date}</td>
+                      <td className="px-3 py-2 text-slate-700">{tx.description}</td>
+                      <td
+                        className={cn(
+                          "px-3 py-2 text-right font-medium",
+                          tx.amount >= 0 ? "text-emerald-600" : "text-rose-600"
+                        )}
+                      >
+                        {tx.amount >= 0 ? "+" : ""}
+                        {tx.amount.toLocaleString("fr-FR")}
+                      </td>
+                      <td className="px-3 py-2 text-right text-slate-700">
+                        {tx.balance.toLocaleString("fr-FR")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-5 flex items-center justify-end">
+              <button
+                onClick={() => setSelectedAccount(null)}
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

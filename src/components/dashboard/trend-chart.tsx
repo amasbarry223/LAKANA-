@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { MoreHorizontal, ChevronDown } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { MoreHorizontal, ChevronDown, X } from "lucide-react"
 import {
   Area,
   AreaChart,
@@ -13,6 +13,7 @@ import {
   Legend,
 } from "recharts"
 import { toast } from "sonner"
+import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 
 type Series = {
@@ -28,23 +29,84 @@ const series: Series[] = [
   { key: "informative", name: "Informative", color: "#06B6D4" },
 ]
 
+// Base data — 30 points, tous les 3 jours, sur ~90 jours.
 const dates: string[] = []
-const start = new Date("2026-07-07")
-for (let i = 0; i <= 49; i += 4) {
+const start = new Date("2026-05-28")
+for (let i = 0; i < 30; i++) {
   const d = new Date(start)
-  d.setDate(start.getDate() + i)
+  d.setDate(start.getDate() + i * 3)
   dates.push(d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }))
 }
 
-const data = dates.map((date, i) => ({
+type Metric = "Volume d'alertes" | "Risk Score moyen" | "Taux de faux positifs"
+type Granularity = "Jour" | "Semaine" | "Mois"
+type Period = "7" | "30" | "90"
+type ChartType = "area" | "line" | "bar"
+
+// Volume d'alertes — counts (jeu de données original).
+const volumeData = dates.map((date, i) => ({
   date,
   bloquante: Math.round(18 + Math.sin(i * 0.9) * 6 + i * 0.2),
   analyser: Math.round(80 + Math.sin(i * 0.7) * 15 + i * 0.3),
   informative: Math.round(45 + Math.sin(i * 0.6 + 1) * 12),
 }))
 
-function CustomTooltip({ active, payload, label }: any) {
+// Risk Score moyen — scores 6-30 (divisé par ~3).
+const scoreData = dates.map((date, i) => ({
+  date,
+  bloquante: Math.round((18 + Math.sin(i * 0.9) * 6 + i * 0.2) / 3),
+  analyser: Math.round((80 + Math.sin(i * 0.7) * 15 + i * 0.3) / 3),
+  informative: Math.round((45 + Math.sin(i * 0.6 + 1) * 12) / 3),
+}))
+
+// Taux de faux positifs — pourcentages 5-30%.
+const fpData = dates.map((date, i) => ({
+  date,
+  bloquante: Math.round(8 + Math.sin(i * 0.9 + 2) * 4),
+  analyser: Math.round(22 + Math.sin(i * 0.7 + 1) * 6),
+  informative: Math.round(15 + Math.sin(i * 0.6 + 3) * 5),
+}))
+
+function metricData(metric: Metric) {
+  if (metric === "Risk Score moyen") return scoreData
+  if (metric === "Taux de faux positifs") return fpData
+  return volumeData
+}
+
+function metricUnit(metric: Metric) {
+  if (metric === "Risk Score moyen") return "pts"
+  if (metric === "Taux de faux positifs") return "%"
+  return "alertes"
+}
+
+function metricDomain(metric: Metric): [number, number] {
+  if (metric === "Risk Score moyen") return [0, 30]
+  if (metric === "Taux de faux positifs") return [0, 35]
+  return [0, 120]
+}
+
+function metricTicks(metric: Metric): number[] {
+  if (metric === "Risk Score moyen") return [0, 10, 20, 30]
+  if (metric === "Taux de faux positifs") return [0, 10, 20, 30]
+  return [0, 30, 60, 90, 120]
+}
+
+function granularityInterval(g: Granularity): number {
+  if (g === "Jour") return 0
+  if (g === "Semaine") return 2
+  return 6 // Mois
+}
+
+function periodPoints(p: Period): number {
+  // Sur une série de 30 points espacés de 3 jours (90 jours au total).
+  if (p === "7") return 3 // ~7 jours
+  if (p === "30") return 10 // ~30 jours
+  return 30 // 90 jours = tout
+}
+
+function CustomTooltip({ active, payload, label, metric }: any) {
   if (!active || !payload?.length) return null
+  const unit = metricUnit(metric as Metric)
   return (
     <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-md">
       <p className="mb-1.5 text-xs font-semibold text-slate-700">{label}</p>
@@ -57,7 +119,7 @@ function CustomTooltip({ active, payload, label }: any) {
             />
             <span className="text-slate-500">{p.name}</span>
             <span className="ml-auto font-semibold text-slate-900">
-              {p.value} alertes
+              {p.value} {unit}
             </span>
           </div>
         ))}
@@ -67,13 +129,117 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export function TrendChartWidget() {
-  const [metric, setMetric] = useState("Volume d'alertes")
-  const [granularity, setGranularity] = useState("Jour")
+  const [metric, setMetric] = useState<Metric>("Volume d'alertes")
+  const [granularity, setGranularity] = useState<Granularity>("Semaine")
   const [metricOpen, setMetricOpen] = useState(false)
   const [granularityOpen, setGranularityOpen] = useState(false)
+  const [optionsOpen, setOptionsOpen] = useState(false)
+  const [visibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({
+    bloquante: true,
+    analyser: true,
+    informative: true,
+  })
+  const [chartType, setChartType] = useState<ChartType>("area")
+  const [period, setPeriod] = useState<Period>("90")
 
-  const metricOptions = ["Volume d'alertes", "Risk Score moyen", "Taux de faux positifs"]
-  const granularityOptions = ["Jour", "Semaine", "Mois"]
+  // Brouillon local du modal options (validé sur "Appliquer")
+  const [draftVisible, setDraftVisible] = useState<Record<string, boolean>>({
+    bloquante: true,
+    analyser: true,
+    informative: true,
+  })
+  const [draftChartType, setDraftChartType] = useState<ChartType>("area")
+  const [draftPeriod, setDraftPeriod] = useState<Period>("90")
+
+  useEffect(() => {
+    if (!optionsOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOptionsOpen(false)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [optionsOpen])
+
+  const metricOptions: Metric[] = ["Volume d'alertes", "Risk Score moyen", "Taux de faux positifs"]
+  const granularityOptions: Granularity[] = ["Jour", "Semaine", "Mois"]
+
+  const openOptions = () => {
+    setDraftVisible({ ...visibleSeries })
+    setDraftChartType(chartType)
+    setDraftPeriod(period)
+    setOptionsOpen(true)
+  }
+
+  const applyOptions = () => {
+    setVisibleSeries(draftVisible)
+    setChartType(draftChartType)
+    setPeriod(draftPeriod)
+    setOptionsOpen(false)
+    toast.success("Options appliquées", {
+      description: `Type : ${draftChartType} • Période : ${draftPeriod} jours.`,
+    })
+  }
+
+  const chartData = useMemo(() => {
+    const all = metricData(metric)
+    const n = periodPoints(period)
+    return all.slice(all.length - n)
+  }, [metric, period])
+
+  const yDomain = metricDomain(metric)
+  const yTicks = metricTicks(metric)
+  const xInterval = granularityInterval(granularity)
+  const visibleCount = series.filter((s) => visibleSeries[s.key]).length
+
+  const renderSeries = (s: Series) => {
+    if (chartType === "line") {
+      return (
+        <Area
+          key={s.key}
+          type="monotone"
+          dataKey={s.key}
+          name={s.name}
+          stroke={s.color}
+          strokeWidth={2}
+          fill="transparent"
+          isAnimationActive={false}
+          dot={false}
+          activeDot={{ r: 4, strokeWidth: 2 }}
+        />
+      )
+    }
+    if (chartType === "bar") {
+      return (
+        <Area
+          key={s.key}
+          type="step"
+          dataKey={s.key}
+          name={s.name}
+          stroke={s.color}
+          strokeWidth={1}
+          fill={s.color}
+          fillOpacity={0.5}
+          isAnimationActive={false}
+          dot={false}
+          activeDot={{ r: 4, strokeWidth: 2 }}
+        />
+      )
+    }
+    return (
+      <Area
+        key={s.key}
+        type="monotone"
+        dataKey={s.key}
+        name={s.name}
+        stroke={s.color}
+        strokeWidth={2}
+        fill={`url(#tg-${s.key})`}
+        isAnimationActive={false}
+        dot={false}
+        activeDot={{ r: 4, strokeWidth: 2 }}
+      />
+    )
+  }
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5">
@@ -84,7 +250,7 @@ export function TrendChartWidget() {
             Évolution des alertes
           </h3>
           <p className="mt-1 text-xs text-slate-400">
-            Par niveau de criticité • 7 juil. - 25 août 2026
+            Par niveau de criticité • {period} derniers jours • {metric}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -148,7 +314,7 @@ export function TrendChartWidget() {
               </div>
             )}
           </div>
-          <button onClick={() => toast.info("Options du graphique")} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100">
+          <button onClick={openOptions} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100" title="Options du graphique">
             <MoreHorizontal className="h-4 w-4" />
           </button>
         </div>
@@ -157,7 +323,7 @@ export function TrendChartWidget() {
       {/* Chart */}
       <div className="mt-5 h-[280px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+          <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
             <defs>
               {series.map((s) => (
                 <linearGradient key={s.key} id={`tg-${s.key}`} x1="0" y1="0" x2="0" y2="1">
@@ -172,41 +338,148 @@ export function TrendChartWidget() {
               tick={{ fontSize: 11, fill: "#94A3B8" }}
               tickLine={false}
               axisLine={false}
-              interval={2}
+              interval={xInterval}
             />
             <YAxis
               tick={{ fontSize: 11, fill: "#94A3B8" }}
               tickLine={false}
               axisLine={false}
-              domain={[0, 120]}
-              ticks={[0, 30, 60, 90, 120]}
+              domain={yDomain}
+              ticks={yTicks}
             />
-            <Tooltip content={<CustomTooltip />} />
-            {series.map((s) => (
-              <Area
-                key={s.key}
-                type="monotone"
-                dataKey={s.key}
-                name={s.name}
-                stroke={s.color}
-                strokeWidth={2}
-                fill={`url(#tg-${s.key})`}
-                isAnimationActive={false}
-                dot={false}
-                activeDot={{ r: 4, strokeWidth: 2 }}
+            <Tooltip content={<CustomTooltip metric={metric} />} />
+            {series.filter((s) => visibleSeries[s.key]).map(renderSeries)}
+            {visibleCount > 0 && (
+              <Legend
+                verticalAlign="top"
+                align="right"
+                height={28}
+                iconType="circle"
+                iconSize={8}
+                wrapperStyle={{ fontSize: 12, paddingBottom: 8 }}
               />
-            ))}
-            <Legend
-              verticalAlign="top"
-              align="right"
-              height={28}
-              iconType="circle"
-              iconSize={8}
-              wrapperStyle={{ fontSize: 12, paddingBottom: 8 }}
-            />
+            )}
           </AreaChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Options modal */}
+      {optionsOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+          onClick={() => setOptionsOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Options du graphique</h3>
+                <p className="mt-0.5 text-xs text-slate-400">Visibilité des séries, type et période</p>
+              </div>
+              <button
+                onClick={() => setOptionsOpen(false)}
+                className="rounded-md p-1 text-slate-400 hover:bg-slate-100"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Series visibility */}
+            <div className="mt-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Séries affichées
+              </p>
+              <div className="mt-2 space-y-2">
+                {series.map((s) => (
+                  <div key={s.key} className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
+                      <span className="text-sm font-medium text-slate-700">{s.name}</span>
+                    </div>
+                    <Switch
+                      checked={draftVisible[s.key]}
+                      onCheckedChange={(v) =>
+                        setDraftVisible((prev) => ({ ...prev, [s.key]: v }))
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Chart type */}
+            <div className="mt-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Type d'affichage
+              </p>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {([
+                  { v: "area", label: "Area" },
+                  { v: "line", label: "Line" },
+                  { v: "bar", label: "Bar" },
+                ] as const).map((o) => (
+                  <button
+                    key={o.v}
+                    onClick={() => setDraftChartType(o.v)}
+                    className={cn(
+                      "rounded-lg border px-3 py-2 text-sm font-semibold transition",
+                      draftChartType === o.v
+                        ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                    )}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Period */}
+            <div className="mt-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Période
+              </p>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {([
+                  { v: "7", label: "7 jours" },
+                  { v: "30", label: "30 jours" },
+                  { v: "90", label: "90 jours" },
+                ] as const).map((o) => (
+                  <button
+                    key={o.v}
+                    onClick={() => setDraftPeriod(o.v)}
+                    className={cn(
+                      "rounded-lg border px-3 py-2 text-sm font-semibold transition",
+                      draftPeriod === o.v
+                        ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                    )}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setOptionsOpen(false)}
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Fermer
+              </button>
+              <button
+                onClick={applyOptions}
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+              >
+                Appliquer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
