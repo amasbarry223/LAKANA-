@@ -113,9 +113,9 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 via-indigo-50 to-violet-50 p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="mb-6 flex flex-col items-center">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+        {/* Logo header (inside the container) */}
+        <div className="flex flex-col items-center border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white px-6 py-7">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg">
             <ShieldAlert className="h-7 w-7 text-white" />
           </div>
@@ -123,7 +123,8 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
           <p className="text-xs font-medium text-slate-400">le bouclier — conformité LBC/FT/FP</p>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+        {/* Form body (inside the same container) */}
+        <div className="p-6">
           {step === "login" ? (
             <>
               <div className="mb-5">
@@ -304,9 +305,12 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
           )}
         </div>
 
-        <p className="mt-4 text-center text-[11px] text-slate-400">
-          Déconnexion automatique après inactivité (AUTH-07) · © Digi.Dev — Hackathon CIF 2026
-        </p>
+        {/* Footer (inside the container) */}
+        <div className="border-t border-slate-100 bg-slate-50 px-6 py-3 text-center">
+          <p className="text-[11px] text-slate-400">
+            Déconnexion automatique après inactivité (AUTH-07) · © Digi.Dev — Hackathon CIF 2026
+          </p>
+        </div>
       </div>
 
       {/* Password reset modal (AUTH-09) */}
