@@ -3,6 +3,7 @@
 import { MoreHorizontal, ChevronRight, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
+import { navigateTo } from "@/lib/navigate"
 
 type Step = {
   name: string
@@ -130,7 +131,7 @@ export function FunnelChartWidget() {
       </div>
 
       <button
-        onClick={() => toast.info("Insights conformité", { description: "Redirection vers les insights du Centre d'alertes." })}
+        onClick={() => navigateTo("Assistant IA")}
         className="mt-4 w-full rounded-lg border border-indigo-200 bg-indigo-50/50 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50"
       >
         Voir les insights conformité

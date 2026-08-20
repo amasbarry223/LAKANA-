@@ -4,6 +4,7 @@ import { ChevronRight, ArrowUpRight, ArrowDownRight, Split, ShieldAlert, Activit
 import { Line, LineChart, ResponsiveContainer } from "recharts"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { navigateTo } from "@/lib/navigate"
 
 type Alert = {
   ref: string
@@ -134,7 +135,7 @@ export function FunnelPerformance() {
           Alertes prioritaires
         </h3>
         <button
-          onClick={() => toast.info("Toutes les alertes", { description: "Affichage de la liste complète des 111 alertes actives." })}
+          onClick={() => navigateTo("Centre d'alertes")}
           className="text-xs font-semibold text-indigo-600 hover:underline"
         >
           Tout voir
@@ -190,7 +191,7 @@ export function FunnelPerformance() {
       </div>
 
       <button
-        onClick={() => toast.info("Centre d'alertes", { description: "Redirection vers la liste complète des alertes." })}
+        onClick={() => navigateTo("Centre d'alertes")}
         className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg border border-slate-200 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
       >
         Voir toutes les alertes

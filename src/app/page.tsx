@@ -65,6 +65,16 @@ export default function Home() {
     return () => window.removeEventListener("keydown", handler)
   }, [])
 
+  // Listen for cross-view navigation events (from cards/rows that should navigate)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const label = (e as CustomEvent).detail as string
+      if (label) setActive(label)
+    }
+    window.addEventListener("lakana-navigate", handler as EventListener)
+    return () => window.removeEventListener("lakana-navigate", handler as EventListener)
+  }, [])
+
   const handleLogin = (r: string) => {
     setAuthed(true)
     setRole(r)

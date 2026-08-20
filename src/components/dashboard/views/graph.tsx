@@ -5,6 +5,7 @@ import { Share2, ZoomIn, ZoomOut, Maximize, Download } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { navigateTo } from "@/lib/navigate"
 
 type Node = {
   id: string
@@ -215,7 +216,7 @@ export function GraphView() {
                 )}
               </div>
               <button
-                onClick={() => toast.info("Client 360°", { description: "Redirection vers la fiche client." })}
+                onClick={() => navigateTo("Client 360°")}
                 className="w-full rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
               >
                 Voir Client 360°

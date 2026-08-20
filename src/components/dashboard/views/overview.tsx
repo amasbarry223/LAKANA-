@@ -2,9 +2,9 @@
 
 import { Activity, ShieldAlert, Users, AlertTriangle, TrendingUp, Clock, ChevronRight } from "lucide-react"
 import { Area, AreaChart, ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts"
-import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { navigateTo } from "@/lib/navigate"
 
 const stats = [
   { label: "Clients filtrés", value: "10 585", icon: Users, color: "#6366F1", delta: "+312 cette semaine" },
@@ -25,10 +25,10 @@ const trend = [
 ]
 
 const modules = [
-  { name: "Filtrage sanctions/PPE", code: "FLT", count: 1203, color: "#6366F1" },
-  { name: "Détection comportementale", code: "CMP", count: 287, color: "#06B6D4" },
-  { name: "Fractionnement", code: "FRC", count: 167, color: "#F59E0B" },
-  { name: "Risk Score recalculé", code: "SCR", count: 456, color: "#10B981" },
+  { name: "Filtrage sanctions/PPE", code: "FLT", count: 1203, color: "#6366F1", nav: "Filtrage sanctions/PPE" },
+  { name: "Détection comportementale", code: "CMP", count: 287, color: "#06B6D4", nav: "Détection comportementale" },
+  { name: "Fractionnement", code: "FRC", count: 167, color: "#F59E0B", nav: "Fractionnement" },
+  { name: "Risk Score recalculé", code: "SCR", count: 456, color: "#10B981", nav: "Risk Score" },
 ]
 
 export function OverviewView() {
@@ -88,7 +88,7 @@ export function OverviewView() {
           <h3 className="text-base font-semibold text-slate-900">Activité par module</h3>
           <div className="mt-4 space-y-3">
             {modules.map((m) => (
-              <div key={m.code} onClick={() => toast.info("Module ouvert", { description: m.name })} className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-100 p-3 hover:bg-slate-50">
+              <div key={m.code} onClick={() => navigateTo(m.nav)} className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-100 p-3 hover:bg-slate-50">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: `${m.color}15` }}>
                   <Activity className="h-4 w-4" style={{ color: m.color }} />
                 </div>
@@ -109,28 +109,28 @@ export function OverviewView() {
         <div className="rounded-xl border border-slate-200 bg-white p-5">
           <h3 className="text-base font-semibold text-slate-900">État de conformité</h3>
           <div className="mt-4 space-y-3">
-            <div onClick={() => toast.success("Listes sanctions", { description: "ONU · GAFI · CENTIF — à jour." })} className="flex cursor-pointer items-center justify-between rounded-lg bg-emerald-50 p-3">
+            <div onClick={() => navigateTo("Filtrage sanctions/PPE")} className="flex cursor-pointer items-center justify-between rounded-lg bg-emerald-50 p-3">
               <div className="flex items-center gap-2">
                 <ShieldAlert className="h-4 w-4 text-emerald-600" />
                 <span className="text-sm font-medium text-emerald-800">Listes sanctions à jour</span>
               </div>
               <Badge variant="outline" className="border-emerald-200 bg-white text-emerald-700">ONU · GAFI · CENTIF</Badge>
             </div>
-            <div onClick={() => toast.success("Connecteurs", { description: "3/3 connecteurs opérationnels." })} className="flex cursor-pointer items-center justify-between rounded-lg bg-emerald-50 p-3">
+            <div onClick={() => navigateTo("Intégration des données")} className="flex cursor-pointer items-center justify-between rounded-lg bg-emerald-50 p-3">
               <div className="flex items-center gap-2">
                 <Activity className="h-4 w-4 text-emerald-600" />
                 <span className="text-sm font-medium text-emerald-800">Connecteurs opérationnels</span>
               </div>
               <span className="text-xs font-semibold text-emerald-700">3/3</span>
             </div>
-            <div onClick={() => toast.warning("Investigations en attente", { description: "2 investigations dépassent 24h." })} className="flex cursor-pointer items-center justify-between rounded-lg bg-amber-50 p-3">
+            <div onClick={() => navigateTo("Investigations")} className="flex cursor-pointer items-center justify-between rounded-lg bg-amber-50 p-3">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-amber-600" />
                 <span className="text-sm font-medium text-amber-800">Investigations &gt; 24h</span>
               </div>
               <span className="text-xs font-semibold text-amber-700">2 en attente</span>
             </div>
-            <div onClick={() => toast.error("Alertes critiques", { description: "5 alertes bloquantes non traitées." })} className="flex cursor-pointer items-center justify-between rounded-lg bg-rose-50 p-3">
+            <div onClick={() => navigateTo("Centre d'alertes")} className="flex cursor-pointer items-center justify-between rounded-lg bg-rose-50 p-3">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-rose-600" />
                 <span className="text-sm font-medium text-rose-800">Alertes bloquantes non traitées</span>

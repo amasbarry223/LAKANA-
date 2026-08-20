@@ -1,7 +1,7 @@
 "use client"
 
 import { AlertTriangle, Sparkles, Trophy, ChevronRight } from "lucide-react"
-import { toast } from "sonner"
+import { navigateTo } from "@/lib/navigate"
 
 type Insight = {
   icon: React.ComponentType<{ className?: string }>
@@ -45,7 +45,7 @@ export function FunnelInsights() {
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-slate-900">Insights conformité</h3>
         <button
-          onClick={() => toast.info("Tous les insights", { description: "Liste complète des insights conformité." })}
+          onClick={() => navigateTo("Assistant IA")}
           className="text-xs font-semibold text-indigo-600 hover:underline"
         >
           Tout voir

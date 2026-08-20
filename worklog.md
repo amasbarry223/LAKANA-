@@ -459,3 +459,83 @@ Vérification browser (VLM) :
 
 Stage Summary:
 - 10 fonctionnalités profondes implémentées et vérifiées. Le projet LAKANA dispose maintenant d'un command palette ⌘K, d'un mode sombre, de modals fonctionnels (création utilisateur, décision investigation), d'états loading, de tri de tableaux, de sliders recompute, de hover tooltips sur graphe, et d'un assistant IA intelligent par keyword matching. Tous frontend, sans backend.
+
+---
+Task ID: final-button-audit
+Agent: sub-agent (general-purpose)
+Task: Audit exhaustif de TOUS les `<button>` dans `src/components/dashboard/` (y compris `views/`) — trouver chaque bouton sans `onClick` et sans `type="submit"`, puis implémenter les handlers manquants
+
+Work Log:
+- Lu `/home/z/my-project/worklog.md` pour contexte (wiring-views, wiring-all-buttons, wiring-deep, deep-wiring, deep-interactivity précédents : la quasi-totalité des boutons déjà câblés via sonner par les agents précédents).
+- Recensé 22 fichiers `.tsx` dans `src/components/dashboard/` (12 vues + 10 composants racine).
+- Audit méthodique fichier par fichier : lecture complète de chacun des 22 fichiers pour vérifier chaque déclaration `<button>` (notamment les déclarations multi-lignes où `onClick` pourrait être absent).
+- Script Python de vérification : `re.finditer(r'<button\b[^>]*?>', content, re.DOTALL)` pour matcher tous les tags `<button>` (y compris multi-lignes), puis vérification de la présence de `onClick` ou `type="submit"` dans chaque tag.
+- **Résultat : 100 boutons `<button>` au total, 0 manquants.** Tous les boutons ont un `onClick` ou sont `type="submit"` dans un `<form>` (login-screen.tsx lignes 142 et 197).
+
+Audit détaillé par fichier (tous OK) :
+1. **overview.tsx** — 0 bouton `<button>` (modules et compliance status sont des `<div onClick>`).
+2. **client-360.tsx** — 2 boutons (selector pills ligne 192, "Voir le centre d'alertes" ligne 436) — les 2 ont `onClick`.
+3. **behavioral.tsx** — 0 bouton `<button>` (lignes de tableau sont des `<tr onClick>`).
+4. **structuring.tsx** — 1 bouton ("Ouvrir investigation" ligne 158) — `onClick` avec `stopPropagation`.
+5. **notifications.tsx** — 3 boutons ("Tout marquer lu" ligne 70, filtres ligne 98, trash icône ligne 143) — les 3 ont `onClick`.
+6. **integration.tsx** — 2 boutons ("Choisir un fichier" ligne 100, sync connecteur ligne 146) — les 2 ont `onClick`.
+7. **sync.tsx** — 5 boutons (toggle online ligne 66, Synchroniser ligne 102, Tout synchroniser ligne 138, sync par source ligne 170, Remonter file ligne 221) — tous `onClick`.
+8. **settings.tsx** — 5 boutons (Restaurer ligne 52, Enregistrer ligne 59, tabs ligne 72, + Ajouter ligne 235, Déconnecter session ligne 315) — tous `onClick`.
+9. **users.tsx** — 7 boutons (Nouvel utilisateur ligne 133, sort name ligne 180, sort lastLogin ligne 196, MoreHorizontal ligne 244, Close modal ligne 310, Annuler ligne 378, Créer le compte ligne 381) — tous `onClick`.
+10. **reports.tsx** — 4 boutons (Période dropdown ligne 97, options période ligne 109, template cards ligne 152, Télécharger ligne 216) — tous `onClick`.
+11. **audit-log.tsx** — 8 boutons (Exporter CSV ligne 121, 5 modules filtres ligne 161, Plus dropdown ligne 173, 9 moreModules items ligne 184, 4 sort headers lignes 212/224/236/249) — tous `onClick`.
+12. **graph.tsx** — 5 boutons (ZoomOut ligne 85, ZoomIn ligne 89, Maximize ligne 92, Exporter ligne 96, Voir Client 360° ligne 217) — tous `onClick`.
+13. **risk-score.tsx** — 2 boutons (Réinitialiser pondérations ligne 195, Recalculer ligne 257) — tous `onClick`.
+14. **sanctions.tsx** — 6 boutons (4 filtres ligne 130, sort Date ligne 149, sort Similarity ligne 159, Confirm Check ligne 204, Reject X ligne 214, Réinitialiser ligne 227) — tous `onClick`.
+15. **investigations.tsx** — 8 boutons (4 filter tabs ligne 201, items de liste ligne 237, Documenter décision ligne 337, Rouvrir dossier ligne 344, Close modal X ligne 382, 3 type de décision ligne 395, Annuler ligne 423, Valider la décision ligne 429) — tous `onClick`.
+16. **funnel-chart.tsx** — 4 boutons (Détails ligne 48, Options MoreHorizontal ligne 55, Calibrer fuzzy matching ligne 123, Voir les insights ligne 132) — tous `onClick`.
+17. **funnel-performance.tsx** — 2 boutons (Tout voir ligne 136, Voir toutes les alertes ligne 192) — tous `onClick`.
+18. **funnel-insights.tsx** — 2 boutons (Tout voir ligne 47, Voir le détail ligne 71) — tous `onClick`.
+19. **trend-chart.tsx** — 5 boutons (metric dropdown ligne 92, 3 metric options ligne 103, granularity dropdown ligne 122, 3 granularity options ligne 133, Options MoreHorizontal ligne 151) — tous `onClick`.
+20. **sidebar.tsx** — 7 boutons (items nav ligne 121, MoreVertical profil ligne 156, 4 items menu Mon profil/Paramètres/Notifications/Déconnexion lignes 166/177/184/192, Close mobile menu X ligne 230) — tous `onClick`.
+21. **header.tsx** — 10 boutons (mobile menu ligne 31, search ligne 41, sync toggle ligne 54, theme toggle ligne 80, bell ligne 94, Voir tout ligne 106, 3 notif items ligne 115, date range ligne 135, 5 period options ligne 148, Nouvelle investigation ligne 164) — tous `onClick`.
+22. **login-screen.tsx** — 5 boutons (show/hide password ligne 109 `type="button"` + `onClick`, submit login ligne 142 `type="submit"` dans `<form>`, Mot de passe oublié ligne 151 `onClick`, submit MFA ligne 197 `type="submit"` dans `<form>`, Retour ligne 204 `type="button"` + `onClick`) — tous OK.
+- Vérifié que `command-palette.tsx` utilise `CommandItem` (shadcn) avec `onSelect` — pas de `<button>` natif.
+- Vérifié que `metric-cards.tsx` et `dropoff-reasons.tsx` n'ont pas de `<button>` natif (cartes et barres sont des `<div onClick>`).
+- Vérifié que `alerts-center.tsx` et `views/assistant-ia.tsx` n'ont que des boutons avec `onClick`.
+- Vérifié que les `<Switch>` utilisent `onCheckedChange` (correct, skip), les `<select>` et `<input>` utilisent `onChange`/`onKeyDown` (correct, skip).
+
+**Bug runtime trouvé et corrigé pendant l'audit :**
+- `notifications.tsx` ligne 52 : la fonction `remove(id)` (appelée par le `onClick` du bouton trash icône `Trash2` ligne 143) utilise `toast.success("Notification supprimée")` mais `toast` n'était PAS importé dans le fichier. Ce bouton aurait crashé en runtime (ReferenceError: toast is not defined) au clic.
+- Fix : ajouté `import { toast } from "sonner"` en ligne 5 du fichier. Aucune autre modification.
+- Lint ESLint passait déjà (ne détecte pas les imports manquants pour les globals), mais `tsc --noEmit` signalait `error TS2304: Cannot find name 'toast'`. Maintenant résolu.
+
+Lint final : `bun run lint` → exit 0, 0 erreur, 0 warning.
+TypeScript : l'erreur `notifications.tsx(52,5): error TS2304: Cannot find name 'toast'` est résolue. Les 3 erreurs TS restantes dans le dashboard (`funnel-performance.tsx:162`, `reports.tsx:154`, `risk-score.tsx:144`) sont des soucis de typage d'icônes Lucide (`<c.icon style={...} />` non permis par le type `React.ComponentType<{ className?: string }>`) et de typedef template — pré-existants, non liés aux boutons, non détectés par ESLint.
+
+Stage Summary:
+- Audit exhaustif terminé : 100 balises `<button>` recensées dans les 22 fichiers `.tsx` de `src/components/dashboard/` et `src/components/dashboard/views/`. **0 bouton manquant `onClick`** (et 0 manquant `type="submit"` dans les forms). Le travail des agents précédents (wiring-views, wiring-all-buttons, wiring-deep, deep-wiring, deep-interactivity) avait déjà câblé 100% des boutons.
+- 1 bug runtime corrigé : import manquant de `toast` dans `notifications.tsx` (le bouton trash aurait crashé au clic). Maintenant fonctionnel.
+- `bun run lint` → 0 erreur, 0 warning. Le projet est entièrement interactif côté frontend ; tous les boutons ont un handler actif.
+
+---
+Task ID: final-button-implementation
+Agent: main + subagent (final-button-audit)
+Task: Recensement exhaustif et implémentation des derniers boutons/éléments interactifs statiques
+
+Work Log:
+- Subagent (final-button-audit) : audit systématique des 22 fichiers du dossier dashboard. Trouvé 100 éléments <button>. Résultat : TOUS ont déjà un onClick (ou type="submit" dans formulaires). 1 bug corrigé : import manquant de `toast` dans notifications.tsx (aurait crashé le bouton supprimer).
+
+- Main agent : amélioration des interactions qui n'étaient que des toasts génériques → navigation réelle entre vues :
+  * Créé `src/lib/navigate.ts` : helper `navigateTo(label)` dispatchant un CustomEvent `lakana-navigate`.
+  * Ajouté listener dans page.tsx pour capter l'événement et mettre à jour `active` (changement de vue sans prop drilling).
+  * `overview.tsx` : 4 cartes modules cliquables → naviguent vers leur vue (Filtrage sanctions, Détection comportementale, Fractionnement, Risk Score). 4 statuts conformité → naviguent (Listes sanctions→Filtrage, Connecteurs→Intégration, Investigations→Investigations, Alertes→Centre d'alertes). Supprimé import toast inutilisé.
+  * `behavioral.tsx` : lignes du tableau des écarts → naviguent vers Client 360° (au lieu d'un toast). Supprimé import toast inutilisé.
+  * `client-360.tsx` : bouton "Voir le centre d'alertes" → navigue vers Centre d'alertes.
+  * `graph.tsx` : bouton "Voir Client 360°" → navigue vers Client 360°.
+  * `funnel-performance.tsx` : "Tout voir" + "Voir toutes les alertes" → naviguent vers Centre d'alertes.
+  * `funnel-chart.tsx` : "Voir les insights conformité" → navigue vers Assistant IA.
+  * `funnel-insights.tsx` : "Tout voir" → navigue vers Assistant IA. Supprimé import toast inutilisé.
+
+- Vérification browser :
+  * Navigation depuis Tableau de bord → carte Fractionnement → page Fractionnement affichée (confirmé VLM ✅).
+  * 17 vues : 0 erreur runtime ✅.
+  * Lint : 0 erreur, 0 warning ✅.
+
+Stage Summary:
+- Tous les éléments interactifs (boutons + divs cliquables) sont maintenant fonctionnels. Les toasts génériques "Redirection" ont été remplacés par de vraies navigations inter-vues via un système d'événements léger. Le projet est entièrement interactif : 100 boutons avec onClick, navigation cross-view, modals, états, dropdowns, tri, dark mode, command palette ⌘K. Aucun bouton statique ne reste.

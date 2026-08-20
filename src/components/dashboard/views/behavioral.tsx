@@ -2,9 +2,9 @@
 
 import { Activity, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, ReferenceLine } from "recharts"
-import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { navigateTo } from "@/lib/navigate"
 
 type Deviation = {
   id: string
@@ -108,7 +108,7 @@ export function BehavioralView() {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {deviations.map((d) => (
-                <tr key={d.id} onClick={() => toast.info(`Écart ${d.id}`, { description: `${d.client} — ${d.metric}: ${d.ecart}% d'écart.` })} className="cursor-pointer hover:bg-slate-50">
+                <tr key={d.id} onClick={() => navigateTo("Client 360°")} className="cursor-pointer hover:bg-slate-50">
                   <td className="px-5 py-3">
                     <p className="font-medium text-slate-800">{d.client}</p>
                     <p className="text-[11px] text-slate-400">{d.id}</p>
