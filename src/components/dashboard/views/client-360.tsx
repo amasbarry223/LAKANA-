@@ -23,7 +23,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { navigateTo } from "@/lib/navigate"
@@ -442,7 +441,7 @@ export function Client360View() {
           {client.alerts.map((a) => (
             <div
               key={a.ref}
-              onClick={() => toast.info(`Alerte ${a.ref}`, { description: `${a.type} — ${a.date}.` })}
+              onClick={() => navigateTo("Centre d'alertes")}
               className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-100 p-3 transition hover:bg-slate-50"
             >
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100">

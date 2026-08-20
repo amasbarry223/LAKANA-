@@ -163,7 +163,10 @@ function SidebarContent({ active, onSelect, userName = "Aminata Touré", userRol
 
       {/* Profile */}
       <div className="relative border-t border-slate-100 p-3">
-        <div className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-slate-50 cursor-pointer">
+        <div
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-slate-50 cursor-pointer"
+        >
           <Avatar className="h-9 w-9 border border-slate-200">
             <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs font-semibold">{initials}</AvatarFallback>
           </Avatar>

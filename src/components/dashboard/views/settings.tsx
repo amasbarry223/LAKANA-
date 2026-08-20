@@ -40,6 +40,7 @@ export function SettingsView() {
   const [thVals, setThVals] = useState(thresholds.map((t) => t.value))
   const [mfa, setMfa] = useState(true)
   const [autoLock, setAutoLock] = useState(true)
+  const [general, setGeneral] = useState({ institution: "SFD Bamako", devise: "FCFA (XOF)", langue: "Français" })
 
   return (
     <div className="space-y-5">
@@ -50,14 +51,19 @@ export function SettingsView() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => toast.info("Restauration", { description: "Restauration des paramètres à la version précédente." })}
+            onClick={() => {
+              setGeneral({ institution: "SFD Bamako", devise: "FCFA (XOF)", langue: "Français" })
+              setWeights(scoringRules.map((r) => r.weight))
+              setThVals(thresholds.map((t) => t.value))
+              toast.info("Paramètres restaurés", { description: "Restauration aux valeurs par défaut (BO-03)." })
+            }}
             className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"
           >
             <RotateCcw className="h-3.5 w-3.5" />
             Restaurer
           </button>
           <button
-            onClick={() => toast.success("Paramètres enregistrés", { description: "Les modifications sont tracées dans l'historique des versions (BO-03)." })}
+            onClick={() => toast.success("Paramètres enregistrés", { description: `Institution : ${general.institution} · Devise : ${general.devise} · Langue : ${general.langue}. Modifications tracées (BO-03).` })}
             className="flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700"
           >
             <Save className="h-3.5 w-3.5" />
@@ -93,15 +99,15 @@ export function SettingsView() {
             <div className="mt-4 space-y-3">
               <div>
                 <label className="text-xs font-medium text-slate-500">Nom de l'institution</label>
-                <input defaultValue="SFD Bamako" className="mt-1 h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100" />
+                <input value={general.institution} onChange={(e) => setGeneral({ ...general, institution: e.target.value })} className="mt-1 h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100" />
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-500">Devise</label>
-                <input defaultValue="FCFA (XOF)" className="mt-1 h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100" />
+                <input value={general.devise} onChange={(e) => setGeneral({ ...general, devise: e.target.value })} className="mt-1 h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100" />
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-500">Langue</label>
-                <input defaultValue="Français" className="mt-1 h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100" />
+                <input value={general.langue} onChange={(e) => setGeneral({ ...general, langue: e.target.value })} className="mt-1 h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100" />
               </div>
             </div>
           </div>

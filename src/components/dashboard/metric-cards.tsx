@@ -2,8 +2,8 @@
 
 import { ArrowUp, ArrowDown } from "lucide-react"
 import { Area, AreaChart, ResponsiveContainer } from "recharts"
-import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { navigateTo } from "@/lib/navigate"
 
 type Metric = {
   label: string
@@ -36,6 +36,7 @@ const metrics: Metric[] = [
     chartColor: "#EF4444",
     chartId: "m1",
     data: seed(16, 18, 24, 2),
+    nav: "Centre d'alertes",
   },
   {
     label: "Alertes à analyser",
@@ -45,6 +46,7 @@ const metrics: Metric[] = [
     invertDelta: true,
     chartColor: "#F59E0B",
     chartId: "m2",
+    nav: "Centre d'alertes",
     data: seed(16, 102, 87, 5),
   },
   {
@@ -54,6 +56,7 @@ const metrics: Metric[] = [
     positive: false,
     chartColor: "#6366F1",
     chartId: "m3",
+    nav: "Risk Score",
     data: seed(16, 36, 42, 2.5),
   },
   {
@@ -64,6 +67,7 @@ const metrics: Metric[] = [
     invertDelta: true,
     chartColor: "#10B981",
     chartId: "m4",
+    nav: "Investigations",
     data: seed(16, 5.8, 4.5, 0.4),
   },
   {
@@ -74,6 +78,7 @@ const metrics: Metric[] = [
     invertDelta: true,
     chartColor: "#06B6D4",
     chartId: "m5",
+    nav: "Filtrage sanctions/PPE",
     data: seed(16, 29, 23, 1.8),
   },
 ]
@@ -111,7 +116,7 @@ export function MetricCards() {
         return (
           <div
             key={m.label}
-            onClick={() => toast.info(m.label, { description: `Détail de la métrique : ${m.value}` })}
+            onClick={() => m.nav && navigateTo(m.nav)}
             className="group cursor-pointer rounded-xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:shadow-sm"
           >
             <p className="text-[13px] font-medium text-slate-500">{m.label}</p>

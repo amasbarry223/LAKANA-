@@ -566,3 +566,25 @@ Work Log:
 
 Stage Summary:
 - Authentification LAKANA désormais robuste et démontrable : verrouillage temporaire (AUTH-04), réinitialisation sécurisée (AUTH-09), MFA (AUTH-05). 3 raccourcis clavier productivité (⌘K/⌘N/⌘J) avec hints visuels. Le projet est complet, interactif et professionnel.
+
+---
+Task ID: implement-remaining-elements
+Agent: main
+Task: Implémenter les éléments/boutons encore non fonctionnels (audit exhaustif)
+
+Work Log:
+- Audit exhaustif via grep : cherché cursor-pointer sans onClick, inputs sans onChange, selects sans onChange.
+- Trouvé et implémenté :
+  1. metric-cards.tsx : 5 cartes métriques avaient un toast générique → remplacé par navigateTo vers la vue pertinente (Alertes bloquantes→Centre d'alertes, Alertes à analyser→Centre d'alertes, Score moyen→Risk Score, Temps traitement→Investigations, Taux faux positifs→Filtrage sanctions). Ajout champ nav à chaque métrique. Supprimé import toast inutilisé.
+  2. client-360.tsx : alertes historiques avaient un toast → remplacé par navigateTo vers Centre d'alertes. Supprimé import toast inutilisé.
+  3. sidebar.tsx : zone profil (div cursor-pointer) n'avait pas d'onClick → ajouté onClick pour ouvrir le menu déroulant profil (Mon profil, Paramètres, Notifications, Déconnexion).
+  4. settings.tsx : 3 inputs defaultValue (institution, devise, langue) non contrôlés → rendus contrôlés via état general. Bouton Enregistrer affiche maintenant les vraies valeurs dans le toast. Bouton Restaurer réinitialise tous les paramètres (general + weights + thresholds).
+- Lint propre (0 erreur).
+- Vérification browser (VLM) :
+  * Carte métrique "Alertes bloquantes" → navigation vers Centre d'alertes ✅
+  * Menu profil → dropdown ouvert avec Mon profil/Paramètres/Déconnexion ✅
+  * Settings Enregistrer → toast succès avec valeurs réelles ✅
+  * 17 vues : 0 erreur runtime ✅
+
+Stage Summary:
+- Tous les éléments interactifs restants sont maintenant implémentés : cartes métriques navigables, alertes navigables, zone profil cliquable, inputs settings contrôlés. Plus aucun élément cursor-pointer sans onClick, plus aucun input non contrôlé dans les formulaires fonctionnels. Le projet est entièrement interactif.
