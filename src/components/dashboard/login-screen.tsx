@@ -113,39 +113,39 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 via-indigo-50 to-violet-50 p-4">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-        {/* Logo header (inside the container) */}
-        <div className="flex flex-col items-center border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white px-6 py-7">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg">
-            <ShieldAlert className="h-7 w-7 text-white" />
+      <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+        {/* Logo header (compact) */}
+        <div className="flex flex-col items-center border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white px-6 py-5">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md">
+            <ShieldAlert className="h-5 w-5 text-white" />
           </div>
-          <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900">LAKANA</h1>
-          <p className="text-xs font-medium text-slate-400">le bouclier — conformité LBC/FT/FP</p>
+          <h1 className="mt-2 text-xl font-bold tracking-tight text-slate-900">LAKANA</h1>
+          <p className="text-[11px] font-medium text-slate-400">le bouclier — conformité LBC/FT/FP</p>
         </div>
 
-        {/* Form body (inside the same container) */}
-        <div className="p-6">
+        {/* Form body (compact) */}
+        <div className="px-6 py-5">
           {step === "login" ? (
             <>
-              <div className="mb-5">
-                <h2 className="text-lg font-semibold text-slate-900">Connexion</h2>
-                <p className="mt-0.5 text-xs text-slate-500">
+              <div className="mb-3">
+                <h2 className="text-base font-semibold text-slate-900">Connexion</h2>
+                <p className="mt-0.5 text-[11px] text-slate-500">
                   Authentification requise avant tout accès (AUTH-01).
                 </p>
               </div>
 
               {/* Lockout banner */}
               {locked && (
-                <div className="mb-4 flex items-center gap-2 rounded-lg bg-rose-50 border border-rose-200 px-3 py-2.5 text-xs text-rose-700">
-                  <Clock className="h-4 w-4 shrink-0 animate-pulse" />
-                  <span>Compte verrouillé. Réessayez dans <strong>{lockoutRemaining}s</strong> (AUTH-04).</span>
+                <div className="mb-3 flex items-center gap-2 rounded-lg bg-rose-50 border border-rose-200 px-3 py-2 text-xs text-rose-700">
+                  <Clock className="h-3.5 w-3.5 shrink-0 animate-pulse" />
+                  <span>Verrouillé. Réessayez dans <strong>{lockoutRemaining}s</strong> (AUTH-04).</span>
                 </div>
               )}
 
-              <form onSubmit={handleLogin} className="space-y-4">
+              <form onSubmit={handleLogin} className="space-y-3">
                 {/* Username */}
                 <div>
-                  <label className="text-xs font-medium text-slate-600">Identifiant</label>
+                  <label className="text-[11px] font-medium text-slate-600">Identifiant</label>
                   <div className="relative mt-1">
                     <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <input
@@ -153,14 +153,14 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="a.toure@sfd.ml"
                       disabled={locked}
-                      className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:opacity-50"
+                      className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:opacity-50"
                     />
                   </div>
                 </div>
 
                 {/* Password */}
                 <div>
-                  <label className="text-xs font-medium text-slate-600">Mot de passe</label>
+                  <label className="text-[11px] font-medium text-slate-600">Mot de passe</label>
                   <div className="relative mt-1">
                     <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <input
@@ -169,7 +169,7 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••••••"
                       disabled={locked}
-                      className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-10 text-sm outline-none transition focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:opacity-50"
+                      className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-10 text-sm outline-none transition focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:opacity-50"
                     />
                     <button
                       type="button"
@@ -183,12 +183,12 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
 
                 {/* Role selector */}
                 <div>
-                  <label className="text-xs font-medium text-slate-600">Rôle</label>
+                  <label className="text-[11px] font-medium text-slate-600">Rôle</label>
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
                     disabled={locked}
-                    className="mt-1 h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:opacity-50"
+                    className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:opacity-50"
                   >
                     {roles.map((r) => (
                       <option key={r.value} value={r.value}>
@@ -200,12 +200,12 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
 
                 {/* Attempts indicator */}
                 {attempts > 0 && !locked && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     {Array.from({ length: MAX_ATTEMPTS }).map((_, i) => (
                       <span
                         key={i}
                         className={cn(
-                          "h-1.5 flex-1 rounded-full",
+                          "h-1 flex-1 rounded-full",
                           i < attempts ? "bg-rose-400" : "bg-slate-200"
                         )}
                       />
@@ -223,45 +223,40 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
                 <button
                   type="submit"
                   disabled={locked}
-                  className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 text-sm font-semibold text-white transition hover:bg-indigo-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 text-sm font-semibold text-white transition hover:bg-indigo-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {locked ? "Compte verrouillé" : selectedRole.mfa ? "Continuer vers MFA" : "Se connecter"}
                 </button>
               </form>
 
-              <div className="mt-4 flex items-center justify-between text-xs">
+              <div className="mt-3 flex items-center justify-between text-xs">
                 <button
                   type="button"
                   onClick={() => { setResetOpen(true); setResetSent(false); setResetEmail("") }}
                   className="cursor-pointer font-medium text-indigo-600 hover:underline"
                 >
-                  Mot de passe oublié ? (AUTH-09)
+                  Mot de passe oublié ?
                 </button>
-                <span className="text-slate-400">Session JWT (AUTH-06)</span>
+                <span className="text-slate-400">JWT · bcrypt · AUTH-08</span>
               </div>
 
-              <div className="mt-4 flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
-                <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
-                Mots de passe hachés (bcrypt). Journalisation de chaque tentative (AUTH-08).
-              </div>
-
-              {/* Demo hint */}
-              <div className="mt-3 rounded-lg bg-indigo-50/50 px-3 py-2 text-[11px] text-indigo-600">
-                <strong>Démo :</strong> utilisez le mot de passe <code className="rounded bg-white px-1 font-mono">password123</code> pour réussir, ou <code className="rounded bg-white px-1 font-mono">wrongpass</code> pour simuler un échec et tester le verrouillage (AUTH-04).
+              {/* Demo hint (compact) */}
+              <div className="mt-3 rounded-lg bg-indigo-50/50 px-3 py-1.5 text-[10px] text-indigo-600">
+                <strong>Démo :</strong> <code className="rounded bg-white px-1 font-mono">password123</code> = succès · <code className="rounded bg-white px-1 font-mono">wrongpass</code> = échec (AUTH-04)
               </div>
             </>
           ) : (
             <>
-              <div className="mb-5">
-                <h2 className="text-lg font-semibold text-slate-900">Authentification à deux facteurs</h2>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Saisissez le code à 6 chiffres de votre application (AUTH-05).
+              <div className="mb-3">
+                <h2 className="text-base font-semibold text-slate-900">Authentification à deux facteurs</h2>
+                <p className="mt-0.5 text-[11px] text-slate-500">
+                  Code à 6 chiffres de votre application (AUTH-05).
                 </p>
               </div>
 
-              <form onSubmit={handleMfa} className="space-y-4">
+              <form onSubmit={handleMfa} className="space-y-3">
                 <div>
-                  <label className="text-xs font-medium text-slate-600">Code MFA</label>
+                  <label className="text-[11px] font-medium text-slate-600">Code MFA</label>
                   <div className="relative mt-1">
                     <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <input
@@ -270,7 +265,7 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
                       placeholder="000000"
                       inputMode="numeric"
                       autoFocus
-                      className="h-12 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-center text-lg font-mono tracking-[0.3em] outline-none transition focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                      className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-center text-base font-mono tracking-[0.3em] outline-none transition focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
                     />
                   </div>
                 </div>
@@ -284,7 +279,7 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
 
                 <button
                   type="submit"
-                  className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 text-sm font-semibold text-white transition hover:bg-indigo-700 active:scale-[0.99]"
+                  className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 text-sm font-semibold text-white transition hover:bg-indigo-700 active:scale-[0.99]"
                 >
                   Valider et accéder
                 </button>
@@ -298,17 +293,17 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
                 </button>
               </form>
 
-              <div className="mt-3 rounded-lg bg-indigo-50/50 px-3 py-2 text-[11px] text-indigo-600">
-                <strong>Démo :</strong> n'importe quel code à 6 chiffres fonctionne, sauf <code className="rounded bg-white px-1 font-mono">000000</code>.
+              <div className="mt-3 rounded-lg bg-indigo-50/50 px-3 py-1.5 text-[10px] text-indigo-600">
+                <strong>Démo :</strong> tout code à 6 chiffres fonctionne, sauf <code className="rounded bg-white px-1 font-mono">000000</code>.
               </div>
             </>
           )}
         </div>
 
-        {/* Footer (inside the container) */}
-        <div className="border-t border-slate-100 bg-slate-50 px-6 py-3 text-center">
-          <p className="text-[11px] text-slate-400">
-            Déconnexion automatique après inactivité (AUTH-07) · © Digi.Dev — Hackathon CIF 2026
+        {/* Footer (compact) */}
+        <div className="border-t border-slate-100 bg-slate-50 px-6 py-2 text-center">
+          <p className="text-[10px] text-slate-400">
+            Déconnexion après inactivité (AUTH-07) · © Digi.Dev — Hackathon CIF 2026
           </p>
         </div>
       </div>
