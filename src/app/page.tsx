@@ -53,17 +53,25 @@ export default function Home() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const { theme, setTheme } = useTheme()
 
-  // ⌘K / Ctrl+K to open command palette
+  // Keyboard shortcuts: ⌘K (palette), ⌘N (new investigation), ⌘J (theme)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      const mod = e.metaKey || e.ctrlKey
+      if (mod && e.key.toLowerCase() === "k") {
         e.preventDefault()
         setPaletteOpen((v) => !v)
+      } else if (mod && e.key.toLowerCase() === "n") {
+        e.preventDefault()
+        toast.success("Nouvelle investigation créée", { description: "Dossier INV-246 ouvert — en attente de documentation." })
+        setActive("Investigations")
+      } else if (mod && e.key.toLowerCase() === "j") {
+        e.preventDefault()
+        setTheme(theme === "dark" ? "light" : "dark")
       }
     }
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
-  }, [])
+  }, [theme, setTheme])
 
   // Listen for cross-view navigation events (from cards/rows that should navigate)
   useEffect(() => {

@@ -143,6 +143,24 @@ function SidebarContent({ active, onSelect, userName = "Aminata Touré", userRol
         ))}
       </nav>
 
+      {/* Keyboard shortcuts hint */}
+      <div className="border-t border-slate-100 px-4 py-2.5">
+        <div className="flex items-center justify-between text-[10px] text-slate-400">
+          <span className="flex items-center gap-1">
+            <kbd className="rounded border border-slate-200 bg-slate-50 px-1 py-0.5 font-mono text-[9px]">⌘K</kbd>
+            Recherche
+          </span>
+          <span className="flex items-center gap-1">
+            <kbd className="rounded border border-slate-200 bg-slate-50 px-1 py-0.5 font-mono text-[9px]">⌘N</kbd>
+            Investigation
+          </span>
+          <span className="flex items-center gap-1">
+            <kbd className="rounded border border-slate-200 bg-slate-50 px-1 py-0.5 font-mono text-[9px]">⌘J</kbd>
+            Thème
+          </span>
+        </div>
+      </div>
+
       {/* Profile */}
       <div className="relative border-t border-slate-100 p-3">
         <div className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-slate-50 cursor-pointer">

@@ -539,3 +539,30 @@ Work Log:
 
 Stage Summary:
 - Tous les éléments interactifs (boutons + divs cliquables) sont maintenant fonctionnels. Les toasts génériques "Redirection" ont été remplacés par de vraies navigations inter-vues via un système d'événements léger. Le projet est entièrement interactif : 100 boutons avec onClick, navigation cross-view, modals, états, dropdowns, tri, dark mode, command palette ⌘K. Aucun bouton statique ne reste.
+
+---
+Task ID: auth-and-shortcuts
+Agent: main
+Task: Authentification robuste (verrouillage AUTH-04, réinitialisation AUTH-09) + raccourcis clavier
+
+Work Log:
+- Login screen réécrit avec :
+  * Verrouillage après 5 tentatives échouées (AUTH-04) : mot de passe "wrongpass" déclenche un échec, 5 échecs = verrouillage 60s avec compte à rebours live (useEffect + setInterval), indicateur visuel des tentatives (5 barres), bouton désactivé pendant le verrouillage, auto-déverrouillage avec toast.
+  * Modal "Mot de passe oublié" (AUTH-09) : email input, validation, état succès (checkmark vert, message ne divulgue pas l'existence du compte), fermeture.
+  * MFA : code 000000 = invalide (démo d'échec), autofocus sur le champ MFA.
+  * Hints démo : texte explicatif pour password123 (succès) et wrongpass (échec/verrouillage).
+- Raccourcis clavier dans page.tsx (useEffect unifié) :
+  * ⌘K / Ctrl+K → command palette (déjà existant, consolidé)
+  * ⌘N / Ctrl+N → nouvelle investigation (toast + navigation Investigations)
+  * ⌘J / Ctrl+J → toggle dark/light mode
+- Hints visuels des raccourcis ajoutés en bas de sidebar (kbd ⌘K/⌘N/⌘J).
+- Lint propre (0 erreur).
+- Vérification browser (VLM) :
+  * Verrouillage : 5 tentatives "wrongpass" → bannière "Compte verrouillé" + countdown 60s + barres indicateurs ✅
+  * Modal réinitialisation : s'ouvre avec email input ✅
+  * ⌘J : dark mode activé ✅
+  * ⌘N : page Investigations ✅
+  * ⌘K : command palette ✅
+
+Stage Summary:
+- Authentification LAKANA désormais robuste et démontrable : verrouillage temporaire (AUTH-04), réinitialisation sécurisée (AUTH-09), MFA (AUTH-05). 3 raccourcis clavier productivité (⌘K/⌘N/⌘J) avec hints visuels. Le projet est complet, interactif et professionnel.
