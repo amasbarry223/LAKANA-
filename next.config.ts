@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* Vercel gère le déploiement nativement — pas de output: "standalone" */
+  // Standalone uniquement hors Vercel (Docker/local). Sur Vercel, output standalone + Next 16.3 casse le build (nft.json).
+  ...(process.env.VERCEL ? {} : { output: "standalone" as const }),
   typescript: {
     ignoreBuildErrors: true,
   },
