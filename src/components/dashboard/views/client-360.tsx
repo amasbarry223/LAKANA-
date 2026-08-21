@@ -27,6 +27,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { navigateTo } from "@/lib/navigate"
+import { useDashboard } from "@/lib/dashboard-context"
 
 type Client = {
   id: string
@@ -232,8 +233,18 @@ function TxTooltip({ active, payload, label }: any) {
 }
 
 export function Client360View() {
+  const { selectedClientId, setSelectedClientId } = useDashboard()
   const [selected, setSelected] = useState(0)
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null)
+
+  useEffect(() => {
+    if (selectedClientId) {
+      const idx = clients.findIndex((c) => c.id === selectedClientId)
+      if (idx >= 0) setSelected(idx)
+      setSelectedClientId(null)
+    }
+  }, [selectedClientId, setSelectedClientId])
+
   const client = clients[selected]
 
   useEffect(() => {

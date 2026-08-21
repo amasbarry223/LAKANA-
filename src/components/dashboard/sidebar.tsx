@@ -24,7 +24,6 @@ import {
   UserCircle,
 } from "lucide-react"
 import { useState } from "react"
-import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
@@ -186,9 +185,8 @@ function SidebarContent({ active, onSelect, userName = "Aminata Touré", userRol
           <div className="absolute bottom-14 right-3 z-50 w-52 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
             <button
               onClick={() => {
-                onSelect("Client 360°")
+                onSelect("Mon profil")
                 setMenuOpen(false)
-                toast.info("Mon profil", { description: `${userName} — ${userRole}` })
               }}
               className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-slate-600 transition hover:bg-slate-50"
             >

@@ -383,11 +383,19 @@ export function ReportsView() {
               >
                 Fermer
               </button>
-              <button
-                onClick={() => {
-                  toast.success("Téléchargement", { description: `${previewReport.title} (${previewReport.format}).` })
-                  setPreviewReport(null)
-                }}
+          <button
+            onClick={() => {
+              const content = `LAKANA — ${previewReport.title}\nPériode: ${previewReport.period}\nType: ${previewReport.type}\nFormat: ${previewReport.format}\nGénéré: ${previewReport.generatedAt}\n\n--- Rapport réglementaire (BO-06) ---\n`
+              const blob = new Blob([content], { type: previewReport.format === "PDF" ? "application/pdf" : "text/csv" })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement("a")
+              a.href = url
+              a.download = `${previewReport.id}.${previewReport.format === "PDF" ? "pdf" : "csv"}`
+              a.click()
+              URL.revokeObjectURL(url)
+              toast.success("Téléchargement", { description: `${previewReport.title} (${previewReport.format}).` })
+              setPreviewReport(null)
+            }}
                 className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
               >
                 <Download className="h-3.5 w-3.5" />

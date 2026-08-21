@@ -76,9 +76,9 @@ const searchableClients = [
 ]
 
 const searchableAlerts = [
-  { name: "ALR-241 — Fractionnement (Traoré M.)", id: "ALR-241", type: "Alerte" },
-  { name: "ALR-238 — Correspondance PPE (Diarra F.)", id: "ALR-238", type: "Alerte" },
-  { name: "ALR-235 — Volume inhabituel (Keïta I.)", id: "ALR-235", type: "Alerte" },
+  { name: "ALR-241 — Fractionnement (Traoré M.)", id: "ALR-241", type: "Alerte", clientId: "CLI-1042" },
+  { name: "ALR-238 — Correspondance PPE (Diarra F.)", id: "ALR-238", type: "Alerte", clientId: "CLI-1087" },
+  { name: "ALR-235 — Volume inhabituel (Keïta I.)", id: "ALR-235", type: "Alerte", clientId: "CLI-1103" },
   { name: "INV-241 — Investigation Traoré", id: "INV-241", type: "Investigation" },
   { name: "INV-238 — Investigation Diarra", id: "INV-238", type: "Investigation" },
 ]
@@ -91,11 +91,11 @@ export function CommandPalette({
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
-  onNavigate: (label: string) => void
+  onNavigate: (label: string, options?: { clientId?: string; alertRef?: string; investigationRef?: string }) => void
   onAction: (action: string) => void
 }) {
-  const handleNav = (label: string) => {
-    onNavigate(label)
+  const handleNav = (label: string, options?: { clientId?: string; alertRef?: string; investigationRef?: string }) => {
+    onNavigate(label, options)
     onOpenChange(false)
   }
 
@@ -160,7 +160,7 @@ export function CommandPalette({
             <CommandItem
               key={c.id}
               value={`${c.name} ${c.id} client`}
-              onSelect={() => handleNav("Client 360°")}
+              onSelect={() => handleNav("Client 360°", { clientId: c.id })}
             >
               <UserRound className="h-4 w-4" />
               <span className="flex-1">{c.name}</span>
@@ -175,7 +175,14 @@ export function CommandPalette({
             <CommandItem
               key={a.id}
               value={`${a.name} ${a.id}`}
-              onSelect={() => handleNav(a.type === "Investigation" ? "Investigations" : "Centre d'alertes")}
+              onSelect={() =>
+                handleNav(
+                  a.type === "Investigation" ? "Investigations" : "Centre d'alertes",
+                  a.type === "Investigation"
+                    ? { investigationRef: a.id }
+                    : { alertRef: a.id, clientId: "clientId" in a ? a.clientId : undefined }
+                )
+              }
             >
               <BellRing className="h-4 w-4" />
               <span className="flex-1">{a.name}</span>

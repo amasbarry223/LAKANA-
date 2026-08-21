@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Gauge,
   Split,
@@ -27,6 +27,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { useDashboard } from "@/lib/dashboard-context"
 
 // Section 14 du cahier des charges — système de scoring
 type Criterion = {
@@ -91,7 +92,7 @@ const distribution = [
 ]
 
 // Score history (average over time)
-const scoreHistory = [
+const initialScoreHistory = [
   { date: "Jul 7", score: 38 },
   { date: "Jul 14", score: 40 },
   { date: "Jul 21", score: 39 },
@@ -114,8 +115,28 @@ const rules = [
 ]
 
 export function RiskScoreView() {
-  const [weights, setWeights] = useState(criteria.map((c) => c.weight))
+  const { settings, setSettings } = useDashboard()
+  const weights = settings.weights
+  const setWeights = (next: number[]) => setSettings((s) => ({ ...s, weights: next }))
   const total = weights.reduce((a, b) => a + b, 0)
+  const [scoreHistory, setScoreHistory] = useState(initialScoreHistory)
+  const [selectedRule, setSelectedRule] = useState<(typeof rules)[0] | null>(null)
+  const [recalculating, setRecalculating] = useState(false)
+
+  const activeRules = rules.map((r, i) => ({
+    ...r,
+    points: i < weights.length ? weights[i] : r.points,
+  }))
+
+  const runRecalc = () => {
+    setRecalculating(true)
+    setTimeout(() => {
+      const nextScore = Math.min(50, Math.max(35, Math.round(total / 2.4)))
+      setScoreHistory((h) => [...h.slice(-7), { date: "Auj.", score: nextScore }])
+      setRecalculating(false)
+      toast.success("Recalcul terminé", { description: `Score moyen recalculé : ${nextScore}/100 (SCR-03).` })
+    }, 800)
+  }
 
   return (
     <div className="space-y-5">
@@ -150,7 +171,7 @@ export function RiskScoreView() {
             <p className="mt-2 text-sm font-semibold text-slate-900">{c.label}</p>
             <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{c.description}</p>
             <div className="mt-3 flex items-baseline gap-1">
-              <span className="text-2xl font-bold text-slate-900">{c.weight}</span>
+              <span className="text-2xl font-bold text-slate-900">{weights[i]}</span>
               <span className="text-xs text-slate-400">/ 100 pts</span>
             </div>
             {/* Weight slider (SCR-04) */}
@@ -255,11 +276,12 @@ export function RiskScoreView() {
               Évolution du score moyen
             </h3>
             <button
-              onClick={() => toast.success("Recalcul lancé", { description: "Risk Score recalculé pour tous les clients (SCR-03)." })}
-              className="flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-700"
+              onClick={runRecalc}
+              disabled={recalculating}
+              className="flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-700 disabled:opacity-50"
             >
-              <RotateCw className="h-3 w-3" />
-              Recalculer
+              <RotateCw className={cn("h-3 w-3", recalculating && "animate-spin")} />
+              {recalculating ? "Recalcul..." : "Recalculer"}
             </button>
           </div>
           <div className="mt-4 h-[240px] w-full">
@@ -310,8 +332,12 @@ export function RiskScoreView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {rules.map((r) => (
-                <tr key={r.id} onClick={() => toast.info(`Règle ${r.id}`, { description: r.desc })} className="cursor-pointer py-2">
+              {activeRules.map((r) => (
+                <tr
+                  key={r.id}
+                  onClick={() => setSelectedRule(r)}
+                  className={cn("cursor-pointer py-2 hover:bg-slate-50", selectedRule?.id === r.id && "bg-indigo-50/50")}
+                >
                   <td className="py-2.5 pr-4">
                     <span className="font-mono text-xs font-semibold text-indigo-600">{r.id}</span>
                   </td>
@@ -327,6 +353,20 @@ export function RiskScoreView() {
             </tbody>
           </table>
         </div>
+        {selectedRule && (
+          <div className="mt-4 rounded-lg border border-indigo-100 bg-indigo-50/50 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-mono text-xs font-semibold text-indigo-600">{selectedRule.id}</p>
+                <p className="mt-1 text-sm font-medium text-slate-800">{selectedRule.desc}</p>
+                <p className="mt-1 text-xs text-slate-500">Module : {selectedRule.module} · Pondération : +{selectedRule.points} pts</p>
+              </div>
+              <button onClick={() => setSelectedRule(null)} className="text-xs font-medium text-slate-500 hover:text-slate-700">
+                Fermer
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

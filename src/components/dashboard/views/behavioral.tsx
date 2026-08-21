@@ -26,6 +26,15 @@ const deviations: Deviation[] = [
   { id: "CMP-219", client: "Sangaré, Mariam", metric: "Montant moyen", habituel: 740, recent: 690, ecart: -7, unit: "k FCFA", alertLevel: "informative" },
 ]
 
+const clientIds: Record<string, string> = {
+  "Traoré, Moussa": "CLI-1042",
+  "Diarra, Fatoumata": "CLI-1087",
+  "Keïta, Ibrahim": "CLI-1103",
+  "Coulibaly, Aïssata": "CLI-1066",
+  "Touré, Seydou": "CLI-1055",
+  "Sangaré, Mariam": "CLI-1098",
+}
+
 const levelColor: Record<Deviation["alertLevel"], string> = {
   bloquante: "bg-rose-50 text-rose-700 border-rose-200",
   analyser: "bg-amber-50 text-amber-700 border-amber-200",
@@ -108,7 +117,7 @@ export function BehavioralView() {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {deviations.map((d) => (
-                <tr key={d.id} onClick={() => navigateTo("Client 360°")} className="cursor-pointer hover:bg-slate-50">
+                <tr key={d.id} onClick={() => navigateTo("Client 360°", { clientId: clientIds[d.client] })} className="cursor-pointer hover:bg-slate-50">
                   <td className="px-5 py-3">
                     <p className="font-medium text-slate-800">{d.client}</p>
                     <p className="text-[11px] text-slate-400">{d.id}</p>

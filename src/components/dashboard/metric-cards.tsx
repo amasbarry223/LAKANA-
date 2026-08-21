@@ -4,17 +4,18 @@ import { ArrowUp, ArrowDown } from "lucide-react"
 import { Area, AreaChart, ResponsiveContainer } from "recharts"
 import { cn } from "@/lib/utils"
 import { navigateTo } from "@/lib/navigate"
+import { useDashboard } from "@/lib/dashboard-context"
 
 type Metric = {
   label: string
   value: string
   delta: string
   positive: boolean
-  // when true, a downward delta is good (e.g. fewer alerts = good)
   invertDelta?: boolean
   chartColor: string
   chartId: string
   data: { v: number }[]
+  nav?: string
 }
 
 const seed = (n: number, start: number, end: number, vol: number) => {
@@ -109,10 +110,17 @@ function Sparkline({ color, data, id }: { color: string; data: { v: number }[]; 
 }
 
 export function MetricCards() {
+  const { compareMode } = useDashboard()
+
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
       {metrics.map((m) => {
         const good = m.invertDelta ? m.positive : !m.positive
+        const compareDelta = compareMode
+          ? m.positive
+            ? "−3% vs période préc."
+            : "+2% vs période préc."
+          : m.delta
         return (
           <div
             key={m.label}
@@ -135,9 +143,9 @@ export function MetricCards() {
                 ) : (
                   <ArrowUp className="h-3 w-3" />
                 )}
-                {m.delta.split(" ")[0]}
+                {compareDelta.split(" ")[0]}
               </span>
-              <span className="text-[11px] text-slate-400">{m.delta.split(" ").slice(1).join(" ")}</span>
+              <span className="text-[11px] text-slate-400">{compareDelta.split(" ").slice(1).join(" ")}</span>
             </div>
             <div className="mt-3 -mx-1">
               <Sparkline color={m.chartColor} data={m.data} id={m.chartId} />

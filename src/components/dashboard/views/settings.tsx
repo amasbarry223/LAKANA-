@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
+import { useDashboard } from "@/lib/dashboard-context"
 
 const tabs = ["Général", "Scoring", "Seuils réglementaires", "Institutions", "Sécurité"] as const
 type Tab = (typeof tabs)[number]
@@ -52,12 +53,19 @@ const initialInstitutions: Institution[] = [
 ]
 
 export function SettingsView() {
+  const { settings, setSettings, saveSettings } = useDashboard()
   const [tab, setTab] = useState<Tab>("Général")
-  const [weights, setWeights] = useState(scoringRules.map((r) => r.weight))
-  const [thVals, setThVals] = useState(thresholds.map((t) => t.value))
-  const [mfa, setMfa] = useState(true)
-  const [autoLock, setAutoLock] = useState(true)
-  const [general, setGeneral] = useState({ institution: "SFD Bamako", devise: "FCFA (XOF)", langue: "Français" })
+  const weights = settings.weights
+  const setWeights = (next: number[]) => setSettings((s) => ({ ...s, weights: next }))
+  const thVals = settings.thresholds
+  const setThVals = (next: number[]) => setSettings((s) => ({ ...s, thresholds: next }))
+  const mfa = settings.mfa
+  const setMfa = (v: boolean) => setSettings((s) => ({ ...s, mfa: v }))
+  const autoLock = settings.autoLock
+  const setAutoLock = (v: boolean) => setSettings((s) => ({ ...s, autoLock: v }))
+  const general = { institution: settings.institution, devise: settings.devise, langue: settings.langue }
+  const setGeneral = (g: typeof general) =>
+    setSettings((s) => ({ ...s, institution: g.institution, devise: g.devise, langue: g.langue }))
   const [institutions, setInstitutions] = useState<Institution[]>(initialInstitutions)
   const [createInstOpen, setCreateInstOpen] = useState(false)
   const [instForm, setInstForm] = useState({
@@ -108,9 +116,15 @@ export function SettingsView() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => {
-              setGeneral({ institution: "SFD Bamako", devise: "FCFA (XOF)", langue: "Français" })
-              setWeights(scoringRules.map((r) => r.weight))
-              setThVals(thresholds.map((t) => t.value))
+              setSettings({
+                institution: "SFD Bamako",
+                devise: "FCFA (XOF)",
+                langue: "Français",
+                weights: scoringRules.map((r) => r.weight),
+                thresholds: thresholds.map((t) => t.value),
+                mfa: true,
+                autoLock: true,
+              })
               toast.info("Paramètres restaurés", { description: "Restauration aux valeurs par défaut (BO-03)." })
             }}
             className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"
@@ -119,7 +133,12 @@ export function SettingsView() {
             Restaurer
           </button>
           <button
-            onClick={() => toast.success("Paramètres enregistrés", { description: `Institution : ${general.institution} · Devise : ${general.devise} · Langue : ${general.langue}. Modifications tracées (BO-03).` })}
+            onClick={() => {
+              saveSettings()
+              toast.success("Paramètres enregistrés", {
+                description: `Institution : ${general.institution} · Devise : ${general.devise} · Langue : ${general.langue}. Modifications tracées (BO-03).`,
+              })
+            }}
             className="flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700"
           >
             <Save className="h-3.5 w-3.5" />

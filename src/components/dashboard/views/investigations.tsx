@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   FolderSearch,
   ChevronRight,
@@ -11,116 +11,20 @@ import {
   Send,
   User,
   X,
+  Plus,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { useDashboard, type InvestigationStatus, type Investigation } from "@/lib/dashboard-context"
 
-type Status = "en_cours" | "cloturee" | "transmise"
-
-type Investigation = {
-  ref: string
-  client: string
-  alertRef: string
-  type: string
-  analyste: string
-  status: Status
-  dateOuverture: string
-  dateCloture?: string
-  decision?: string
-  notes: number
-  pieces: number
-  score: number
-}
-
-const investigations: Investigation[] = [
-  {
-    ref: "INV-241",
-    client: "Traoré, Moussa",
-    alertRef: "ALR-241",
-    type: "Fractionnement",
-    analyste: "A. Touré",
-    status: "en_cours",
-    dateOuverture: "25/08/2026",
-    notes: 4,
-    pieces: 2,
-    score: 87,
-  },
-  {
-    ref: "INV-238",
-    client: "Diarra, Fatoumata",
-    alertRef: "ALR-238",
-    type: "Correspondance PPE",
-    analyste: "A. Touré",
-    status: "en_cours",
-    dateOuverture: "24/08/2026",
-    notes: 2,
-    pieces: 1,
-    score: 72,
-  },
-  {
-    ref: "INV-235",
-    client: "Keïta, Ibrahim",
-    alertRef: "ALR-235",
-    type: "Volume inhabituel",
-    analyste: "M. Diallo",
-    status: "en_cours",
-    dateOuverture: "23/08/2026",
-    notes: 1,
-    pieces: 0,
-    score: 64,
-  },
-  {
-    ref: "INV-229",
-    client: "Coulibaly, Aïssata",
-    alertRef: "ALR-229",
-    type: "Fréquence anormale",
-    analyste: "A. Touré",
-    status: "cloturee",
-    dateOuverture: "20/08/2026",
-    dateCloture: "22/08/2026",
-    decision: "Classée sans suite — activité justifiée",
-    notes: 5,
-    pieces: 3,
-    score: 58,
-  },
-  {
-    ref: "INV-219",
-    client: "Touré, Seydou",
-    alertRef: "ALR-219",
-    type: "Relations inhabituelles",
-    analyste: "M. Diallo",
-    status: "transmise",
-    dateOuverture: "15/08/2026",
-    dateCloture: "21/08/2026",
-    decision: "Déclaration de soupçon transmise au CENTIF",
-    notes: 7,
-    pieces: 5,
-    score: 81,
-  },
-  {
-    ref: "INV-156",
-    client: "Sangaré, Mariam",
-    alertRef: "ALR-156",
-    type: "Comportement atypique",
-    analyste: "A. Touré",
-    status: "cloturee",
-    dateOuverture: "02/08/2026",
-    dateCloture: "10/08/2026",
-    decision: "Classée — faux positif documenté",
-    notes: 3,
-    pieces: 1,
-    score: 36,
-  },
-]
-
-const statusConfig: Record<Status, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
+const statusConfig: Record<InvestigationStatus, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
   en_cours: { label: "En cours", color: "bg-amber-50 text-amber-700 border-amber-200", icon: Clock },
   cloturee: { label: "Classée", color: "bg-slate-100 text-slate-600 border-slate-200", icon: CheckCircle2 },
   transmise: { label: "Transmise", color: "bg-rose-50 text-rose-700 border-rose-200", icon: Send },
 }
 
-const filters: { key: Status | "toutes"; label: string }[] = [
+const filters: { key: InvestigationStatus | "toutes"; label: string }[] = [
   { key: "toutes", label: "Toutes" },
   { key: "en_cours", label: "En cours" },
   { key: "cloturee", label: "Classées" },
@@ -128,21 +32,34 @@ const filters: { key: Status | "toutes"; label: string }[] = [
 ]
 
 export function InvestigationsView() {
-  const [items, setItems] = useState<Investigation[]>(investigations)
-  const [filter, setFilter] = useState<Status | "toutes">("toutes")
+  const { investigations, setInvestigations, selectedInvestigationRef, setSelectedInvestigationRef, openNewInvestigation } = useDashboard()
+  const [filter, setFilter] = useState<InvestigationStatus | "toutes">("toutes")
   const [selected, setSelected] = useState<string | null>("INV-241")
   const [decisionOpen, setDecisionOpen] = useState(false)
   const [decisionText, setDecisionText] = useState("")
-  const [decisionType, setDecisionType] = useState<Status>("cloturee")
+  const [decisionType, setDecisionType] = useState<InvestigationStatus>("cloturee")
 
-  const filtered = items.filter((i) => filter === "toutes" || i.status === filter)
-  const selectedInv = items.find((i) => i.ref === selected) || filtered[0]
+  useEffect(() => {
+    if (selectedInvestigationRef) {
+      setSelected(selectedInvestigationRef)
+      setSelectedInvestigationRef(null)
+    }
+  }, [selectedInvestigationRef, setSelectedInvestigationRef])
+
+  useEffect(() => {
+    if (investigations.length > 0 && !investigations.find((i) => i.ref === selected)) {
+      setSelected(investigations[0].ref)
+    }
+  }, [investigations, selected])
+
+  const filtered = investigations.filter((i) => filter === "toutes" || i.status === filter)
+  const selectedInv = investigations.find((i) => i.ref === selected) || filtered[0]
 
   const counts = {
-    toutes: items.length,
-    en_cours: items.filter((i) => i.status === "en_cours").length,
-    cloturee: items.filter((i) => i.status === "cloturee").length,
-    transmise: items.filter((i) => i.status === "transmise").length,
+    toutes: investigations.length,
+    en_cours: investigations.filter((i) => i.status === "en_cours").length,
+    cloturee: investigations.filter((i) => i.status === "cloturee").length,
+    transmise: investigations.filter((i) => i.status === "transmise").length,
   }
 
   const submitDecision = () => {
@@ -152,7 +69,7 @@ export function InvestigationsView() {
     }
     if (!selectedInv) return
     const today = new Date().toLocaleDateString("fr-FR")
-    setItems((arr) =>
+    setInvestigations((arr) =>
       arr.map((i) =>
         i.ref === selectedInv.ref
           ? { ...i, status: decisionType, decision: decisionText, dateCloture: today }
@@ -168,13 +85,22 @@ export function InvestigationsView() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px]">
-          Investigations
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Dossiers d'investigation — traçabilité complète (INV-04).
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px]">
+            Investigations
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Dossiers d'investigation — traçabilité complète (INV-04).
+          </p>
+        </div>
+        <button
+          onClick={() => openNewInvestigation()}
+          className="flex h-9 shrink-0 items-center gap-1.5 self-start rounded-lg bg-indigo-600 px-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+        >
+          <Plus className="h-4 w-4" />
+          Nouvelle investigation
+        </button>
       </div>
 
       {/* Stats */}
@@ -343,7 +269,7 @@ export function InvestigationsView() {
               ) : (
                 <button
                   onClick={() => {
-                    setItems((arr) =>
+                    setInvestigations((arr) =>
                       arr.map((i) =>
                         i.ref === selectedInv.ref
                           ? { ...i, status: "en_cours", decision: undefined, dateCloture: undefined }

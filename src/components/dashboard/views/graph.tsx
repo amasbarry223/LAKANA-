@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Share2, ZoomIn, ZoomOut, Maximize, Download } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -62,6 +62,8 @@ export function GraphView() {
   const [zoom, setZoom] = useState(1)
   const [selected, setSelected] = useState<string | null>("c1")
   const [hovered, setHovered] = useState<string | null>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
+  const canvasRef = useRef<HTMLDivElement>(null)
 
   const sel = nodes.find((n) => n.id === selected)
   const connectedNodes = sel
@@ -90,12 +92,29 @@ export function GraphView() {
             <button onClick={() => setZoom((z) => Math.min(1.6, z + 0.1))} className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-50 hover:text-slate-600">
               <ZoomIn className="h-4 w-4" />
             </button>
-            <button onClick={() => setZoom(1)} className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-50 hover:text-slate-600">
+            <button
+              onClick={() => {
+                setZoom(1)
+                canvasRef.current?.requestFullscreen?.()
+              }}
+              className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+            >
               <Maximize className="h-4 w-4" />
             </button>
           </div>
           <button
-            onClick={() => toast.success("Graphe exporté", { description: "Le graphe a été exporté comme pièce jointe (GRF-04)." })}
+            onClick={() => {
+              const svg = svgRef.current
+              if (!svg) return
+              const blob = new Blob([svg.outerHTML], { type: "image/svg+xml" })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement("a")
+              a.href = url
+              a.download = "graphe-relations.svg"
+              a.click()
+              URL.revokeObjectURL(url)
+              toast.success("Graphe exporté", { description: "Fichier SVG téléchargé (GRF-04)." })
+            }}
             className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
           >
             <Download className="h-3.5 w-3.5" />
@@ -107,8 +126,9 @@ export function GraphView() {
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-4">
         {/* Graph canvas */}
         <div className="rounded-xl border border-slate-200 bg-white p-3 xl:col-span-3">
-          <div className="relative h-[560px] w-full overflow-hidden rounded-lg bg-slate-50">
+          <div ref={canvasRef} className="relative h-[560px] w-full overflow-hidden rounded-lg bg-slate-50">
             <svg
+              ref={svgRef}
               className="h-full w-full"
               viewBox="0 0 800 560"
               style={{ transform: `scale(${zoom})`, transformOrigin: "center" }}

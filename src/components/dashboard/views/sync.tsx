@@ -5,6 +5,7 @@ import { Wifi, CloudOff, RefreshCw, Database, CheckCircle2, AlertTriangle, Clock
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { useDashboard } from "@/lib/dashboard-context"
 
 type Source = {
   name: string
@@ -15,7 +16,15 @@ type Source = {
   version?: string
 }
 
-const sources: Source[] = [
+type QueueItem = {
+  id: string
+  type: string
+  client: string
+  date: string
+  pending: boolean
+}
+
+const initialSources: Source[] = [
   { name: "Liste sanctions ONU", type: "Liste sanctions", lastSync: "25/08/2026 06:00", status: "À jour", records: 1842, version: "v3.12" },
   { name: "Liste sanctions GAFI", type: "Liste sanctions", lastSync: "25/08/2026 06:05", status: "À jour", records: 967, version: "v2.8" },
   { name: "CENTIF-Mali", type: "Liste sanctions", lastSync: "25/08/2026 06:10", status: "À jour", records: 412, version: "v1.9" },
@@ -26,20 +35,6 @@ const sources: Source[] = [
   { name: "Base locale chiffrée", type: "Base locale", lastSync: "25/08/2026 14:30", status: "À jour", records: 18428 },
 ]
 
-const statusConfig: Record<Source["status"], { color: string; icon: React.ComponentType<{ className?: string }> }> = {
-  "À jour": { color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
-  "En attente": { color: "bg-amber-50 text-amber-700 border-amber-200", icon: Clock },
-  "Erreur": { color: "bg-rose-50 text-rose-700 border-rose-200", icon: AlertTriangle },
-}
-
-type QueueItem = {
-  id: string
-  type: string
-  client: string
-  date: string
-  pending: boolean
-}
-
 const initialQueue: QueueItem[] = [
   { id: "Q-012", type: "Alerte générée hors ligne", client: "Traoré, Moussa", date: "25/08/2026 08:15", pending: true },
   { id: "Q-011", type: "Alerte générée hors ligne", client: "Diarra, Fatoumata", date: "25/08/2026 07:42", pending: true },
@@ -47,14 +42,62 @@ const initialQueue: QueueItem[] = [
   { id: "Q-009", type: "Score recalculé", client: "Coulibaly, Aïssata", date: "24/08/2026 19:30", pending: false },
 ]
 
+const statusConfig: Record<Source["status"], { color: string; icon: React.ComponentType<{ className?: string }> }> = {
+  "À jour": { color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
+  "En attente": { color: "bg-amber-50 text-amber-700 border-amber-200", icon: Clock },
+  Erreur: { color: "bg-rose-50 text-rose-700 border-rose-200", icon: AlertTriangle },
+}
+
+function nowSyncLabel() {
+  const now = new Date()
+  return `${now.toLocaleDateString("fr-FR")} ${now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`
+}
+
 export function SyncView() {
-  const [online, setOnline] = useState(true)
+  const { online, setOnline } = useDashboard()
+  const [sources, setSources] = useState<Source[]>(initialSources)
   const [offlineQueue, setOfflineQueue] = useState<QueueItem[]>(initialQueue)
+  const [lastGlobalSync, setLastGlobalSync] = useState("25/08/2026 à 14:30")
+
+  const syncSource = (name: string) => {
+    if (!online) {
+      toast.error("Hors ligne", { description: "Reconnectez-vous pour synchroniser (OFF-02)." })
+      return
+    }
+    setSources((arr) =>
+      arr.map((s) =>
+        s.name === name
+          ? { ...s, status: "À jour" as const, lastSync: nowSyncLabel(), records: s.records + Math.floor(Math.random() * 50) }
+          : s
+      )
+    )
+    toast.success("Source synchronisée", { description: `${name} mise à jour.` })
+  }
+
+  const syncAll = () => {
+    if (!online) {
+      toast.error("Hors ligne", { description: "Reconnectez-vous pour synchroniser (OFF-02)." })
+      return
+    }
+    const ts = nowSyncLabel()
+    setSources((arr) =>
+      arr.map((s) => ({
+        ...s,
+        status: "À jour" as const,
+        lastSync: ts,
+        records: s.records + Math.floor(Math.random() * 20),
+      }))
+    )
+    setLastGlobalSync(ts.replace(" ", " à "))
+    toast.success("Synchronisation lancée", { description: "Mise à jour de toutes les sources (OFF-02)." })
+  }
 
   const flushQueue = () => {
     setOfflineQueue((q) => q.map((item) => ({ ...item, pending: false })))
     toast.success("File remontée", { description: "Toutes les alertes hors ligne ont été transmises (OFF-04)." })
   }
+
+  const localRecords = sources.find((s) => s.name === "Base locale chiffrée")?.records ?? 18428
 
   return (
     <div className="space-y-5">
@@ -77,7 +120,6 @@ export function SyncView() {
         </button>
       </div>
 
-      {/* Status banner */}
       <div className={cn(
         "flex items-center gap-3 rounded-xl border p-4",
         online ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"
@@ -94,13 +136,13 @@ export function SyncView() {
           </p>
           <p className={cn("mt-0.5 text-xs", online ? "text-emerald-600" : "text-amber-600")}>
             {online
-              ? "Dernière synchronisation : 25/08/2026 à 14:30. Les listes sont à jour."
+              ? `Dernière synchronisation : ${lastGlobalSync}. Les listes sont à jour.`
               : "Base locale chiffrée active (OFF-01). Resynchronisation automatique à la reconnexion (OFF-02)."}
           </p>
         </div>
         {online && (
           <button
-            onClick={() => toast.success("Synchronisation lancée", { description: "Mise à jour de toutes les sources (OFF-02)." })}
+            onClick={syncAll}
             className="flex h-9 items-center gap-1.5 rounded-lg bg-white px-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
           >
             <RefreshCw className="h-3.5 w-3.5" />
@@ -109,11 +151,10 @@ export function SyncView() {
         )}
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
           { label: "Sources connectées", value: `${sources.filter((s) => s.status === "À jour").length}/${sources.length}`, icon: Database, color: "#10B981" },
-          { label: "Enregistrements locaux", value: "18 428", icon: Database, color: "#6366F1" },
+          { label: "Enregistrements locaux", value: localRecords.toLocaleString("fr-FR"), icon: Database, color: "#6366F1" },
           { label: "File d'attente hors ligne", value: offlineQueue.filter((q) => q.pending).length, icon: Clock, color: "#F59E0B" },
           { label: "Ancienneté base locale", value: "0 min", icon: Clock, color: "#06B6D4" },
         ].map((s) => (
@@ -129,14 +170,12 @@ export function SyncView() {
         ))}
       </div>
 
-      {/* Sources + Queue */}
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-        {/* Sources */}
         <div className="rounded-xl border border-slate-200 bg-white p-5 xl:col-span-2">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold text-slate-900">Sources de données</h3>
             <button
-              onClick={() => toast.success("Synchronisation globale", { description: "Toutes les sources ont été resynchronisées." })}
+              onClick={syncAll}
               className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:underline"
             >
               <RefreshCw className="h-3 w-3" />
@@ -168,7 +207,7 @@ export function SyncView() {
                     {s.status}
                   </Badge>
                   <button
-                    onClick={() => toast.success("Source synchronisée", { description: `${s.name} mise à jour.` })}
+                    onClick={() => syncSource(s.name)}
                     className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                   >
                     <RefreshCw className="h-3.5 w-3.5" />
@@ -179,7 +218,6 @@ export function SyncView() {
           </div>
         </div>
 
-        {/* Offline queue */}
         <div className="rounded-xl border border-slate-200 bg-white p-5 xl:col-span-1">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold text-slate-900">File d'attente hors ligne</h3>
@@ -233,7 +271,6 @@ export function SyncView() {
         </div>
       </div>
 
-      {/* Data freshness indicator (OFF-03) */}
       <div className="rounded-xl border border-slate-200 bg-white p-5">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-semibold text-slate-900">Ancienneté des données locales</h3>
@@ -248,13 +285,6 @@ export function SyncView() {
           </div>
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
             <div className="h-full w-[2%] rounded-full bg-emerald-500" />
-          </div>
-          <div className="mt-1.5 flex justify-between text-[10px] text-slate-400">
-            <span>0h</span>
-            <span>6h</span>
-            <span>12h</span>
-            <span>18h</span>
-            <span className="text-rose-400">24h (seuil)</span>
           </div>
         </div>
       </div>

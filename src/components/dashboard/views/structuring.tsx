@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { navigateTo } from "@/lib/navigate"
+import { useDashboard } from "@/lib/dashboard-context"
 
 type Sequence = {
   id: string
@@ -91,7 +92,19 @@ const sequences: Sequence[] = [
 const fmt = (n: number) => n.toLocaleString("fr-FR")
 
 export function StructuringView() {
+  const { addInvestigation } = useDashboard()
   const [selectedSeq, setSelectedSeq] = useState<Sequence | null>(null)
+
+  const openInvestigation = (s: Sequence) => {
+    const ref = addInvestigation({
+      client: s.client,
+      alertRef: s.id,
+      type: "Fractionnement",
+      score: Math.min(100, Math.round((s.totalAmount / s.threshold) * 10)),
+    })
+    toast.success("Investigation ouverte", { description: `Dossier ${ref} — ${s.client} (séquence ${s.id}).` })
+    navigateTo("Investigations", { investigationRef: ref })
+  }
 
   // Escape key closes the detail modal
   useEffect(() => {
@@ -172,7 +185,7 @@ export function StructuringView() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    toast.success("Investigation ouverte", { description: `Dossier ouvert pour ${s.client} — séquence ${s.id}.` })
+                    openInvestigation(s)
                   }}
                   className="ml-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700"
                 >
@@ -353,11 +366,8 @@ export function StructuringView() {
               </button>
               <button
                 onClick={() => {
+                  if (selectedSeq) openInvestigation(selectedSeq)
                   setSelectedSeq(null)
-                  toast.success("Investigation ouverte", {
-                    description: `Dossier ouvert pour ${selectedSeq.client} — séquence ${selectedSeq.id}.`,
-                  })
-                  navigateTo("Investigations")
                 }}
                 className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
               >

@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { MoreHorizontal, ChevronRight, ShieldCheck, X } from "lucide-react"
-import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { navigateTo } from "@/lib/navigate"
+import { cn } from "@/lib/utils"
 
 type Step = {
   name: string
@@ -26,6 +26,7 @@ const fmt = (n: number) => n.toLocaleString("fr-FR")
 
 export function FunnelChartWidget() {
   const [detailOpen, setDetailOpen] = useState(false)
+  const [calibrated, setCalibrated] = useState(false)
 
   // Escape key closes the detail modal
   useEffect(() => {
@@ -67,8 +68,9 @@ export function FunnelChartWidget() {
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
           <button
-            onClick={() => toast.info("Options du widget")}
+            onClick={() => navigateTo("Paramètres")}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100"
+            title="Options du widget"
           >
             <MoreHorizontal className="h-4 w-4" />
           </button>
@@ -135,10 +137,13 @@ export function FunnelChartWidget() {
         <div className="flex items-center gap-2 text-sm">
           <span className="text-slate-500">Opportunité :</span>
           <button
-            onClick={() => toast.success("Calibrage lancé", { description: "Le moteur de fuzzy matching PPE sera recalibré sur les variantes ouest-africaines (FLT-02)." })}
-            className="font-semibold text-indigo-600 hover:underline"
+            onClick={() => {
+              setCalibrated(true)
+              navigateTo("Filtrage sanctions/PPE")
+            }}
+            className={cn("font-semibold hover:underline", calibrated ? "text-emerald-600" : "text-indigo-600")}
           >
-            Calibrer le fuzzy matching PPE
+            {calibrated ? "Fuzzy matching calibré (FLT-02)" : "Calibrer le fuzzy matching PPE"}
           </button>
         </div>
       </div>

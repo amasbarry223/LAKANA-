@@ -6,6 +6,16 @@ import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
 
 type Role = "Analyste conformité" | "Responsable conformité" | "Administrateur système" | "Auditeur" | "Agent guichet" | "Super administrateur"
@@ -77,7 +87,11 @@ export function UsersView() {
   const [items, setItems] = useState<User[]>(users)
   const [query, setQuery] = useState("")
   const [createOpen, setCreateOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [resetUser, setResetUser] = useState<User | null>(null)
   const [form, setForm] = useState({ name: "", email: "", role: "Analyste conformité" as Role, institution: "SFD Bamako", mfa: false })
+  const [editForm, setEditForm] = useState({ name: "", email: "", role: "Analyste conformité" as Role, institution: "SFD Bamako", mfa: false })
   const [sortBy, setSortBy] = useState<SortColumn | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>("asc")
   const [actionUserId, setActionUserId] = useState<string | null>(null)
@@ -149,6 +163,36 @@ export function UsersView() {
     toast.success("Utilisateur créé", { description: `${form.name} (${form.role}) — compte actif (BO-01).` })
     setForm({ name: "", email: "", role: "Analyste conformité", institution: "SFD Bamako", mfa: false })
     setCreateOpen(false)
+  }
+
+  const openEdit = (u: User) => {
+    setEditingUser(u)
+    setEditForm({ name: u.name, email: u.email, role: u.role, institution: u.institution, mfa: u.mfa })
+    setEditOpen(true)
+    closeActionMenu()
+  }
+
+  const submitEdit = () => {
+    if (!editingUser || !editForm.name.trim() || !editForm.email.trim()) {
+      toast.error("Champs requis", { description: "Veuillez renseigner le nom et l'email." })
+      return
+    }
+    setItems((arr) =>
+      arr.map((it) =>
+        it.id === editingUser.id
+          ? { ...it, name: editForm.name, email: editForm.email, role: editForm.role, institution: editForm.institution, mfa: editForm.mfa }
+          : it
+      )
+    )
+    toast.success("Utilisateur modifié", { description: `${editForm.name} — modifications enregistrées (BO-01).` })
+    setEditOpen(false)
+    setEditingUser(null)
+  }
+
+  const confirmResetPassword = () => {
+    if (!resetUser) return
+    toast.success("Mot de passe réinitialisé", { description: `Un email a été envoyé à ${resetUser.email}.` })
+    setResetUser(null)
   }
 
   return (
@@ -282,10 +326,7 @@ export function UsersView() {
                           <div className="fixed inset-0 z-40" onClick={closeActionMenu} />
                           <div className="absolute right-0 top-9 z-50 w-60 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
                             <button
-                              onClick={() => {
-                                toast.info("Modification", { description: `Modifier les informations de ${u.name}.` })
-                                closeActionMenu()
-                              }}
+                              onClick={() => openEdit(u)}
                               className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
                             >
                               <Pencil className="h-3.5 w-3.5 text-slate-400" />
@@ -293,7 +334,7 @@ export function UsersView() {
                             </button>
                             <button
                               onClick={() => {
-                                toast.success("Mot de passe réinitialisé", { description: `Un email a été envoyé à ${u.email}.` })
+                                setResetUser(u)
                                 closeActionMenu()
                               }}
                               className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
@@ -458,6 +499,101 @@ export function UsersView() {
           </div>
         </div>
       )}
+
+      {editOpen && editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4" onClick={() => setEditOpen(false)}>
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Modifier l'utilisateur</h3>
+                <p className="mt-0.5 text-xs text-slate-400">{editingUser.id} — {editingUser.name}</p>
+              </div>
+              <button onClick={() => setEditOpen(false)} className="rounded-md p-1 text-slate-400 hover:bg-slate-100">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-600">Nom complet</label>
+                  <input
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-600">Email</label>
+                  <input
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-600">Rôle</label>
+                  <select
+                    value={editForm.role}
+                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value as Role })}
+                    className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                  >
+                    {(["Analyste conformité", "Responsable conformité", "Administrateur système", "Auditeur", "Agent guichet", "Super administrateur"] as Role[]).map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-600">Institution</label>
+                  <select
+                    value={editForm.institution}
+                    onChange={(e) => setEditForm({ ...editForm, institution: e.target.value })}
+                    className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                  >
+                    <option>SFD Bamako</option>
+                    <option>SFD Sikasso</option>
+                    <option>SFD Kayes</option>
+                    <option>Multi-institutions</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-slate-400" />
+                  <p className="text-sm font-medium text-slate-700">MFA obligatoire</p>
+                </div>
+                <Switch checked={editForm.mfa} onCheckedChange={(v) => setEditForm({ ...editForm, mfa: v })} />
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button onClick={() => setEditOpen(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                Annuler
+              </button>
+              <button onClick={submitEdit} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+                Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <AlertDialog open={!!resetUser} onOpenChange={(open) => !open && setResetUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Réinitialiser le mot de passe ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Un email de réinitialisation sera envoyé à {resetUser?.email}. Cette action est tracée dans le journal d'audit (AUTH-09).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmResetPassword}>Confirmer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -81,6 +81,7 @@ export function SanctionsView() {
 
   const setStatus = (id: string, status: Match["status"]) => {
     setItems((arr) => arr.map((m) => (m.id === id ? { ...m, status } : m)))
+    setSelectedMatch((m) => (m?.id === id ? { ...m, status } : m))
   }
 
   const filtered = items.filter((m) => {

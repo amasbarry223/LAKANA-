@@ -10,6 +10,8 @@ type Insight = {
   title: string
   desc: string
   accent: string
+  target: string
+  clientId?: string
 }
 
 const insights: Insight[] = [
@@ -20,6 +22,8 @@ const insights: Insight[] = [
     title: "Score critique détecté",
     desc: "Le client Traoré M. a atteint un score de 87/100 — investigation requise.",
     accent: "text-rose-600",
+    target: "Investigations",
+    clientId: "CLI-1042",
   },
   {
     icon: Sparkles,
@@ -28,6 +32,7 @@ const insights: Insight[] = [
     title: "Correspondances PPE en attente",
     desc: "3 correspondances PPE nécessitent une revue humaine avant tout blocage.",
     accent: "text-cyan-600",
+    target: "Filtrage sanctions/PPE",
   },
   {
     icon: Trophy,
@@ -36,6 +41,7 @@ const insights: Insight[] = [
     title: "Investigation clôturée",
     desc: "L'alerte ALR-124 a été classée et tracée dans le journal d'audit.",
     accent: "text-emerald-600",
+    target: "Journal d'audit",
   },
 ]
 
@@ -69,7 +75,9 @@ export function FunnelInsights() {
                 {ins.desc}
               </p>
               <button
-                onClick={() => toast.info(`Insight : ${ins.title}`, { description: ins.desc })}
+                onClick={() =>
+                  navigateTo(ins.target, ins.clientId ? { clientId: ins.clientId } : undefined)
+                }
                 className={`mt-2 inline-flex items-center gap-0.5 text-xs font-semibold ${ins.accent} hover:underline`}
               >
                 Voir le détail
