@@ -20,7 +20,8 @@ export const metadata: Metadata = {
   keywords: ["LAKANA", "LBC", "FT", "FP", "conformité", "SFD", "Mali", "CENTIF"],
   authors: [{ name: "Digi.Dev" }],
   icons: {
-    icon: "/logo.svg",
+    icon: [{ url: "/logo.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/logo.svg", type: "image/svg+xml" }],
   },
 };
 
