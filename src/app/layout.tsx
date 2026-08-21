@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   keywords: ["LAKANA", "LBC", "FT", "FP", "conformité", "SFD", "Mali", "CENTIF"],
   authors: [{ name: "Digi.Dev" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/logo.svg",
   },
 };
 
