@@ -26,8 +26,26 @@ export interface Client {
   ville?: string
   pays?: string
   telephone?: string
+
+  // Type : Particulier ou Entreprise
+  typeClient?: "Particulier" | "Entreprise" | string
+
+  // Entreprise
+  raisonSociale?: string
+  formeJuridique?: string
+  rccm?: string
+  nif?: string
+  secteurActivite?: string
+  beneficiaireEffectif?: string
+
+  // Particulier & PPE
+  pieceIdentite?: string
   estPpe: boolean
-  niveauRisque: "Élevé" | "Moyen" | "Faible"
+  fonctionPpe?: string
+  typePpe?: string
+  paysMandat?: string
+
+  niveauRisque: "Élevé" | "Moyen" | "Faible" | string
   riskScore: number
   comptes?: Account[]
   createdAt?: string

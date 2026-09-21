@@ -50,7 +50,7 @@ const sections: NavSection[] = [
     items: [
       { label: "Centre d'alertes", icon: BellRing, active: true },
       { label: "Clients & Enrôlement", icon: UserPlus },
-      { label: "Simulateur de transactions", icon: ArrowRightLeft },
+      { label: "Transactions", icon: ArrowRightLeft },
       { label: "Client 360°", icon: UserRound },
       { label: "Graphe de relations", icon: Share2 },
       { label: "Investigations", icon: FolderSearch },

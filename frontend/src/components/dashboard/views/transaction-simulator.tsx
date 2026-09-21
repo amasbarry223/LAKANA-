@@ -1,6 +1,6 @@
-﻿"use client"
+"use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import {
   ArrowRightLeft,
   Send,
@@ -19,15 +19,24 @@ import {
   Star,
   BarChart2,
   CreditCard,
+  ListFilter,
+  Filter,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Calendar,
+  Layers,
+  Check,
 } from "lucide-react"
 import { toast } from "sonner"
 import { clientService } from "@/services/clientService"
 import { transactionService, type SimulationResult } from "@/services/transactionService"
 import type { Client } from "@/models/client"
+import type { Transaction } from "@/models/transaction"
 
 const TYPES_OPERATION = [
   "Dépôt",
   "Retrait",
+  "Virement",
   "Virement entrant",
   "Virement sortant",
   "Paiement marchand",
@@ -68,27 +77,60 @@ function formatAmount(n: number) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "XOF", maximumFractionDigits: 0 }).format(n)
 }
 
-function AmlResultCard({ result }: { result: SimulationResult }) {
+function formatDate(dStr: string) {
+  if (!dStr) return "—"
+  try {
+    const d = new Date(dStr)
+    return new Intl.DateTimeFormat("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(d)
+  } catch {
+    return dStr
+  }
+}
+
+function AmlResultCard({
+  result,
+  onGoToRegistry,
+}: {
+  result: SimulationResult
+  onGoToRegistry?: () => void
+}) {
   const alerte = result.alerte_declenchee
   const seuilDepasse = result.seuil_uemoa_depasse
   const hasAlert = !!alerte
   return (
     <div className={`rounded-2xl border-2 p-6 transition-all ${hasAlert ? "border-red-300 bg-red-50" : seuilDepasse ? "border-amber-300 bg-amber-50" : "border-emerald-300 bg-emerald-50"}`}>
-      <div className="flex items-center gap-3 mb-4">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${hasAlert ? "bg-red-100" : seuilDepasse ? "bg-amber-100" : "bg-emerald-100"}`}>
-          {hasAlert ? <AlertTriangle className="w-6 h-6 text-red-600" /> : seuilDepasse ? <Shield className="w-6 h-6 text-amber-600" /> : <CheckCircle2 className="w-6 h-6 text-emerald-600" />}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${hasAlert ? "bg-red-100" : seuilDepasse ? "bg-amber-100" : "bg-emerald-100"}`}>
+            {hasAlert ? <AlertTriangle className="w-6 h-6 text-red-600" /> : seuilDepasse ? <Shield className="w-6 h-6 text-amber-600" /> : <CheckCircle2 className="w-6 h-6 text-emerald-600" />}
+          </div>
+          <div>
+            <p className={`text-lg font-bold ${hasAlert ? "text-red-800" : seuilDepasse ? "text-amber-800" : "text-emerald-800"}`}>
+              {hasAlert ? "Alerte AML déclenchée" : seuilDepasse ? "Seuil UEMOA dépassé (5M FCFA)" : "Transaction conforme"}
+            </p>
+            <p className={`text-sm ${hasAlert ? "text-red-600" : seuilDepasse ? "text-amber-600" : "text-emerald-600"}`}>Réf : {result.transaction.reference}</p>
+          </div>
         </div>
-        <div>
-          <p className={`text-lg font-bold ${hasAlert ? "text-red-800" : seuilDepasse ? "text-amber-800" : "text-emerald-800"}`}>
-            {hasAlert ? "Alerte AML déclenchée" : seuilDepasse ? "Seuil UEMOA dépassé" : "Transaction conforme"}
-          </p>
-          <p className={`text-sm ${hasAlert ? "text-red-600" : seuilDepasse ? "text-amber-600" : "text-emerald-600"}`}>Réf : {result.transaction.reference}</p>
-        </div>
+        {onGoToRegistry && (
+          <button
+            onClick={onGoToRegistry}
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 transition shadow-sm"
+          >
+            <Layers className="w-3.5 h-3.5 text-indigo-600" /> Voir dans le registre
+          </button>
+        )}
       </div>
+
       {alerte && (
-        <div className="bg-white rounded-xl border border-red-200 p-4 mb-4">
+        <div className="bg-white rounded-xl border border-red-200 p-4 mb-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <p className="font-semibold text-slate-800 text-sm">Détail de l alerte</p>
+            <p className="font-semibold text-slate-800 text-sm">Détail de l'alerte générée</p>
             <Badge color="red">{alerte.niveau}</Badge>
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
@@ -117,324 +159,825 @@ function AmlResultCard({ result }: { result: SimulationResult }) {
           )}
         </div>
       )}
+
       {result.nouveau_solde != null && (
-        <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-slate-600"><Wallet className="w-4 h-4" /><span className="text-sm font-medium">Nouveau solde estimé</span></div>
-          <span className="font-bold text-slate-800 text-lg">{formatAmount(result.nouveau_solde)}</span>
+        <div className="bg-white rounded-xl border border-slate-200 p-3 flex items-center justify-between text-sm shadow-sm">
+          <span className="text-slate-500 flex items-center gap-2"><Wallet className="w-4 h-4 text-indigo-500" />Nouveau solde du compte</span>
+          <span className="font-bold text-slate-800">{formatAmount(result.nouveau_solde)}</span>
         </div>
       )}
-    </div>
-  )
-}
-
-interface HistoryItem { id: string; client: string; montant: number; type: string; hasAlert: boolean; seuilDepasse: boolean; ts: Date }
-
-function HistoryRow({ item }: { item: HistoryItem }) {
-  return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-slate-100 last:border-0">
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${item.hasAlert ? "bg-red-100" : item.seuilDepasse ? "bg-amber-100" : "bg-emerald-100"}`}>
-        {item.hasAlert ? <AlertTriangle className="w-4 h-4 text-red-600" /> : item.seuilDepasse ? <Shield className="w-4 h-4 text-amber-600" /> : <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-slate-800 truncate">{item.client}</p>
-        <p className="text-xs text-slate-500">{item.type}</p>
-      </div>
-      <div className="text-right flex-shrink-0">
-        <p className="text-sm font-bold text-slate-800">{formatAmount(item.montant)}</p>
-        <p className="text-xs text-slate-400">{item.ts.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</p>
-      </div>
     </div>
   )
 }
 
 export function TransactionSimulatorView() {
+  const [activeTab, setActiveTab] = useState<"list" | "simulate">("list")
+
+  // Transactions State
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [loadingTx, setLoadingTx] = useState(true)
+  const [txSearch, setTxSearch] = useState("")
+  const [txTypeFilter, setTxTypeFilter] = useState("ALL")
+  const [txAmlFilter, setTxAmlFilter] = useState("ALL")
+
+  // Clients
   const [clients, setClients] = useState<Client[]>([])
-  const [loadingClients, setLoadingClients] = useState(false)
-  const [clientSearch, setClientSearch] = useState("")
-  const [clientDropdown, setClientDropdown] = useState(false)
+  const [clientMap, setClientMap] = useState<Record<string, Client>>({})
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const [clientSearch, setClientSearch] = useState("")
+  const [showDropdown, setShowDropdown] = useState(false)
+
+  // Simulation Form
   const [montant, setMontant] = useState("")
-  const [typeOperation, setTypeOperation] = useState(TYPES_OPERATION[0])
-  const [canal, setCanal] = useState(CANAUX[0])
+  const [typeOperation, setTypeOperation] = useState("Dépôt")
+  const [canal, setCanal] = useState("Guichet")
   const [devise, setDevise] = useState("XOF")
   const [beneficiaire, setBeneficiaire] = useState("")
   const [description, setDescription] = useState("")
+
+  // Status
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<SimulationResult | null>(null)
-  const [history, setHistory] = useState<HistoryItem[]>([])
 
+  // 1. Charger les clients
   const loadClients = useCallback(async () => {
-    setLoadingClients(true)
-    try { setClients(await clientService.getClients()) } catch { setClients([]) } finally { setLoadingClients(false) }
+    try {
+      const data = await clientService.getClients()
+      setClients(data)
+      const map: Record<string, Client> = {}
+      data.forEach((c) => {
+        map[c.id] = c
+        if (c.codeClient) map[c.codeClient] = c
+      })
+      setClientMap(map)
+      if (data.length > 0 && !selectedClient) {
+        setSelectedClient(data[0])
+      }
+    } catch {
+      toast.error("Impossible de charger les clients")
+    }
+  }, [selectedClient])
+
+  // 2. Charger les transactions
+  const loadTransactions = useCallback(async () => {
+    setLoadingTx(true)
+    try {
+      const data = await transactionService.getTransactions(100)
+      setTransactions(data)
+    } catch {
+      toast.error("Impossible de charger la liste des transactions")
+    } finally {
+      setLoadingTx(false)
+    }
   }, [])
 
-  useEffect(() => { loadClients() }, [loadClients])
+  useEffect(() => {
+    loadClients()
+    loadTransactions()
+  }, [loadClients, loadTransactions])
 
-  const filteredClients = clients.filter((c) => {
+  // Filtrage des transactions
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((t) => {
+      const client = clientMap[t.clientId]
+      const clientNom = client
+        ? client.typeClient === "Entreprise"
+          ? client.raisonSociale || client.nom
+          : `${client.prenom || ""} ${client.nom}`
+        : ""
+
+      const query = txSearch.toLowerCase()
+      const matchesSearch =
+        !query ||
+        t.reference.toLowerCase().includes(query) ||
+        (t.beneficiaireNom && t.beneficiaireNom.toLowerCase().includes(query)) ||
+        clientNom.toLowerCase().includes(query) ||
+        (t.description && t.description.toLowerCase().includes(query))
+
+      const matchesType = txTypeFilter === "ALL" || t.typeOperation.toLowerCase().includes(txTypeFilter.toLowerCase())
+      
+      const isUemoa = t.montant >= SEUIL_UEMOA
+      const matchesAml =
+        txAmlFilter === "ALL" ||
+        (txAmlFilter === "UEMOA" && isUemoa) ||
+        (txAmlFilter === "NORMAL" && !isUemoa)
+
+      return matchesSearch && matchesType && matchesAml
+    })
+  }, [transactions, clientMap, txSearch, txTypeFilter, txAmlFilter])
+
+  // Statistiques calculées
+  const totalVolume = useMemo(() => transactions.reduce((acc, t) => acc + (t.montant || 0), 0), [transactions])
+  const countUemoa = useMemo(() => transactions.filter((t) => t.montant >= SEUIL_UEMOA).length, [transactions])
+  const avgAmount = useMemo(() => (transactions.length > 0 ? totalVolume / transactions.length : 0), [transactions, totalVolume])
+
+  // Filtrer la liste des clients pour le sélecteur
+  const filteredClients = useMemo(() => {
+    if (!clientSearch) return clients
     const q = clientSearch.toLowerCase()
-    return `${c.prenom || ""} ${c.nom} ${c.codeClient} ${c.raisonSociale || ""}`.toLowerCase().includes(q)
-  })
+    return clients.filter(
+      (c) =>
+        c.nom.toLowerCase().includes(q) ||
+        (c.prenom && c.prenom.toLowerCase().includes(q)) ||
+        (c.raisonSociale && c.raisonSociale.toLowerCase().includes(q)) ||
+        c.codeClient.toLowerCase().includes(q)
+    )
+  }, [clients, clientSearch])
 
-  const montantNum = parseFloat(montant.replace(/\s/g, "").replace(",", ".")) || 0
+  const montantNum = parseFloat(montant.replace(/\s/g, "")) || 0
   const seuilPercent = Math.min((montantNum / SEUIL_UEMOA) * 100, 100)
-  const procheSeuil = montantNum > SEUIL_UEMOA * 0.8 && montantNum < SEUIL_UEMOA
   const depasse = montantNum >= SEUIL_UEMOA
+  const procheSeuil = montantNum >= 4_000_000 && !depasse
 
   const handleSimulate = async () => {
-    if (!selectedClient) { toast.error("Sélectionnez un client"); return }
-    if (!montantNum || montantNum <= 0) { toast.error("Montant invalide"); return }
-    setLoading(true); setResult(null)
-    const ref = `SIM-${Date.now()}`
+    if (!selectedClient) {
+      toast.error("Veuillez sélectionner un client")
+      return
+    }
+    if (!montantNum || montantNum <= 0) {
+      toast.error("Veuillez saisir un montant valide")
+      return
+    }
+
+    setLoading(true)
+    setResult(null)
+
     try {
-      const res = await transactionService.simulateTransaction({ reference: ref, clientId: selectedClient.id, montant: montantNum, typeOperation, canal, devise, beneficiaireNom: beneficiaire || undefined, description: description || undefined })
+      const res = await transactionService.simulateTransaction({
+        reference: `SIM-${Date.now()}`,
+        clientId: selectedClient.id,
+        montant: montantNum,
+        devise,
+        typeOperation,
+        canal,
+        beneficiaireNom: beneficiaire.trim() || undefined,
+        description: description.trim() || undefined,
+      })
+
       setResult(res)
-      const clientName = selectedClient.typeClient === "Entreprise" ? (selectedClient.raisonSociale || selectedClient.nom) : `${selectedClient.prenom || ""} ${selectedClient.nom}`.trim()
-      setHistory((prev) => [{ id: ref, client: clientName, montant: montantNum, type: typeOperation, hasAlert: !!res.alerte_declenchee, seuilDepasse: res.seuil_uemoa_depasse, ts: new Date() }, ...prev.slice(0, 19)])
-      if (res.alerte_declenchee) toast.error("Alerte AML déclenchée !", { description: `Type : ${res.alerte_declenchee.type_alerte} — Score : ${res.alerte_declenchee.score}` })
-      else if (res.seuil_uemoa_depasse) toast.warning("Seuil UEMOA franchi", { description: "Déclaration CENTIF requise." })
-      else toast.success("Transaction conforme", { description: "Aucune anomalie détectée." })
-    } catch (e: any) {
-      toast.error("Erreur de simulation", { description: e?.message || "Vérifiez le backend." })
-    } finally { setLoading(false) }
+      // Rafraîchir immédiatement le registre
+      await loadTransactions()
+
+      if (res.alerte_declenchee) {
+        toast.error(`⚠️ Alerte AML : ${res.alerte_declenchee.type_alerte} (Score ${res.alerte_declenchee.score})`)
+      } else if (res.seuil_uemoa_depasse) {
+        toast.warning("Seuil UEMOA de 5 000 000 FCFA dépassé !")
+      } else {
+        toast.success("Transaction simulée et enregistrée avec succès")
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erreur lors de la simulation")
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleReset = () => { setMontant(""); setBeneficiaire(""); setDescription(""); setResult(null); setTypeOperation(TYPES_OPERATION[0]); setCanal(CANAUX[0]); setDevise("XOF") }
+  const handleReset = () => {
+    setMontant("")
+    setBeneficiaire("")
+    setDescription("")
+    setResult(null)
+  }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      {/* En-tête */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <ArrowRightLeft className="w-6 h-6 text-indigo-600" />
-            Simulateur de transactions
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px] flex items-center gap-3">
+            <ArrowRightLeft className="w-7 h-7 text-indigo-600" />
+            Transactions & Surveillance
           </h1>
-          <p className="text-slate-500 text-sm mt-0.5">Simulez des transactions et visualisez les alertes AML en temps réel</p>
+          <p className="mt-1 text-sm text-slate-500">
+            Registre complet des flux, surveillance AML et simulateur temps réel (Seuil UEMOA 5M FCFA).
+          </p>
         </div>
-        <Badge color="blue"><Zap className="w-3 h-3" />Seuil UEMOA : {formatAmount(SEUIL_UEMOA)}</Badge>
+
+        {/* Boutons d'onglets principaux */}
+        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <button
+            onClick={() => setActiveTab("list")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${
+              activeTab === "list"
+                ? "bg-white text-indigo-700 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            Registre ({transactions.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("simulate")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${
+              activeTab === "simulate"
+                ? "bg-white text-indigo-700 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Zap className="w-4 h-4 text-amber-500" />
+            Simulateur AML
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
-            <h2 className="font-semibold text-slate-800 text-base flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-indigo-500" />
-              Paramètres de la transaction
-            </h2>
+      {/* Cartes KPI */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Opérations</p>
+            <p className="text-2xl font-bold text-slate-800 mt-1">{transactions.length}</p>
+          </div>
+          <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <CreditCard className="w-5 h-5" />
+          </div>
+        </div>
 
-            {/* Client */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Client <span className="text-red-500">*</span></label>
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Volume Total</p>
+            <p className="text-2xl font-bold text-slate-800 mt-1">{formatAmount(totalVolume)}</p>
+          </div>
+          <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <Wallet className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Seuil UEMOA (≥ 5M)</p>
+            <p className="text-2xl font-bold text-red-600 mt-1">{countUemoa}</p>
+          </div>
+          <div className="w-11 h-11 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Montant Moyen</p>
+            <p className="text-2xl font-bold text-slate-800 mt-1">{formatAmount(avgAmount)}</p>
+          </div>
+          <div className="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+            <BarChart2 className="w-5 h-5" />
+          </div>
+        </div>
+      </div>
+
+      {/* VUE 1 : REGISTRE DES TRANSACTIONS */}
+      {activeTab === "list" && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          {/* Barre d'outils et filtres */}
+          <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-1 items-center gap-3">
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={txSearch}
+                  onChange={(e) => setTxSearch(e.target.value)}
+                  placeholder="Rechercher par référence, client, bénéficiaire..."
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm placeholder-slate-400 outline-none focus:border-indigo-500 focus:bg-white transition"
+                />
+              </div>
+
+              {/* Filtre Type */}
+              <select
+                value={txTypeFilter}
+                onChange={(e) => setTxTypeFilter(e.target.value)}
+                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:border-indigo-500"
+              >
+                <option value="ALL">Tous les types</option>
+                <option value="Dépôt">Dépôts</option>
+                <option value="Retrait">Retraits</option>
+                <option value="Virement">Virements</option>
+              </select>
+
+              {/* Filtre AML */}
+              <select
+                value={txAmlFilter}
+                onChange={(e) => setTxAmlFilter(e.target.value)}
+                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:border-indigo-500"
+              >
+                <option value="ALL">Tous les statuts AML</option>
+                <option value="UEMOA">⚠️ Seuil UEMOA (≥ 5M)</option>
+                <option value="NORMAL">✅ Normales (&lt; 5M)</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={loadTransactions}
+                disabled={loadingTx}
+                className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50 transition"
+              >
+                <RefreshCw className={`w-4 h-4 ${loadingTx ? "animate-spin" : ""}`} />
+                Actualiser
+              </button>
+              <button
+                onClick={() => setActiveTab("simulate")}
+                className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl text-sm shadow-sm transition"
+              >
+                <Zap className="w-4 h-4" />
+                Simuler un flux
+              </button>
+            </div>
+          </div>
+
+          {/* Tableau des transactions */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <th className="px-5 py-3.5">Réf & Date</th>
+                  <th className="px-5 py-3.5">Client Émetteur</th>
+                  <th className="px-5 py-3.5">Opération & Canal</th>
+                  <th className="px-5 py-3.5">Bénéficiaire</th>
+                  <th className="px-5 py-3.5 text-right">Montant</th>
+                  <th className="px-5 py-3.5 text-center">Statut AML</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-sm">
+                {loadingTx ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Spinner />
+                        <span>Chargement des transactions...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredTransactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <CreditCard className="w-8 h-8 text-slate-300" />
+                        <span className="font-medium text-slate-600">Aucune transaction trouvée</span>
+                        <span className="text-xs text-slate-400">Modifiez vos filtres ou effectuez une simulation.</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredTransactions.map((tx) => {
+                    const client = clientMap[tx.clientId]
+                    const isUemoa = tx.montant >= SEUIL_UEMOA
+                    const clientNom = client
+                      ? client.typeClient === "Entreprise"
+                        ? client.raisonSociale || client.nom
+                        : `${client.prenom || ""} ${client.nom}`.trim()
+                      : "Client inconnu"
+
+                    return (
+                      <tr key={tx.id} className="hover:bg-slate-50/60 transition-colors">
+                        {/* Réf & Date */}
+                        <td className="px-5 py-3.5">
+                          <div className="flex flex-col">
+                            <span className="font-mono font-bold text-indigo-700 text-xs">{tx.reference}</span>
+                            <span className="text-slate-400 text-[11px] flex items-center gap-1 mt-0.5">
+                              <Clock className="w-3 h-3" />
+                              {formatDate(tx.dateTransaction)}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Client */}
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs">
+                              {client?.typeClient === "Entreprise" ? (
+                                <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                              ) : (
+                                <User className="w-3.5 h-3.5 text-slate-600" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-slate-800 text-xs truncate max-w-[160px]">{clientNom}</p>
+                              {client && (
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <span className="text-[10px] text-slate-400">{client.codeClient}</span>
+                                  {client.estPpe && (
+                                    <span className="bg-purple-100 text-purple-700 text-[9px] px-1.5 py-0.2 rounded font-semibold">
+                                      PPE
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Opération & Canal */}
+                        <td className="px-5 py-3.5">
+                          <div>
+                            <span className="font-medium text-slate-800 text-xs">{tx.typeOperation}</span>
+                            <span className="block text-slate-400 text-[11px]">{tx.canal || "Guichet"}</span>
+                          </div>
+                        </td>
+
+                        {/* Bénéficiaire */}
+                        <td className="px-5 py-3.5">
+                          <span className="text-xs text-slate-700 font-medium">
+                            {tx.beneficiaireNom || "—"}
+                          </span>
+                        </td>
+
+                        {/* Montant */}
+                        <td className="px-5 py-3.5 text-right">
+                          <span className={`font-bold font-mono text-sm ${isUemoa ? "text-red-600" : "text-slate-800"}`}>
+                            {formatAmount(tx.montant)}
+                          </span>
+                          {isUemoa && (
+                            <span className="block text-[10px] font-semibold text-red-500">≥ Seuil UEMOA</span>
+                          )}
+                        </td>
+
+                        {/* Statut AML */}
+                        <td className="px-5 py-3.5 text-center">
+                          {isUemoa ? (
+                            <Badge color="red">
+                              <AlertTriangle className="w-3 h-3" /> Déclaration CENTIF
+                            </Badge>
+                          ) : (
+                            <Badge color="green">
+                              <CheckCircle2 className="w-3 h-3" /> Conforme
+                            </Badge>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="p-4 bg-slate-50/60 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>Affichage de {filteredTransactions.length} transaction(s)</span>
+            <span className="text-slate-400">Données synchronisées avec PostgreSQL local</span>
+          </div>
+        </div>
+      )}
+
+      {/* VUE 2 : SIMULATEUR DE TRANSACTIONS */}
+      {activeTab === "simulate" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Panneau gauche : Formulaire de simulation */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+              <h2 className="text-base font-semibold text-slate-800 flex items-center gap-2">
+                <Zap className="w-5 h-5 text-indigo-500" />
+                Paramètres de la simulation AML
+              </h2>
+
+              {/* Sélection Client */}
               <div className="relative">
-                <button id="sim-client-select" type="button" onClick={() => setClientDropdown((v) => !v)}
-                  className="w-full flex items-center justify-between gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-left hover:border-indigo-400 focus:outline-none focus:border-indigo-500 transition-colors">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Client émetteur de l'opération <span className="text-red-500">*</span>
+                </label>
+                <div
+                  id="sim-client-select-btn"
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:border-indigo-400 transition"
+                >
                   {selectedClient ? (
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                        {selectedClient.typeClient === "Entreprise" ? <Building2 className="w-3.5 h-3.5 text-indigo-600" /> : <User className="w-3.5 h-3.5 text-indigo-600" />}
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs">
+                        {selectedClient.typeClient === "Entreprise" ? (
+                          <Building2 className="w-4 h-4" />
+                        ) : (
+                          <User className="w-4 h-4" />
+                        )}
                       </div>
-                      <span className="font-medium text-slate-800 truncate">
-                        {selectedClient.typeClient === "Entreprise" ? (selectedClient.raisonSociale || selectedClient.nom) : `${selectedClient.prenom || ""} ${selectedClient.nom}`.trim()}
-                      </span>
-                      <span className="text-xs text-slate-400 flex-shrink-0">{selectedClient.codeClient}</span>
-                      {selectedClient.estPpe && <Badge color="purple"><Star className="w-2.5 h-2.5" />PPE</Badge>}
-                    </div>
-                  ) : <span className="text-slate-400">Rechercher un client…</span>}
-                  <ChevronDown className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform ${clientDropdown ? "rotate-180" : ""}`} />
-                </button>
-                {clientDropdown && (
-                  <div className="absolute z-30 w-full mt-1 bg-white rounded-xl border border-slate-200 shadow-xl">
-                    <div className="p-2 border-b border-slate-100">
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg">
-                        <Search className="w-4 h-4 text-slate-400" />
-                        <input id="sim-client-search" autoFocus value={clientSearch} onChange={(e) => setClientSearch(e.target.value)}
-                          placeholder="Nom, code, raison sociale…" className="flex-1 bg-transparent text-sm outline-none text-slate-700" />
-                        {loadingClients && <Spinner />}
+                      <div>
+                        <p className="font-semibold text-slate-800 text-sm">
+                          {selectedClient.typeClient === "Entreprise"
+                            ? selectedClient.raisonSociale || selectedClient.nom
+                            : `${selectedClient.prenom || ""} ${selectedClient.nom}`.trim()}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          {selectedClient.codeClient} • {selectedClient.typeClient}
+                          {selectedClient.estPpe && " • PPE"}
+                        </p>
                       </div>
                     </div>
-                    <div className="max-h-52 overflow-y-auto py-1">
-                      {filteredClients.length === 0 ? (
-                        <p className="text-center text-slate-400 text-sm py-4">Aucun client trouvé</p>
-                      ) : filteredClients.slice(0, 20).map((c) => {
-                        const name = c.typeClient === "Entreprise" ? (c.raisonSociale || c.nom) : `${c.prenom || ""} ${c.nom}`.trim()
-                        return (
-                          <button key={c.id} type="button"
-                            onClick={() => { setSelectedClient(c); setClientDropdown(false); setClientSearch("") }}
-                            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors text-left">
-                            <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                              {c.typeClient === "Entreprise" ? <Building2 className="w-3.5 h-3.5 text-indigo-600" /> : <User className="w-3.5 h-3.5 text-indigo-600" />}
+                  ) : (
+                    <span className="text-slate-400 text-sm">Sélectionner un client</span>
+                  )}
+                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                </div>
+
+                {/* Dropdown recherche client */}
+                {showDropdown && (
+                  <div className="absolute z-20 left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden animate-in fade-in-50 duration-150">
+                    <div className="p-3 border-b border-slate-100">
+                      <div className="relative">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          id="sim-client-search"
+                          type="text"
+                          value={clientSearch}
+                          onChange={(e) => setClientSearch(e.target.value)}
+                          placeholder="Rechercher par nom, code..."
+                          className="w-full pl-9 pr-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+                    <div className="max-h-60 overflow-y-auto divide-y divide-slate-100">
+                      {filteredClients.map((c) => (
+                        <div
+                          key={c.id}
+                          onClick={() => {
+                            setSelectedClient(c)
+                            setShowDropdown(false)
+                          }}
+                          className="p-3 flex items-center justify-between hover:bg-slate-50 cursor-pointer transition"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-semibold text-slate-700">
+                              {c.typeClient === "Entreprise" ? (
+                                <Building2 className="w-4 h-4 text-blue-600" />
+                              ) : (
+                                <User className="w-4 h-4 text-slate-600" />
+                              )}
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <p className="font-medium text-sm text-slate-800 truncate">{name}</p>
-                                {c.estPpe && <Badge color="purple"><Star className="w-2.5 h-2.5" />PPE</Badge>}
-                              </div>
-                              <p className="text-xs text-slate-400">{c.codeClient} · {c.niveauRisque}</p>
+                            <div>
+                              <p className="font-medium text-slate-800 text-sm">
+                                {c.typeClient === "Entreprise"
+                                  ? c.raisonSociale || c.nom
+                                  : `${c.prenom || ""} ${c.nom}`.trim()}
+                              </p>
+                              <p className="text-xs text-slate-400">
+                                {c.codeClient} • {c.ville || c.pays}
+                              </p>
                             </div>
-                            <Badge color={c.niveauRisque === "Élevé" ? "red" : c.niveauRisque === "Moyen" ? "yellow" : "green"}>{c.niveauRisque}</Badge>
-                          </button>
-                        )
-                      })}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {c.estPpe && <Badge color="purple">PPE</Badge>}
+                            <Badge
+                              color={
+                                c.niveauRisque === "Élevé"
+                                  ? "red"
+                                  : c.niveauRisque === "Moyen"
+                                  ? "yellow"
+                                  : "green"
+                              }
+                            >
+                              {c.niveauRisque}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
               </div>
-            </div>
 
-            {/* Montant */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Montant <span className="text-red-500">*</span></label>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <input id="sim-montant" type="text" inputMode="numeric" value={montant} onChange={(e) => setMontant(e.target.value)}
-                    placeholder="Ex : 3 500 000"
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 outline-none focus:border-indigo-500 transition-colors pr-16" />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">{devise}</span>
-                </div>
-                <select id="sim-devise" value={devise} onChange={(e) => setDevise(e.target.value)}
-                  className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:border-indigo-500">
-                  {DEVISES.map((d) => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
-              {montantNum > 0 && (
-                <div className="mt-2">
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-slate-400">Seuil UEMOA (5 M FCFA)</span>
-                    <span className={`font-semibold ${depasse ? "text-red-600" : procheSeuil ? "text-amber-600" : "text-slate-500"}`}>{seuilPercent.toFixed(0)}%</span>
+              {/* Montant & Devise */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Montant de l'opération <span className="text-red-500">*</span>
+                </label>
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-1">
+                    <input
+                      id="sim-montant-input"
+                      type="number"
+                      value={montant}
+                      onChange={(e) => setMontant(e.target.value)}
+                      placeholder="Ex : 5 500 000"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-lg font-mono font-bold text-slate-800 placeholder-slate-400 outline-none focus:border-indigo-500 focus:bg-white transition"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
+                      FCFA
+                    </span>
                   </div>
-                  <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full transition-all duration-500 ${depasse ? "bg-red-500" : procheSeuil ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${seuilPercent}%` }} />
-                  </div>
-                  {depasse && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><AlertTriangle className="w-3 h-3" />Dépasse le seuil UEMOA — déclaration CENTIF obligatoire</p>}
-                  {procheSeuil && <p className="text-amber-600 text-xs mt-1 flex items-center gap-1"><Shield className="w-3 h-3" />Proche du seuil ({formatAmount(SEUIL_UEMOA - montantNum)} restants)</p>}
+                  <select
+                    value={devise}
+                    onChange={(e) => setDevise(e.target.value)}
+                    className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 outline-none focus:border-indigo-500"
+                  >
+                    {DEVISES.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              )}
+
+                {/* Barre de progression du seuil UEMOA */}
+                {montantNum > 0 && (
+                  <div className="mt-2.5 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-slate-400">Seuil légal UEMOA (5 000 000 FCFA)</span>
+                      <span
+                        className={`font-semibold ${
+                          depasse ? "text-red-600" : procheSeuil ? "text-amber-600" : "text-slate-500"
+                        }`}
+                      >
+                        {seuilPercent.toFixed(0)}%
+                      </span>
+                    </div>
+                    <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          depasse ? "bg-red-500" : procheSeuil ? "bg-amber-500" : "bg-emerald-500"
+                        }`}
+                        style={{ width: `${seuilPercent}%` }}
+                      />
+                    </div>
+                    {depasse && (
+                      <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1 font-medium">
+                        <AlertTriangle className="w-3.5 h-3.5" /> Dépasse le seuil UEMOA — déclaration CENTIF obligatoire
+                      </p>
+                    )}
+                    {procheSeuil && (
+                      <p className="text-amber-600 text-xs mt-1.5 flex items-center gap-1 font-medium">
+                        <Shield className="w-3.5 h-3.5" /> Proche du seuil ({formatAmount(SEUIL_UEMOA - montantNum)} restants)
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Type d'opération & Canal */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Type d'opération</label>
+                  <select
+                    id="sim-type-operation"
+                    value={typeOperation}
+                    onChange={(e) => setTypeOperation(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:border-indigo-500"
+                  >
+                    {TYPES_OPERATION.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Canal</label>
+                  <select
+                    id="sim-canal"
+                    value={canal}
+                    onChange={(e) => setCanal(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:border-indigo-500"
+                  >
+                    {CANAUX.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Bénéficiaire & Description */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Bénéficiaire (optionnel)</label>
+                  <input
+                    id="sim-beneficiaire"
+                    type="text"
+                    value={beneficiaire}
+                    onChange={(e) => setBeneficiaire(e.target.value)}
+                    placeholder="Nom du bénéficiaire"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm placeholder-slate-400 outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Description (optionnel)</label>
+                  <input
+                    id="sim-description"
+                    type="text"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Motif de la transaction"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm placeholder-slate-400 outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              {/* Boutons d'action */}
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  id="sim-submit"
+                  type="button"
+                  onClick={handleSimulate}
+                  disabled={loading || !selectedClient || !montantNum}
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition shadow-sm"
+                >
+                  {loading ? <Spinner /> : <Send className="w-4 h-4" />}
+                  {loading ? "Analyse AML en cours..." : "Simuler et enregistrer la transaction"}
+                </button>
+                <button
+                  id="sim-reset"
+                  type="button"
+                  onClick={handleReset}
+                  className="px-4 py-3 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition"
+                  title="Réinitialiser"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
-            {/* Type & Canal */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Type d opération</label>
-                <select id="sim-type-operation" value={typeOperation} onChange={(e) => setTypeOperation(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:border-indigo-500">
-                  {TYPES_OPERATION.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
+            {/* Résultat de la simulation */}
+            {result && (
+              <div className="animate-in slide-in-from-bottom-4 duration-300">
+                <AmlResultCard result={result} onGoToRegistry={() => setActiveTab("list")} />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Canal</label>
-                <select id="sim-canal" value={canal} onChange={(e) => setCanal(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:border-indigo-500">
-                  {CANAUX.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-            </div>
-
-            {/* Bénéficiaire & Description */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Bénéficiaire (optionnel)</label>
-                <input id="sim-beneficiaire" type="text" value={beneficiaire} onChange={(e) => setBeneficiaire(e.target.value)}
-                  placeholder="Nom du bénéficiaire" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm placeholder-slate-400 outline-none focus:border-indigo-500" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Description (optionnel)</label>
-                <input id="sim-description" type="text" value={description} onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Motif de la transaction" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm placeholder-slate-400 outline-none focus:border-indigo-500" />
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center gap-3 pt-2">
-              <button id="sim-submit" type="button" onClick={handleSimulate} disabled={loading || !selectedClient || !montantNum}
-                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all shadow-sm">
-                {loading ? <Spinner /> : <Send className="w-4 h-4" />}
-                {loading ? "Analyse en cours…" : "Simuler la transaction"}
-              </button>
-              <button id="sim-reset" type="button" onClick={handleReset} className="px-4 py-3 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors">
-                <RefreshCw className="w-4 h-4" />
-              </button>
-            </div>
+            )}
           </div>
 
-          {result && (
-            <div className="animate-in slide-in-from-bottom-4 duration-300">
-              <AmlResultCard result={result} />
-            </div>
-          )}
-        </div>
+          {/* Panneau droit : Détail Client & Règles AML */}
+          <div className="space-y-4">
+            {selectedClient && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                  <User className="w-4 h-4 text-indigo-500" />
+                  Client sélectionné
+                </h3>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                    {selectedClient.typeClient === "Entreprise"
+                      ? (selectedClient.raisonSociale || selectedClient.nom || "E").charAt(0).toUpperCase()
+                      : `${(selectedClient.prenom || "?").charAt(0)}${selectedClient.nom.charAt(0)}`.toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-800 text-sm truncate">
+                      {selectedClient.typeClient === "Entreprise"
+                        ? selectedClient.raisonSociale || selectedClient.nom
+                        : `${selectedClient.prenom || ""} ${selectedClient.nom}`.trim()}
+                    </p>
+                    <p className="text-xs text-slate-400">{selectedClient.codeClient}</p>
+                  </div>
+                </div>
 
-        {/* Panneau droit */}
-        <div className="space-y-4">
-          {selectedClient && (
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Type</span>
+                    <Badge color={selectedClient.typeClient === "Entreprise" ? "blue" : "gray"}>
+                      {selectedClient.typeClient}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Risque</span>
+                    <Badge
+                      color={
+                        selectedClient.niveauRisque === "Élevé"
+                          ? "red"
+                          : selectedClient.niveauRisque === "Moyen"
+                          ? "yellow"
+                          : "green"
+                      }
+                    >
+                      {selectedClient.niveauRisque}
+                    </Badge>
+                  </div>
+                  {selectedClient.estPpe && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">PPE</span>
+                      <Badge color="purple">
+                        <Star className="w-3 h-3" />
+                        {selectedClient.fonctionPpe || "Oui"}
+                      </Badge>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Score de risque</span>
+                    <span className="font-bold text-slate-800">{selectedClient.riskScore ?? "—"}/100</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Règles AML actives */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-              <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2"><User className="w-4 h-4 text-indigo-500" />Client sélectionné</h3>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
-                  {selectedClient.typeClient === "Entreprise" ? (selectedClient.raisonSociale || selectedClient.nom || "E").charAt(0).toUpperCase() : `${(selectedClient.prenom || "?").charAt(0)}${selectedClient.nom.charAt(0)}`.toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-slate-800 text-sm truncate">
-                    {selectedClient.typeClient === "Entreprise" ? (selectedClient.raisonSociale || selectedClient.nom) : `${selectedClient.prenom || ""} ${selectedClient.nom}`.trim()}
-                  </p>
-                  <p className="text-xs text-slate-400">{selectedClient.codeClient}</p>
-                </div>
+              <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-indigo-500" />
+                Règles de conformité UEMOA
+              </h3>
+              <div className="space-y-2.5">
+                {[
+                  { label: "Seuil réglementaire UEMOA", desc: "≥ 5 000 000 FCFA → Déclaration CENTIF obligatoire", dot: "bg-red-500" },
+                  { label: "Fractionnement de seuil", desc: "Transactions répétées < seuil sur 48h détectées", dot: "bg-amber-500" },
+                  { label: "Majoration PPE", desc: "Pondération accrue si le client ou l'UBO est PPE", dot: "bg-purple-500" },
+                  { label: "Contrôle SWIFT / International", desc: "Vérification sanctions ONU / GAFI / UMOA", dot: "bg-blue-500" },
+                ].map((rule) => (
+                  <div key={rule.label} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50">
+                    <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${rule.dot}`} />
+                    <div>
+                      <p className="text-xs font-semibold text-slate-800">{rule.label}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{rule.desc}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-slate-500">Type</span><Badge color={selectedClient.typeClient === "Entreprise" ? "blue" : "gray"}>{selectedClient.typeClient}</Badge></div>
-                <div className="flex justify-between"><span className="text-slate-500">Risque</span><Badge color={selectedClient.niveauRisque === "Élevé" ? "red" : selectedClient.niveauRisque === "Moyen" ? "yellow" : "green"}>{selectedClient.niveauRisque}</Badge></div>
-                {selectedClient.estPpe && <div className="flex justify-between"><span className="text-slate-500">PPE</span><Badge color="purple"><Star className="w-3 h-3" />{selectedClient.fonctionPpe || "Oui"}</Badge></div>}
-                <div className="flex justify-between"><span className="text-slate-500">Score</span><span className="font-semibold text-slate-800">{selectedClient.riskScore ?? "—"}</span></div>
-              </div>
-            </div>
-          )}
-
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-            <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2"><Shield className="w-4 h-4 text-indigo-500" />Règles AML actives</h3>
-            <div className="space-y-2">
-              {[
-                { label: "Seuil UEMOA", desc: ">= 5 000 000 XOF → déclaration CENTIF", dot: "bg-red-500" },
-                { label: "PPE", desc: "Score risque x2 si client PPE", dot: "bg-purple-500" },
-                { label: "Risque élevé", desc: "Alerte si score > 70", dot: "bg-amber-500" },
-                { label: "Transfert intl", desc: "Vérification SWIFT + sanctions", dot: "bg-blue-500" },
-              ].map((rule) => (
-                <div key={rule.label} className="flex items-start gap-2.5 p-2.5 rounded-lg bg-slate-50">
-                  <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${rule.dot}`} />
-                  <div><p className="text-xs font-semibold text-slate-700">{rule.label}</p><p className="text-xs text-slate-400">{rule.desc}</p></div>
-                </div>
-              ))}
             </div>
           </div>
-
-          {history.length > 0 && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-              <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2"><BarChart2 className="w-4 h-4 text-indigo-500" />Session en cours</h3>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="text-center p-2 bg-slate-50 rounded-lg"><p className="text-xl font-bold text-slate-800">{history.length}</p><p className="text-xs text-slate-400">Total</p></div>
-                <div className="text-center p-2 bg-red-50 rounded-lg"><p className="text-xl font-bold text-red-600">{history.filter((h) => h.hasAlert).length}</p><p className="text-xs text-slate-400">Alertes</p></div>
-                <div className="text-center p-2 bg-emerald-50 rounded-lg"><p className="text-xl font-bold text-emerald-600">{history.filter((h) => !h.hasAlert && !h.seuilDepasse).length}</p><p className="text-xs text-slate-400">Conformes</p></div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {history.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-          <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2"><Clock className="w-4 h-4 text-indigo-500" />Historique de session ({history.length})</h3>
-          {history.map((item) => <HistoryRow key={item.id} item={item} />)}
         </div>
       )}
-
-      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100 p-6">
-        <h3 className="font-semibold text-indigo-800 mb-3 flex items-center gap-2"><FileText className="w-4 h-4" />Comment utiliser le simulateur ?</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-indigo-700">
-          {["Sélectionnez un client enrôlé dans le système (particulier, entreprise ou PPE).", "Saisissez le montant, le type d opération et le canal utilisé.", "Cliquez sur Simuler pour voir instantanément si une alerte AML est déclenchée."].map((text, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <span className="w-6 h-6 rounded-full bg-indigo-200 text-indigo-800 flex items-center justify-center font-bold text-xs flex-shrink-0">{i + 1}</span>
-              <p>{text}</p>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }

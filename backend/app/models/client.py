@@ -18,8 +18,25 @@ class Client(Base):
     pays = Column(String, nullable=True, default="Mali")
     telephone = Column(String, nullable=True)
     
-    # Indicateurs conformité
+    # Type de client : "Particulier" ou "Entreprise"
+    type_client = Column(String, default="Particulier")
+
+    # Champs spécifiques Entreprise (Personne morale)
+    raison_sociale = Column(String, nullable=True)
+    forme_juridique = Column(String, nullable=True)  # SARL, SA, SUARL, GIE, etc.
+    rccm = Column(String, nullable=True)  # Registre du commerce
+    nif = Column(String, nullable=True)   # Numéro fiscal
+    secteur_activite = Column(String, nullable=True)
+    beneficiaire_effectif = Column(String, nullable=True)  # UBO(s)
+
+    # Champs spécifiques Particulier & PPE (Personne physique)
+    piece_identite = Column(String, nullable=True)  # CNI, Passeport, NINA...
     est_ppe = Column(Boolean, default=False)
+    fonction_ppe = Column(String, nullable=True)    # Ministre, Député, Magistrat...
+    type_ppe = Column(String, nullable=True)        # Nationale, Étrangère, Famille/Associé
+    pays_mandat = Column(String, nullable=True)     # Pays d'exercice du mandat politique
+
+    # Indicateurs conformité
     niveau_risque = Column(String, default="Faible")  # Élevé, Moyen, Faible
     risk_score = Column(Integer, default=0)
     

@@ -75,6 +75,7 @@ const views: Record<string, React.ComponentType<{ onLogout?: () => void; onSelec
   "Tableau de bord": OverviewView,
   "Centre d'alertes": AlertsCenterView,
   "Clients & Enrôlement": ClientsManagementView,
+  "Transactions": TransactionSimulatorView,
   "Simulateur de transactions": TransactionSimulatorView,
   "Client 360°": Client360View,
   "Graphe de relations": GraphView,

@@ -45,9 +45,27 @@ def create_client(
     existing = client_repository.get_by_code(db, client_in.code_client)
     if existing:
         raise HTTPException(status_code=400, detail="Ce code client existe déjà")
+    
+    # Règle réglementaire AML : un PPE a un statut de risque élevé d'office (EDD)
+    if client_in.est_ppe and client_in.niveau_risque == "Faible":
+        client_in.niveau_risque = "Élevé"
+
     client = client_repository.create(db, client_in)
     
-    # Audit log
+    if client.est_ppe and client.risk_score < 70:
+        client.risk_score = 75
+        db.add(client)
+        db.commit()
+        db.refresh(client)
+    
+    # Audit log personnalisé selon le type de client
+    if client.type_client == "Entreprise":
+        desc = f"Nouvelle entreprise enrôlée : {client.raison_sociale or client.nom} (RCCM: {client.rccm or 'N/A'}, Forme: {client.forme_juridique or 'N/A'})"
+    elif client.est_ppe:
+        desc = f"Nouveau client Particulier PPE enrôlé : {client.nom} {client.prenom or ''} (Fonction: {client.fonction_ppe or 'Non spécifiée'})"
+    else:
+        desc = f"Nouveau client Particulier enrôlé : {client.nom} {client.prenom or ''} ({client.profession or 'Profession non renseignée'})"
+
     audit_service.log_action(
         db,
         utilisateur=current_user.nom_complet if current_user else "Système",
@@ -55,7 +73,7 @@ def create_client(
         action="Création client",
         module="Client 360°",
         cible=client.code_client,
-        details=f"Nouveau client enrôlé : {client.nom} {client.prenom or ''}",
+        details=desc,
     )
     return client
 
@@ -82,5 +100,54 @@ def update_client(
         client = client_repository.get_by_code(db, id)
     if not client:
         raise HTTPException(status_code=404, detail="Client non trouvé")
+    
     updated = client_repository.update(db, client, client_in)
+
+    # Règle AML : Si le client est ou devient PPE, vigilance renforcée
+    if updated.est_ppe and updated.risk_score < 70:
+        updated.risk_score = 75
+        updated.niveau_risque = "Élevé"
+        db.add(updated)
+        db.commit()
+        db.refresh(updated)
+
+    # Audit log
+    name = updated.raison_sociale or f"{updated.nom} {updated.prenom or ''}".strip()
+    audit_service.log_action(
+        db,
+        utilisateur=current_user.nom_complet if current_user else "Système",
+        role=current_user.role if current_user else "Analyste",
+        action="Modification client",
+        module="Client 360°",
+        cible=updated.code_client,
+        details=f"Dossier client mis à jour : {name} ({updated.code_client})",
+    )
     return updated
+
+
+@router.delete("/{id}", status_code=204)
+def delete_client(
+    id: str,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user),
+):
+    client = client_repository.get(db, id)
+    if not client:
+        client = client_repository.get_by_code(db, id)
+    if not client:
+        raise HTTPException(status_code=404, detail="Client non trouvé")
+    
+    code = client.code_client
+    name = client.raison_sociale or f"{client.nom} {client.prenom or ''}".strip()
+    client_repository.remove(db, client.id)
+    
+    audit_service.log_action(
+        db,
+        utilisateur=current_user.nom_complet if current_user else "Système",
+        role=current_user.role if current_user else "Analyste",
+        action="Suppression client",
+        module="Client 360°",
+        cible=code,
+        details=f"Client supprimé de la base : {name} ({code})",
+    )
+    return None

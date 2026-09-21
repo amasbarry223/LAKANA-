@@ -31,7 +31,25 @@ class ClientBase(BaseModel):
     ville: Optional[str] = "Bamako"
     pays: Optional[str] = "Mali"
     telephone: Optional[str] = None
+
+    # Type : "Particulier" ou "Entreprise"
+    type_client: str = "Particulier"
+
+    # Entreprise
+    raison_sociale: Optional[str] = None
+    forme_juridique: Optional[str] = None
+    rccm: Optional[str] = None
+    nif: Optional[str] = None
+    secteur_activite: Optional[str] = None
+    beneficiaire_effectif: Optional[str] = None
+
+    # Particulier & PPE
+    piece_identite: Optional[str] = None
     est_ppe: bool = False
+    fonction_ppe: Optional[str] = None
+    type_ppe: Optional[str] = None
+    pays_mandat: Optional[str] = None
+
     niveau_risque: str = "Faible"
 
 
@@ -44,7 +62,19 @@ class ClientUpdate(BaseModel):
     prenom: Optional[str] = None
     profession: Optional[str] = None
     ville: Optional[str] = None
+    telephone: Optional[str] = None
+    type_client: Optional[str] = None
+    raison_sociale: Optional[str] = None
+    forme_juridique: Optional[str] = None
+    rccm: Optional[str] = None
+    nif: Optional[str] = None
+    secteur_activite: Optional[str] = None
+    beneficiaire_effectif: Optional[str] = None
+    piece_identite: Optional[str] = None
     est_ppe: Optional[bool] = None
+    fonction_ppe: Optional[str] = None
+    type_ppe: Optional[str] = None
+    pays_mandat: Optional[str] = None
     niveau_risque: Optional[str] = None
     risk_score: Optional[int] = None
 
