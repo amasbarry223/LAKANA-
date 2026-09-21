@@ -144,13 +144,22 @@ export function GraphView() {
         })
     : []
 
-  const filteredClients = clients.filter(
-    (c) =>
-      c.nom.toLowerCase().includes(clientSearch.toLowerCase()) ||
-      (c.prenom && c.prenom.toLowerCase().includes(clientSearch.toLowerCase())) ||
-      (c.raisonSociale && c.raisonSociale.toLowerCase().includes(clientSearch.toLowerCase())) ||
-      c.codeClient.toLowerCase().includes(clientSearch.toLowerCase())
-  )
+  const filteredClients = clients.filter((c) => {
+    const q = clientSearch.trim().toLowerCase()
+    if (!q) return true
+
+    const matchNom = c.nom?.toLowerCase().includes(q)
+    const matchPrenom = c.prenom?.toLowerCase().includes(q)
+    const matchRaison = c.raisonSociale?.toLowerCase().includes(q)
+    const matchCode = c.codeClient?.toLowerCase().includes(q)
+    const matchCni = c.pieceIdentite?.toLowerCase().includes(q)
+    const matchComptes = c.comptes?.some((acc) =>
+      acc.numeroCompte?.toLowerCase().includes(q) ||
+      (typeof acc === "object" && (acc as any).numero_compte?.toLowerCase().includes(q))
+    )
+
+    return Boolean(matchNom || matchPrenom || matchRaison || matchCode || matchCni || matchComptes)
+  })
 
   return (
     <div className="space-y-5">
@@ -177,7 +186,7 @@ export function GraphView() {
               {selectedClient ? (
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-indigo-600" />
-                  <span className="max-w-[150px] truncate">
+                  <span className="max-w-[170px] truncate">
                     {selectedClient.typeClient === "Entreprise"
                       ? selectedClient.raisonSociale || selectedClient.nom
                       : `${selectedClient.prenom || ""} ${selectedClient.nom}`.trim()}
@@ -191,7 +200,7 @@ export function GraphView() {
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 p-2 animate-in fade-in-50 duration-150">
+              <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 p-2 animate-in fade-in-50 duration-150">
                 <div className="p-2 border-b border-slate-100">
                   <div className="relative">
                     <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
@@ -199,40 +208,68 @@ export function GraphView() {
                       type="text"
                       value={clientSearch}
                       onChange={(e) => setClientSearch(e.target.value)}
-                      placeholder="Rechercher un client..."
-                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500"
+                      placeholder="Rechercher par nom, CNI ou N° de compte..."
+                      className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500"
                     />
                   </div>
                 </div>
-                <div className="max-h-56 overflow-y-auto divide-y divide-slate-50 mt-1">
-                  {filteredClients.map((c) => (
-                    <div
-                      key={c.id}
-                      onClick={() => {
-                        setSelectedClient(c)
-                        setDropdownOpen(false)
-                      }}
-                      className="p-2.5 flex items-center justify-between hover:bg-slate-50 rounded-lg cursor-pointer transition text-xs"
-                    >
-                      <div className="min-w-0">
-                        <p className="font-semibold text-slate-800 truncate">
-                          {c.typeClient === "Entreprise"
-                            ? c.raisonSociale || c.nom
-                            : `${c.prenom || ""} ${c.nom}`.trim()}
-                        </p>
-                        <p className="text-slate-400 text-[11px]">{c.codeClient} • {c.typeClient}</p>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-[10px]",
-                          c.niveauRisque === "Élevé" ? "border-red-200 bg-red-50 text-red-700" : "border-slate-200"
-                        )}
-                      >
-                        {c.riskScore ?? 0} pts
-                      </Badge>
+                <div className="max-h-64 overflow-y-auto divide-y divide-slate-100 mt-1">
+                  {filteredClients.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-slate-400">
+                      Aucun client trouvé pour &quot;{clientSearch}&quot;
                     </div>
-                  ))}
+                  ) : (
+                    filteredClients.map((c) => {
+                      const comptesList = (c.comptes || [])
+                        .map((a: any) => a.numeroCompte || a.numero_compte)
+                        .filter(Boolean)
+
+                      return (
+                        <div
+                          key={c.id}
+                          onClick={() => {
+                            setSelectedClient(c)
+                            setDropdownOpen(false)
+                          }}
+                          className="p-2.5 flex items-start justify-between hover:bg-slate-50 rounded-lg cursor-pointer transition text-xs gap-2"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-slate-800 truncate">
+                              {c.typeClient === "Entreprise"
+                                ? c.raisonSociale || c.nom
+                                : `${c.prenom || ""} ${c.nom}`.trim()}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[11px] text-slate-400">
+                              <span>{c.codeClient}</span>
+                              {c.pieceIdentite && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-slate-600 font-mono">CNI: {c.pieceIdentite}</span>
+                                </>
+                              )}
+                              {c.estPpe && (
+                                <span className="bg-amber-100 text-amber-800 font-medium px-1 rounded text-[10px]">PPE</span>
+                              )}
+                            </div>
+                            {comptesList.length > 0 && (
+                              <p className="text-[11px] text-indigo-600 font-mono mt-1 truncate">
+                                💳 {comptesList.length} cpte(s) : {comptesList.join(", ")}
+                              </p>
+                            )}
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[10px] shrink-0",
+                              c.niveauRisque === "Élevé" ? "border-red-200 bg-red-50 text-red-700" : "border-slate-200"
+                            )}
+                          >
+                            {c.riskScore ?? 0} pts
+                          </Badge>
+                        </div>
+                      )
+                    })
+                  )}
                 </div>
               </div>
             )}

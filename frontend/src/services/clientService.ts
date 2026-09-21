@@ -92,4 +92,22 @@ export const clientService = {
   async deleteClient(id: string): Promise<void> {
     await ApiClient.delete(`/clients/${id}`)
   },
+
+  async addAccount(
+    clientId: string,
+    payload: { numero_compte: string; type_compte?: string; solde?: number; devise?: string }
+  ): Promise<{
+    account: any
+    alerte_declenchee?: {
+      reference: string
+      type_alerte: string
+      niveau: string
+      score: number
+      facteurs: string[]
+    } | null
+    rang_compte: number
+    message: string
+  }> {
+    return await ApiClient.post<any>(`/clients/${clientId}/accounts`, payload)
+  },
 }

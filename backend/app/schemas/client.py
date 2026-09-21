@@ -11,7 +11,7 @@ class AccountBase(BaseModel):
 
 
 class AccountCreate(AccountBase):
-    client_id: str
+    client_id: Optional[str] = None
 
 
 class AccountOut(AccountBase):

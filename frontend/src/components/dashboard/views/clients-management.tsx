@@ -21,11 +21,13 @@ import {
   BadgeCheck,
   Pencil,
   Save,
+  CreditCard,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { clientService } from "@/services/clientService"
+import { navigateTo } from "@/lib/navigate"
 import type { Client } from "@/models/client"
 import { cn } from "@/lib/utils"
 
@@ -70,6 +72,33 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
     paysMandat: "Mali",
     niveauRisque: "Faible" as string,
   })
+
+  // Account creation modal state
+  const [accountModalOpen, setAccountModalOpen] = useState(false)
+  const [clientForAccount, setClientForAccount] = useState<Client | null>(null)
+  const [accountSubmitting, setAccountSubmitting] = useState(false)
+  const [accountForm, setAccountForm] = useState({
+    numeroCompte: "",
+    typeCompte: "Courant",
+    solde: 100000,
+    devise: "XOF",
+    motifOuverture: "",
+  })
+
+  // Multi-account AML alert modal
+  const [alertFeedbackModal, setAlertFeedbackModal] = useState<{
+    open: boolean
+    alerte: {
+      reference: string
+      type_alerte: string
+      niveau: string
+      score: number
+      facteurs: string[]
+    }
+    rang: number
+    clientName: string
+    numeroCompte: string
+  } | null>(null)
 
   // Form State
   const [clientType, setClientType] = useState<"Particulier" | "Entreprise">("Particulier")
@@ -323,6 +352,65 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
     }
   }
 
+  // Open Add Account Modal
+  const openAddAccountModal = (client: Client) => {
+    setClientForAccount(client)
+    const randomSuffix = Math.floor(10000000 + Math.random() * 90000000)
+    setAccountForm({
+      numeroCompte: `ML021${randomSuffix}`,
+      typeCompte: "Courant",
+      solde: 100000,
+      devise: "XOF",
+      motifOuverture: "",
+    })
+    setAccountModalOpen(true)
+  }
+
+  // Create Account Submit
+  const handleCreateAccount = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!clientForAccount) return
+
+    if (!accountForm.numeroCompte.trim()) {
+      toast.error("Veuillez renseigner un numéro de compte valide")
+      return
+    }
+
+    setAccountSubmitting(true)
+    try {
+      const res = await clientService.addAccount(clientForAccount.id, {
+        numero_compte: accountForm.numeroCompte.trim(),
+        type_compte: accountForm.typeCompte,
+        solde: Number(accountForm.solde) || 0,
+        devise: accountForm.devise || "XOF",
+      })
+
+      toast.success(res.message || "Compte créé avec succès")
+      setAccountModalOpen(false)
+
+      // Si une alerte multi-comptes a été générée (2ème compte ou plus)
+      if (res.alerte_declenchee) {
+        setAlertFeedbackModal({
+          open: true,
+          alerte: res.alerte_declenchee,
+          rang: res.rang_compte,
+          clientName:
+            clientForAccount.typeClient === "Entreprise"
+              ? clientForAccount.raisonSociale || clientForAccount.nom
+              : `${clientForAccount.nom} ${clientForAccount.prenom || ""}`.trim(),
+          numeroCompte: accountForm.numeroCompte.trim(),
+        })
+      }
+
+      await fetchClients()
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail || err?.message || "Erreur lors de la création du compte"
+      toast.error(detail)
+    } finally {
+      setAccountSubmitting(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* En-tête */}
@@ -453,6 +541,7 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                 <th className="px-5 py-3.5 font-semibold">Code Client</th>
                 <th className="px-5 py-3.5 font-semibold">Client / Raison Sociale</th>
                 <th className="px-5 py-3.5 font-semibold">Type & Secteur</th>
+                <th className="px-5 py-3.5 font-semibold">Comptes bancaires</th>
                 <th className="px-5 py-3.5 font-semibold">Statut PPE / Registre</th>
                 <th className="px-5 py-3.5 font-semibold">Localisation</th>
                 <th className="px-5 py-3.5 font-semibold">Score de Risque</th>
@@ -462,14 +551,14 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-slate-400">
+                  <td colSpan={8} className="px-5 py-12 text-center text-slate-400">
                     <RefreshCw className="h-6 w-6 animate-spin mx-auto text-indigo-500 mb-2" />
                     Chargement des clients depuis PostgreSQL...
                   </td>
                 </tr>
               ) : filteredClients.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-slate-400">
+                  <td colSpan={8} className="px-5 py-12 text-center text-slate-400">
                     Aucun client trouvé pour cette sélection.
                   </td>
                 </tr>
@@ -532,6 +621,38 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                         <p className="text-xs text-slate-500 mt-1">
                           {isEntreprise ? client.secteurActivite || "Négoce" : client.pieceIdentite || "CNI vérifiée"}
                         </p>
+                      </td>
+
+                      {/* Comptes bancaires */}
+                      <td className="px-5 py-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-xs font-semibold text-slate-700 dark:text-slate-200">
+                              {(client.comptes?.length || 0)} cpt{(client.comptes?.length || 0) > 1 ? "s" : "e"}
+                            </span>
+                            {(client.comptes?.length || 0) >= 2 && (
+                              <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200 text-[10px] px-1.5 py-0">
+                                Multi-comptes
+                              </Badge>
+                            )}
+                          </div>
+                          {client.comptes && client.comptes.length > 0 ? (
+                            <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 space-y-0.5 max-w-[150px]">
+                              {client.comptes.slice(0, 2).map((a: any, idx: number) => (
+                                <div key={idx} className="truncate" title={a.numeroCompte || a.numero_compte}>
+                                  • {a.numeroCompte || a.numero_compte}
+                                </div>
+                              ))}
+                              {client.comptes.length > 2 && (
+                                <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">
+                                  +{client.comptes.length - 2} autre(s)
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-slate-400 italic">Aucun compte</span>
+                          )}
+                        </div>
                       </td>
 
                       {/* PPE / Identifiants légaux */}
@@ -612,6 +733,13 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                               <ChevronRight className="h-4 w-4" />
                             </button>
                           )}
+                          <button
+                            onClick={() => openAddAccountModal(client)}
+                            title="Ouvrir / Ajouter un compte bancaire (Alerte AML si multi-comptes)"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition"
+                          >
+                            <CreditCard className="h-4 w-4" />
+                          </button>
                           <button
                             onClick={() => openEditModal(client)}
                             title="Modifier les informations client"
@@ -1370,7 +1498,134 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
           </div>
         </div>
       )}
+
+      {/* Modal d'ouverture de compte bancaire */}
+      {accountModalOpen && clientForAccount && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
+                  <CreditCard className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900 dark:text-white">Ouvrir un compte bancaire</h2>
+                  <p className="text-xs text-slate-500 truncate max-w-[220px]">
+                    {clientForAccount.typeClient === "Entreprise"
+                      ? clientForAccount.raisonSociale || clientForAccount.nom
+                      : ${clientForAccount.nom} }.trim()}
+                    {" "}<span className="text-indigo-600 font-mono font-semibold">({clientForAccount.codeClient})</span>
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => { setAccountModalOpen(false); setClientForAccount(null) }} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            {(clientForAccount.comptes?.length || 0) >= 1 && (
+              <div className="mx-6 mt-4 flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-xs text-amber-800">
+                  <span className="font-bold">Alerte AML automatique :</span> Ce client possede deja{" "}
+                  <span className="font-bold">{clientForAccount.comptes?.length} compte(s)</span>. L'ouverture du{" "}
+                  <span className="font-bold">{(clientForAccount.comptes?.length || 0) + 1}e compte</span> declenchera une alerte de vigilance renforcee.
+                </div>
+              </div>
+            )}
+            <form onSubmit={handleCreateAccount} className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 block">Numero de compte <span className="text-rose-500">*</span></label>
+                <input value={accountForm.numeroCompte} onChange={(e) => setAccountForm((f) => ({ ...f, numeroCompte: e.target.value }))} required
+                  className="w-full px-3 py-2 text-sm font-mono bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white" placeholder="ML021XXXXXXXX" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 block">Type de compte</label>
+                <select value={accountForm.typeCompte} onChange={(e) => setAccountForm((f) => ({ ...f, typeCompte: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white">
+                  {["Courant", "Epargne", "Tontine", "Micro-credit"].map((t) => (<option key={t} value={t}>{t}</option>))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 block">Solde initial</label>
+                  <input type="number" min={0} value={accountForm.solde} onChange={(e) => setAccountForm((f) => ({ ...f, solde: Number(e.target.value) }))}
+                    className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 block">Devise</label>
+                  <select value={accountForm.devise} onChange={(e) => setAccountForm((f) => ({ ...f, devise: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white">
+                    <option value="XOF">XOF (FCFA)</option><option value="EUR">EUR</option><option value="USD">USD</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 block">Motif d'ouverture / Justification</label>
+                <textarea value={accountForm.motifOuverture} onChange={(e) => setAccountForm((f) => ({ ...f, motifOuverture: e.target.value }))} rows={2}
+                  placeholder="Ex : Separation des activites professionnelles et personnelles..."
+                  className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white resize-none" />
+              </div>
+              <div className="pt-2 flex items-center justify-end gap-2.5">
+                <button type="button" onClick={() => { setAccountModalOpen(false); setClientForAccount(null) }}
+                  className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition">Annuler</button>
+                <button type="submit" disabled={accountSubmitting}
+                  className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition shadow-sm disabled:opacity-50">
+                  {accountSubmitting ? (<><RefreshCw className="h-4 w-4 animate-spin" />Creation...</>) : (<><CreditCard className="h-4 w-4" />Creer le compte</>)}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Alerte AML multi-comptes */}
+      {alertFeedbackModal?.open && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-rose-200 dark:border-rose-900">
+            <div className="px-6 py-5 bg-gradient-to-r from-rose-600 to-rose-700 rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
+                  <AlertTriangle className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-white">Alerte AML declenchee</h2>
+                  <p className="text-xs text-rose-200">Ref. {alertFeedbackModal.alerte.reference} - Niveau : <span className="font-bold uppercase">{alertFeedbackModal.alerte.niveau}</span></p>
+                </div>
+                <span className="ml-auto bg-white/20 text-white font-bold text-lg px-3 py-1 rounded-lg">{alertFeedbackModal.alerte.score}/100</span>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg">
+                <p className="text-sm font-semibold text-rose-800">{alertFeedbackModal.alerte.type_alerte}</p>
+                <p className="text-xs text-rose-600 mt-0.5">Client : <span className="font-bold">{alertFeedbackModal.clientName}</span> - Compte : <span className="font-mono font-bold">{alertFeedbackModal.numeroCompte}</span></p>
+                <p className="text-xs text-rose-600 mt-0.5">C'est le <span className="font-bold">{alertFeedbackModal.rang}eme compte</span> de ce client.</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Elements a verifier :</p>
+                <ul className="space-y-1.5">
+                  {alertFeedbackModal.alerte.facteurs.map((f, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300">
+                      <span className="mt-0.5 h-4 w-4 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-[10px] shrink-0">!</span>{f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                <span className="font-bold">Action requise : </span>
+                L'agent doit interroger le client sur la justification economique de cette ouverture de compte et documenter la reponse.
+              </div>
+              <div className="flex items-center gap-2.5 pt-2">
+                <button onClick={() => setAlertFeedbackModal(null)}
+                  className="flex-1 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200 transition">Fermer</button>
+                <button onClick={() => { setAlertFeedbackModal(null); navigateTo("alerts-center") }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition">
+                  <ShieldAlert className="h-4 w-4" />Voir dans les Alertes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
-

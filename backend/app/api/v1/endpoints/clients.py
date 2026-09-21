@@ -1,10 +1,13 @@
+import uuid
 from typing import List, Optional, Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.client import Client
+from app.models.account import Account
+from app.models.alert import Alert
 from app.models.user import User
-from app.schemas.client import ClientOut, ClientCreate, ClientUpdate
+from app.schemas.client import ClientOut, ClientCreate, ClientUpdate, AccountCreate, AccountOut
 from app.repositories.client_repo import client_repository
 from app.services.scoring_service import scoring_service
 from app.services.audit_service import audit_service
@@ -151,3 +154,104 @@ def delete_client(
         details=f"Client supprimé de la base : {name} ({code})",
     )
     return None
+
+
+@router.post("/{id}/accounts", status_code=201)
+def add_account_to_client(
+    id: str,
+    account_in: AccountCreate,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user),
+):
+    """Ajout d'un compte bancaire à un client existant avec détection et alerte multi-comptes."""
+    client = client_repository.get(db, id)
+    if not client:
+        client = client_repository.get_by_code(db, id)
+    if not client:
+        raise HTTPException(status_code=404, detail="Client non trouvé")
+
+    # Vérification unicité numéro de compte
+    existing_acc = db.query(Account).filter(Account.numero_compte == account_in.numero_compte).first()
+    if existing_acc:
+        raise HTTPException(status_code=400, detail=f"Le compte {account_in.numero_compte} existe déjà")
+
+    # Compter les comptes existants
+    n_existants = db.query(Account).filter(Account.client_id == client.id).count()
+    rang = n_existants + 1
+
+    # Création du compte
+    new_account = Account(
+        numero_compte=account_in.numero_compte,
+        client_id=client.id,
+        type_compte=account_in.type_compte,
+        solde=account_in.solde,
+        devise=account_in.devise or "XOF",
+    )
+    db.add(new_account)
+    db.commit()
+    db.refresh(new_account)
+
+    alerte_info = None
+    # Règle AML demandée : alerte dès que le client crée un nouveau compte (N-ième compte)
+    if n_existants >= 1:
+        alert_ref = f"ALR-CPT-{new_account.numero_compte[-4:] if len(new_account.numero_compte) >= 4 else uuid.uuid4().hex[:4].upper()}"
+        alr_niv = "bloquante" if rang >= 3 else "analyser"
+        alr_score = min(85, 45 + (rang * 10))
+
+        new_alert = Alert(
+            reference=alert_ref,
+            client_id=client.id,
+            type_alerte=f"Ouverture de compte multiple ({rang}ème compte)",
+            niveau=alr_niv,
+            score=alr_score,
+            module="Gestion des comptes & KYC",
+            facteurs=[
+                f"Ouverture du {rang}ème compte bancaire pour ce client ({new_account.numero_compte} - {new_account.type_compte}).",
+                "Justification économique requise : vérifier pourquoi le client souhaite ouvrir un compte supplémentaire."
+            ],
+            statut="nouvelle"
+        )
+        db.add(new_alert)
+
+        # Majoration de vigilance sur le client
+        if client.risk_score < alr_score:
+            client.risk_score = alr_score
+            client.niveau_risque = "Élevé" if alr_score >= 70 else "Moyen"
+            db.add(client)
+
+        db.commit()
+        db.refresh(new_alert)
+        alerte_info = {
+            "reference": new_alert.reference,
+            "type_alerte": new_alert.type_alerte,
+            "niveau": new_alert.niveau,
+            "score": new_alert.score,
+            "facteurs": new_alert.facteurs
+        }
+
+    # Audit log
+    name = client.raison_sociale or f"{client.nom} {client.prenom or ''}".strip()
+    audit_service.log_action(
+        db,
+        utilisateur=current_user.nom_complet if current_user else "Agent de guichet",
+        role=current_user.role if current_user else "Agent",
+        action="Ouverture de compte bancaire",
+        module="Client 360°",
+        cible=client.code_client,
+        details=f"Création du compte {new_account.numero_compte} ({rang}ème compte pour {name})." + (f" Alerte multi-comptes générée ({rang}ème compte)." if alerte_info else ""),
+    )
+
+    return {
+        "account": {
+            "id": new_account.id,
+            "numero_compte": new_account.numero_compte,
+            "type_compte": new_account.type_compte,
+            "solde": new_account.solde,
+            "devise": new_account.devise,
+            "client_id": new_account.client_id,
+            "date_ouverture": new_account.date_ouverture.isoformat(),
+        },
+        "alerte_declenchee": alerte_info,
+        "rang_compte": rang,
+        "message": f"Compte {new_account.numero_compte} créé avec succès ({rang}ème compte pour ce client)."
+    }
