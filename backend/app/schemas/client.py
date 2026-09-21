@@ -1,0 +1,58 @@
+from typing import Optional, List
+from datetime import datetime
+from pydantic import BaseModel, ConfigDict
+
+
+class AccountBase(BaseModel):
+    numero_compte: str
+    type_compte: str = "Courant"
+    solde: float = 0.0
+    devise: str = "XOF"
+
+
+class AccountCreate(AccountBase):
+    client_id: str
+
+
+class AccountOut(AccountBase):
+    id: str
+    client_id: str
+    date_ouverture: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ClientBase(BaseModel):
+    code_client: str
+    nom: str
+    prenom: Optional[str] = None
+    date_naissance: Optional[str] = None
+    profession: Optional[str] = None
+    ville: Optional[str] = "Bamako"
+    pays: Optional[str] = "Mali"
+    telephone: Optional[str] = None
+    est_ppe: bool = False
+    niveau_risque: str = "Faible"
+
+
+class ClientCreate(ClientBase):
+    pass
+
+
+class ClientUpdate(BaseModel):
+    nom: Optional[str] = None
+    prenom: Optional[str] = None
+    profession: Optional[str] = None
+    ville: Optional[str] = None
+    est_ppe: Optional[bool] = None
+    niveau_risque: Optional[str] = None
+    risk_score: Optional[int] = None
+
+
+class ClientOut(ClientBase):
+    id: str
+    risk_score: int
+    created_at: datetime
+    comptes: List[AccountOut] = []
+
+    model_config = ConfigDict(from_attributes=True)
