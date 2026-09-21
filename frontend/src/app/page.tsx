@@ -9,6 +9,7 @@ import { CommandPalette } from "@/components/dashboard/command-palette"
 import { LoginScreen } from "@/components/dashboard/login-screen"
 import { AlertsCenterView } from "@/components/dashboard/views/alerts-center"
 import { OverviewView } from "@/components/dashboard/views/overview"
+import { ClientsManagementView } from "@/components/dashboard/views/clients-management"
 import { Client360View } from "@/components/dashboard/views/client-360"
 import { GraphView } from "@/components/dashboard/views/graph"
 import { InvestigationsView } from "@/components/dashboard/views/investigations"
@@ -25,6 +26,7 @@ import { SettingsView } from "@/components/dashboard/views/settings"
 import { SyncView } from "@/components/dashboard/views/sync"
 import { NotificationsView } from "@/components/dashboard/views/notifications"
 import { ProfileView } from "@/components/dashboard/views/profile"
+import { TransactionSimulatorView } from "@/components/dashboard/views/transaction-simulator"
 import { DashboardProvider, useDashboard } from "@/lib/dashboard-context"
 import type { NavigateDetail } from "@/lib/navigate"
 import { NewInvestigationModal } from "@/components/dashboard/new-investigation-modal"
@@ -69,9 +71,11 @@ function DashboardListeners() {
   return null
 }
 
-const views: Record<string, React.ComponentType<{ onLogout?: () => void }>> = {
+const views: Record<string, React.ComponentType<{ onLogout?: () => void; onSelectClient?: (client: any) => void }>> = {
   "Tableau de bord": OverviewView,
   "Centre d'alertes": AlertsCenterView,
+  "Clients & Enrôlement": ClientsManagementView,
+  "Simulateur de transactions": TransactionSimulatorView,
   "Client 360°": Client360View,
   "Graphe de relations": GraphView,
   "Investigations": InvestigationsView,
@@ -214,7 +218,14 @@ function DashboardContent({
 
         <main className="lg:pl-[260px] pt-16">
           <div className="p-4 md:p-6">
-            <View onLogout={active === "Mon profil" ? onLogout : undefined} />
+            <View
+              onLogout={active === "Mon profil" ? onLogout : undefined}
+              onSelectClient={
+                active === "Clients & Enrôlement"
+                  ? (c: any) => handleNavigate("Client 360°", { clientId: c.codeClient || c.id })
+                  : undefined
+              }
+            />
           </div>
         </main>
       </div>

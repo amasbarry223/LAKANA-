@@ -3,6 +3,7 @@
 import {
   LayoutGrid,
   BellRing,
+  UserPlus,
   UserRound,
   Share2,
   FolderSearch,
@@ -22,6 +23,7 @@ import {
   LogOut,
   X,
   UserCircle,
+  ArrowRightLeft,
 } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
@@ -47,6 +49,8 @@ const sections: NavSection[] = [
     title: "ANALYSE",
     items: [
       { label: "Centre d'alertes", icon: BellRing, active: true },
+      { label: "Clients & Enrôlement", icon: UserPlus },
+      { label: "Simulateur de transactions", icon: ArrowRightLeft },
       { label: "Client 360°", icon: UserRound },
       { label: "Graphe de relations", icon: Share2 },
       { label: "Investigations", icon: FolderSearch },
