@@ -28,9 +28,11 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { navigateTo } from "@/lib/navigate"
 import { useDashboard } from "@/lib/dashboard-context"
+import { clientService } from "@/services/clientService"
 
 type Client = {
   id: string
+  codeClient?: string
   name: string
   dob: string
   profession: string
@@ -104,9 +106,10 @@ function buildAccountTransactions(acc: Account) {
   return { txs, start }
 }
 
-const clients: Client[] = [
+const INITIAL_CLIENTS: Client[] = [
   {
     id: "CLI-1042",
+    codeClient: "CLI-1042",
     name: "Traoré, Moussa",
     dob: "14/03/1978",
     profession: "Commerçant",
@@ -144,6 +147,7 @@ const clients: Client[] = [
   },
   {
     id: "CLI-1087",
+    codeClient: "CLI-1087",
     name: "Diarra, Fatoumata",
     dob: "22/11/1985",
     profession: "Fonctionnaire",
@@ -179,6 +183,7 @@ const clients: Client[] = [
   },
   {
     id: "CLI-1103",
+    codeClient: "CLI-1103",
     name: "Keïta, Ibrahim",
     dob: "03/07/1990",
     profession: "Entrepreneur",
@@ -212,6 +217,112 @@ const clients: Client[] = [
       { date: "Aug 26", montant: 2100000 },
     ],
   },
+  {
+    id: "CLI-1066",
+    codeClient: "CLI-1066",
+    name: "Coulibaly, Aïssata",
+    dob: "19/09/1988",
+    profession: "Import-Export",
+    city: "Bamako",
+    ppe: false,
+    riskLevel: "Moyen",
+    score: 45,
+    accounts: [
+      { type: "Compte courant", number: "•••• 5512", balance: 3400000 },
+    ],
+    factors: [
+      { label: "Volume inhabituel", points: 15, max: 25 },
+      { label: "Fréquence anormale", points: 12, max: 20 },
+      { label: "Fractionnement potentiel", points: 10, max: 30 },
+      { label: "Correspondance PPE", points: 0, max: 15 },
+      { label: "Relations inhabituelles", points: 8, max: 10 },
+    ],
+    alerts: [
+      { ref: "ALR-210", type: "Contrôle de conformité périodique", date: "15/08/2026", level: "analyser" },
+    ],
+    txData: [
+      { date: "Jul 1", montant: 600000 },
+      { date: "Jul 8", montant: 720000 },
+      { date: "Jul 15", montant: 850000 },
+      { date: "Jul 22", montant: 950000 },
+      { date: "Jul 29", montant: 900000 },
+      { date: "Aug 5", montant: 1100000 },
+      { date: "Aug 12", montant: 1250000 },
+      { date: "Aug 19", montant: 1300000 },
+      { date: "Aug 26", montant: 1450000 },
+    ],
+  },
+  {
+    id: "CLI-1055",
+    codeClient: "CLI-1055",
+    name: "Touré, Seydou",
+    dob: "11/04/1975",
+    profession: "Cadre bancaire",
+    city: "Ségou",
+    ppe: false,
+    riskLevel: "Faible",
+    score: 32,
+    accounts: [
+      { type: "Compte courant", number: "•••• 8819", balance: 5800000 },
+      { type: "Compte épargne", number: "•••• 1920", balance: 4100000 },
+    ],
+    factors: [
+      { label: "Volume inhabituel", points: 8, max: 25 },
+      { label: "Fréquence anormale", points: 6, max: 20 },
+      { label: "Fractionnement potentiel", points: 5, max: 30 },
+      { label: "Correspondance PPE", points: 0, max: 15 },
+      { label: "Relations inhabituelles", points: 4, max: 10 },
+    ],
+    alerts: [
+      { ref: "ALR-175", type: "Mise à jour KYC annuel", date: "10/08/2026", level: "informative" },
+    ],
+    txData: [
+      { date: "Jul 1", montant: 500000 },
+      { date: "Jul 8", montant: 550000 },
+      { date: "Jul 15", montant: 480000 },
+      { date: "Jul 22", montant: 600000 },
+      { date: "Jul 29", montant: 520000 },
+      { date: "Aug 5", montant: 700000 },
+      { date: "Aug 12", montant: 650000 },
+      { date: "Aug 19", montant: 720000 },
+      { date: "Aug 26", montant: 680000 },
+    ],
+  },
+  {
+    id: "CLI-9322",
+    codeClient: "CLI-9322",
+    name: "Sow, Awa",
+    dob: "27/08/1992",
+    profession: "Consultante",
+    city: "Mopti",
+    ppe: false,
+    riskLevel: "Faible",
+    score: 28,
+    accounts: [
+      { type: "Compte courant", number: "•••• 6631", balance: 2100000 },
+    ],
+    factors: [
+      { label: "Volume inhabituel", points: 6, max: 25 },
+      { label: "Fréquence anormale", points: 5, max: 20 },
+      { label: "Fractionnement potentiel", points: 4, max: 30 },
+      { label: "Correspondance PPE", points: 0, max: 15 },
+      { label: "Relations inhabituelles", points: 3, max: 10 },
+    ],
+    alerts: [
+      { ref: "ALR-112", type: "Vérification standard", date: "05/08/2026", level: "informative" },
+    ],
+    txData: [
+      { date: "Jul 1", montant: 300000 },
+      { date: "Jul 8", montant: 350000 },
+      { date: "Jul 15", montant: 420000 },
+      { date: "Jul 22", montant: 390000 },
+      { date: "Jul 29", montant: 450000 },
+      { date: "Aug 5", montant: 500000 },
+      { date: "Aug 12", montant: 480000 },
+      { date: "Aug 19", montant: 520000 },
+      { date: "Aug 26", montant: 510000 },
+    ],
+  },
 ]
 
 const levelColor: Record<string, string> = {
@@ -234,18 +345,124 @@ function TxTooltip({ active, payload, label }: any) {
 
 export function Client360View() {
   const { selectedClientId, setSelectedClientId } = useDashboard()
+  const [clientList, setClientList] = useState<Client[]>(INITIAL_CLIENTS)
   const [selected, setSelected] = useState(0)
+  const [targetId, setTargetId] = useState<string | null>(null)
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null)
 
+  // Charger et synchroniser tous les clients depuis la base de données
+  useEffect(() => {
+    let mounted = true
+    clientService
+      .getAll()
+      .then((backendClients) => {
+        if (!mounted || !backendClients || backendClients.length === 0) return
+        setClientList((prevList) => {
+          const merged = backendClients.map((bc) => {
+            const existing = prevList.find(
+              (p) =>
+                p.codeClient === bc.codeClient ||
+                p.id === bc.id ||
+                (p.name && bc.nom && p.name.toLowerCase().includes(bc.nom.toLowerCase()))
+            )
+            const realAccounts = (bc.comptes || []).map((a: any) => ({
+              type: a.typeCompte || a.type_compte || "Compte courant",
+              number: a.numeroCompte || a.numero_compte || "••••",
+              balance: Number(a.solde ?? 1500000),
+            }))
+
+            const computedScore = bc.riskScore ?? (existing ? existing.score : (bc.estPpe ? 75 : 35))
+            const computedLevel = (computedScore >= 70 ? "Élevé" : computedScore >= 40 ? "Moyen" : "Faible") as any
+
+            if (existing) {
+              return {
+                ...existing,
+                id: bc.id,
+                codeClient: bc.codeClient,
+                name: `${bc.nom}, ${bc.prenom || ""}`.trim() || bc.raisonSociale || existing.name,
+                accounts: realAccounts.length > 0 ? realAccounts : existing.accounts,
+                score: computedScore,
+                riskLevel: computedLevel,
+                ppe: Boolean(bc.estPpe),
+                city: bc.ville || existing.city,
+                profession: bc.profession || existing.profession,
+              }
+            }
+
+            return {
+              id: bc.id,
+              codeClient: bc.codeClient,
+              name: `${bc.nom}, ${bc.prenom || ""}`.trim() || bc.raisonSociale || "Client",
+              dob: bc.dateNaissance ? new Date(bc.dateNaissance).toLocaleDateString("fr-FR") : "15/05/1985",
+              profession: bc.profession || bc.secteurActivite || "Profession libérale",
+              city: bc.ville || "Bamako",
+              ppe: Boolean(bc.estPpe),
+              riskLevel: computedLevel,
+              score: computedScore,
+              accounts: realAccounts.length > 0 ? realAccounts : [
+                { type: "Compte courant", number: `•••• ${bc.codeClient.slice(-4)}`, balance: 2500000 }
+              ],
+              factors: [
+                { label: "Volume inhabituel", points: Math.min(25, Math.round(computedScore * 0.3)), max: 25 },
+                { label: "Fractionnement potentiel", points: Math.min(30, Math.round(computedScore * 0.25)), max: 30 },
+                { label: "Correspondance PPE", points: bc.estPpe ? 15 : 0, max: 15 },
+                { label: "Fréquence anormale", points: Math.min(20, Math.round(computedScore * 0.2)), max: 20 },
+                { label: "Relations inhabituelles", points: Math.min(10, Math.round(computedScore * 0.1)), max: 10 },
+              ],
+              alerts: computedScore >= 70
+                ? [{ ref: `ALR-${bc.codeClient.slice(-3)}`, type: "Score de risque élevé", date: "26/08/2026", level: "bloquante" }]
+                : [{ ref: `ALR-${bc.codeClient.slice(-3)}`, type: "Vérification périodique", date: "20/08/2026", level: "informative" }],
+              txData: [
+                { date: "Jul 1", montant: 600000 },
+                { date: "Jul 8", montant: 800000 },
+                { date: "Jul 15", montant: 750000 },
+                { date: "Jul 22", montant: 1200000 },
+                { date: "Jul 29", montant: 950000 },
+                { date: "Aug 5", montant: 1400000 },
+                { date: "Aug 12", montant: 1100000 },
+                { date: "Aug 19", montant: 1600000 },
+                { date: "Aug 26", montant: 1350000 },
+              ],
+            }
+          })
+          return merged
+        })
+      })
+      .catch((err) => {
+        console.warn("Impossible de charger les clients depuis l'API dans Client 360", err)
+      })
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  // Enregistrement du client cible demandé par la navigation
   useEffect(() => {
     if (selectedClientId) {
-      const idx = clients.findIndex((c) => c.id === selectedClientId)
-      if (idx >= 0) setSelected(idx)
+      setTargetId(selectedClientId)
       setSelectedClientId(null)
     }
   }, [selectedClientId, setSelectedClientId])
 
-  const client = clients[selected]
+  // Résolution du client cible dans la liste dès qu'elle est prête
+  useEffect(() => {
+    if (!targetId || clientList.length === 0) return
+    const idToFind = targetId.trim().toLowerCase()
+    const idx = clientList.findIndex(
+      (c) =>
+        c.id?.toLowerCase() === idToFind ||
+        c.codeClient?.toLowerCase() === idToFind ||
+        c.name?.toLowerCase().includes(idToFind) ||
+        idToFind.includes(c.name?.toLowerCase()) ||
+        (c.codeClient && idToFind.includes(c.codeClient.toLowerCase()))
+    )
+    if (idx >= 0) {
+      setSelected(idx)
+      setTargetId(null)
+    }
+  }, [targetId, clientList])
+
+  const client = clientList[selected] || clientList[0] || INITIAL_CLIENTS[0]
 
   useEffect(() => {
     if (!selectedAccount) return
@@ -269,10 +486,10 @@ export function Client360View() {
           </p>
         </div>
         {/* Client selector */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          {clients.map((c, i) => (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
+          {clientList.map((c, i) => (
             <button
-              key={c.id}
+              key={c.id || c.codeClient || i}
               onClick={() => setSelected(i)}
               className={cn(
                 "flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition",
@@ -284,7 +501,6 @@ export function Client360View() {
               <User className="h-3.5 w-3.5" />
               {c.name}
             </button>
-          ))}
         </div>
       </div>
 

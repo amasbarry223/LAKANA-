@@ -200,7 +200,7 @@ export function GraphView() {
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 p-2 animate-in fade-in-50 duration-150">
+              <div className="absolute left-0 mt-2 w-80 md:w-96 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 animate-in fade-in-50 duration-150">
                 <div className="p-2 border-b border-slate-100">
                   <div className="relative">
                     <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
@@ -596,10 +596,13 @@ export function GraphView() {
               </div>
 
               <button
-                onClick={() => navigateTo("Client 360°")}
+                onClick={() => {
+                  const targetId = selectedClient?.codeClient || selectedClient?.id || (sel?.type === "client" ? sel.id?.replace("cli_", "") : null)
+                  navigateTo("Client 360°", targetId ? { clientId: targetId } : undefined)
+                }}
                 className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition shadow-sm"
               >
-                Voir la fiche Client 360°
+                Voir la fiche Client 360° {selectedClient ? `(${selectedClient.nom})` : ""}
               </button>
             </div>
           ) : (
