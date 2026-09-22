@@ -69,3 +69,28 @@ export interface AIContextResponse {
   models_ready: boolean
   suggested_queries: string[]
 }
+
+export interface MLPredictResponse {
+  client_id: string
+  client_nom: string
+  code_client?: string
+  anomaly_score: number
+  is_anomaly: boolean
+  predicted_risk: string
+  confidence: number
+  model_used: string
+  fallback: boolean
+  facteurs_ia: string[]
+  features: Record<string, number>
+}
+
+export interface MLTrainResponse {
+  status: string
+  total_samples: number
+  real_clients_count: number
+  synthetic_samples: number
+  features_count: number
+  features: string[]
+  models_saved: string[]
+}
+

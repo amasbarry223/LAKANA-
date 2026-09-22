@@ -19,6 +19,9 @@ import {
   RefreshCw,
   ArrowUpRight,
   CheckCircle2,
+  Sparkles,
+  Cpu,
+  Bot,
 } from "lucide-react"
 import {
   Area,
@@ -36,9 +39,11 @@ import { useDashboard } from "@/lib/dashboard-context"
 import { clientService } from "@/services/clientService"
 import { transactionService } from "@/services/transactionService"
 import { alertService } from "@/services/alertService"
+import { aiService } from "@/services/aiService"
 import type { Client } from "@/models/client"
 import type { Transaction } from "@/models/transaction"
 import type { Alert } from "@/models/alert"
+import type { MLPredictResponse } from "@/models/ai"
 
 const levelColor: Record<string, string> = {
   bloquante: "bg-rose-50 text-rose-700 border-rose-200",
@@ -78,6 +83,9 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
 
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [loadingAlerts, setLoadingAlerts] = useState(false)
+
+  const [mlPrediction, setMlPrediction] = useState<MLPredictResponse | null>(null)
+  const [loadingMl, setLoadingMl] = useState(false)
 
   const [selectedAccount, setSelectedAccount] = useState<any | null>(null)
 
@@ -244,6 +252,21 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
         if (!cancelled) setLoadingAlerts(false)
       })
 
+    // D. Récupération de l'analyse et prédiction IA
+    setLoadingMl(true)
+    aiService
+      .predictClientRisk(activeClient.id)
+      .then((pred) => {
+        if (!cancelled) setMlPrediction(pred)
+      })
+      .catch((err) => {
+        console.warn("Prédiction IA non disponible pour ce client:", err)
+        if (!cancelled) setMlPrediction(null)
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingMl(false)
+      })
+
     return () => {
       cancelled = true
     }
@@ -285,23 +308,25 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
     if (scoreData?.decomposition) {
       const dec = scoreData.decomposition
       return [
-        { label: "Fractionnement potentiel", points: dec.fractionnement?.points ?? 0, max: dec.fractionnement?.max ?? 30 },
+        { label: "Fractionnement potentiel", points: dec.fractionnement?.points ?? 0, max: dec.fractionnement?.max ?? 25 },
         { label: "Volume inhabituel", points: dec.volume?.points ?? 0, max: dec.volume?.max ?? 25 },
-        { label: "Fréquence anormale", points: dec.frequence?.points ?? 0, max: dec.frequence?.max ?? 20 },
+        { label: "Fréquence anormale", points: dec.frequence?.points ?? 0, max: dec.frequence?.max ?? 15 },
         { label: "Correspondance PPE / Sanctions", points: dec.sanctions_ppe?.points ?? (activeClient?.estPpe ? 15 : 0), max: dec.sanctions_ppe?.max ?? 15 },
         { label: "Relations inhabituelles", points: dec.relations?.points ?? 0, max: dec.relations?.max ?? 10 },
+        { label: "Détection d'anomalie IA (ML)", points: dec.modele_ia?.points ?? (mlPrediction?.is_anomaly ? 10 : (mlPrediction?.anomaly_score && mlPrediction.anomaly_score >= 0.4 ? 5 : 0)), max: 10 },
       ]
     }
 
     const currentScore = activeClient?.riskScore || 35
     return [
-      { label: "Volume inhabituel", points: Math.min(25, Math.round(currentScore * 0.3)), max: 25 },
-      { label: "Fractionnement potentiel", points: Math.min(30, Math.round(currentScore * 0.25)), max: 30 },
+      { label: "Volume inhabituel", points: Math.min(25, Math.round(currentScore * 0.25)), max: 25 },
+      { label: "Fractionnement potentiel", points: Math.min(25, Math.round(currentScore * 0.25)), max: 25 },
       { label: "Correspondance PPE", points: activeClient?.estPpe ? 15 : 0, max: 15 },
-      { label: "Fréquence anormale", points: Math.min(20, Math.round(currentScore * 0.2)), max: 20 },
+      { label: "Fréquence anormale", points: Math.min(15, Math.round(currentScore * 0.15)), max: 15 },
       { label: "Relations inhabituelles", points: Math.min(10, Math.round(currentScore * 0.1)), max: 10 },
+      { label: "Détection d'anomalie IA (ML)", points: mlPrediction?.is_anomaly ? 10 : (mlPrediction?.anomaly_score && mlPrediction.anomaly_score >= 0.4 ? 5 : 0), max: 10 },
     ]
-  }, [scoreData, activeClient])
+  }, [scoreData, activeClient, mlPrediction])
 
   const clientScore = scoreData?.score ?? activeClient?.riskScore ?? 0
   const clientRiskLevel = scoreData?.niveau_risque ?? activeClient?.niveauRisque ?? (clientScore >= 70 ? "Élevé" : clientScore >= 40 ? "Moyen" : "Faible")
@@ -596,6 +621,129 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Row IA: Diagnostic Prédictif & Machine Learning AML */}
+      <div className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 via-white to-slate-50 p-5 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-indigo-100/60 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-slate-900">Diagnostic Prédictif IA & Machine Learning</h3>
+                <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 text-[11px] font-semibold">
+                  Isolation Forest + Random Forest
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500">
+                Détection d&apos;anomalies non supervisée calibrée sur les flux SFD/UEMOA (14 features comportementales)
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              if (activeClient?.id) {
+                setLoadingMl(true)
+                aiService.predictClientRisk(activeClient.id).then((p) => {
+                  setMlPrediction(p)
+                  setLoadingMl(false)
+                })
+              }
+            }}
+            disabled={loadingMl}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 transition shadow-2xs self-start sm:self-auto cursor-pointer"
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", loadingMl && "animate-spin")} />
+            {loadingMl ? "Analyse en cours..." : "Ré-analyser par IA"}
+          </button>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Métrique 1: Score d'anomalie */}
+          <div className="rounded-lg bg-white border border-slate-200/80 p-3.5 shadow-2xs">
+            <p className="text-xs font-semibold text-slate-500">Score d&apos;atypisme (Isolation Forest)</p>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className={cn(
+                "text-2xl font-bold font-mono",
+                (mlPrediction?.anomaly_score || 0) >= 0.65 ? "text-rose-600" : (mlPrediction?.anomaly_score || 0) >= 0.40 ? "text-amber-600" : "text-emerald-600"
+              )}>
+                {mlPrediction ? `${Math.round(mlPrediction.anomaly_score * 100)}%` : "—"}
+              </span>
+              <span className="text-[11px] text-slate-400">d&apos;écart statistique</span>
+            </div>
+            <div className="mt-2 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all",
+                  (mlPrediction?.anomaly_score || 0) >= 0.65 ? "bg-rose-500" : (mlPrediction?.anomaly_score || 0) >= 0.40 ? "bg-amber-500" : "bg-emerald-500"
+                )}
+                style={{ width: `${Math.min(100, (mlPrediction?.anomaly_score || 0) * 100)}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Métrique 2: Risque prédit supervisé */}
+          <div className="rounded-lg bg-white border border-slate-200/80 p-3.5 shadow-2xs">
+            <p className="text-xs font-semibold text-slate-500">Classification Risque (Random Forest)</p>
+            <div className="mt-2 flex items-center gap-2">
+              <span className={cn(
+                "px-2.5 py-1 text-xs font-bold rounded-md",
+                mlPrediction?.predicted_risk === "Élevé"
+                  ? "bg-rose-100 text-rose-800"
+                  : mlPrediction?.predicted_risk === "Moyen"
+                  ? "bg-amber-100 text-amber-800"
+                  : "bg-emerald-100 text-emerald-800"
+              )}>
+                {mlPrediction?.predicted_risk || "Faible"}
+              </span>
+              <span className="text-xs text-slate-500 font-mono">
+                Confiance: {mlPrediction ? `${Math.round(mlPrediction.confidence * 100)}%` : "95%"}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-2">
+              Modèle : {mlPrediction?.model_used || "isolation_forest+random_forest"}
+            </p>
+          </div>
+
+          {/* Métrique 3: Statut d'anomalie */}
+          <div className="rounded-lg bg-white border border-slate-200/80 p-3.5 shadow-2xs">
+            <p className="text-xs font-semibold text-slate-500">Verdict Algorithmique LAKANA</p>
+            <div className="mt-2 flex items-center gap-2">
+              <div className={cn(
+                "h-2.5 w-2.5 rounded-full",
+                mlPrediction?.is_anomaly ? "bg-rose-500 animate-pulse" : "bg-emerald-500"
+              )} />
+              <span className="text-xs font-bold text-slate-800">
+                {mlPrediction?.is_anomaly ? "Anomalie Comportementale Détectée" : "Comportement dans les seuils normaux"}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-2">
+              {mlPrediction?.is_anomaly
+                ? "Déviance statistique non expliquée par les seuils unitaires."
+                : "Flux financiers cohérents avec le profil du client."}
+            </p>
+          </div>
+        </div>
+
+        {/* Facteurs et signaux faibles détectés par l'IA */}
+        {mlPrediction?.facteurs_ia && mlPrediction.facteurs_ia.length > 0 && (
+          <div className="mt-4 p-3 rounded-lg bg-white border border-indigo-100">
+            <p className="text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+              <Bot className="h-3.5 w-3.5 text-indigo-600" />
+              Signaux faibles identifiés par le modèle :
+            </p>
+            <div className="space-y-1">
+              {mlPrediction.facteurs_ia.map((fact, idx) => (
+                <div key={idx} className="text-xs text-slate-600 flex items-start gap-2">
+                  <span className="text-indigo-500 font-bold">•</span>
+                  <span>{fact}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Row 2: Transactions chart + Relationship graph */}

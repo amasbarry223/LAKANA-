@@ -110,4 +110,23 @@ export const aiService = {
       }
     }
   },
+
+  async predictClientRisk(clientId: string): Promise<MLPredictResponse | null> {
+    try {
+      return await ApiClient.post<MLPredictResponse>(`/assistant-ia/predict/${clientId}`, {})
+    } catch (e) {
+      console.warn("Prédiction IA indisponible:", e)
+      return null
+    }
+  },
+
+  async trainModel(countSynthetic: number = 350): Promise<MLTrainResponse | null> {
+    try {
+      return await ApiClient.post<MLTrainResponse>(`/assistant-ia/train?count_synthetic=${countSynthetic}`, {})
+    } catch (e) {
+      console.warn("Entraînement IA indisponible:", e)
+      return null
+    }
+  },
 }
+

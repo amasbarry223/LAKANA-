@@ -36,6 +36,11 @@ class Client(Base):
     type_ppe = Column(String, nullable=True)        # Nationale, Étrangère, Famille/Associé
     pays_mandat = Column(String, nullable=True)     # Pays d'exercice du mandat politique
 
+    # Informations financières & KYC
+    numero_compte = Column(String, index=True, nullable=True)  # Numéro de compte bancaire/SFD principal
+    revenu = Column(Float, default=0.0)                         # Revenu mensuel estimé en FCFA
+    source_revenu = Column(String, nullable=True)               # Origine des fonds / source de revenu
+
     # Indicateurs conformité
     niveau_risque = Column(String, default="Faible")  # Élevé, Moyen, Faible
     risk_score = Column(Integer, default=0)

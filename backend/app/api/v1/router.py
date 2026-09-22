@@ -10,6 +10,7 @@ from app.api.v1.endpoints import (
     ai,
     audit,
     stats,
+    sync,
 )
 
 api_router = APIRouter()
@@ -22,5 +23,8 @@ api_router.include_router(investigations.router, prefix="/investigations", tags=
 api_router.include_router(filtering.router, prefix="/filtrage", tags=["Filtrage Sanctions & PPE"])
 api_router.include_router(graph.router, prefix="/graph", tags=["Graphe de relations"])
 api_router.include_router(ai.router, prefix="/assistant-ia", tags=["Assistant IA"])
+api_router.include_router(ai.router, prefix="/ai", tags=["IA & ML Core"])
 api_router.include_router(audit.router, prefix="/audit", tags=["Journal d'audit"])
 api_router.include_router(stats.router, prefix="/stats", tags=["Statistiques & Tableau de bord"])
+api_router.include_router(sync.router, prefix="/sync", tags=["Synchronisation"])
+

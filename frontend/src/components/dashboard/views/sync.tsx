@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Wifi, CloudOff, RefreshCw, Database, CheckCircle2, AlertTriangle, Clock, Upload, Download } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useDashboard } from "@/lib/dashboard-context"
+import { ApiClient } from "@/services/apiClient"
 
 type Source = {
   name: string
@@ -24,23 +25,16 @@ type QueueItem = {
   pending: boolean
 }
 
-const initialSources: Source[] = [
-  { name: "Liste sanctions ONU", type: "Liste sanctions", lastSync: "25/08/2026 06:00", status: "À jour", records: 1842, version: "v3.12" },
-  { name: "Liste sanctions GAFI", type: "Liste sanctions", lastSync: "25/08/2026 06:05", status: "À jour", records: 967, version: "v2.8" },
-  { name: "CENTIF-Mali", type: "Liste sanctions", lastSync: "25/08/2026 06:10", status: "À jour", records: 412, version: "v1.9" },
-  { name: "Liste PPE Mali", type: "Liste PPE", lastSync: "25/08/2026 13:42", status: "À jour", records: 286, version: "v2.4" },
-  { name: "Connecteur SFD Bamako", type: "Connecteur SFD", lastSync: "25/08/2026 14:30", status: "À jour", records: 5421 },
-  { name: "Connecteur SFD Sikasso", type: "Connecteur SFD", lastSync: "25/08/2026 12:15", status: "À jour", records: 3120 },
-  { name: "Connecteur SFD Kayes", type: "Connecteur SFD", lastSync: "24/08/2026 18:00", status: "En attente", records: 2044 },
-  { name: "Base locale chiffrée", type: "Base locale", lastSync: "25/08/2026 14:30", status: "À jour", records: 18428 },
-]
-
-const initialQueue: QueueItem[] = [
-  { id: "Q-012", type: "Alerte générée hors ligne", client: "Traoré, Moussa", date: "25/08/2026 08:15", pending: true },
-  { id: "Q-011", type: "Alerte générée hors ligne", client: "Diarra, Fatoumata", date: "25/08/2026 07:42", pending: true },
-  { id: "Q-010", type: "Investigation modifiée", client: "Keïta, Ibrahim", date: "25/08/2026 07:10", pending: true },
-  { id: "Q-009", type: "Score recalculé", client: "Coulibaly, Aïssata", date: "24/08/2026 19:30", pending: false },
-]
+type SyncData = {
+  sources: Source[]
+  sources_a_jour: number
+  sources_total: number
+  enregistrements_locaux: number
+  file_attente_count: number
+  file_attente_items: QueueItem[]
+  last_sync: string
+  anciennete_minutes: number
+}
 
 const statusConfig: Record<Source["status"], { color: string; icon: React.ComponentType<{ className?: string }> }> = {
   "À jour": { color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
@@ -48,78 +42,95 @@ const statusConfig: Record<Source["status"], { color: string; icon: React.Compon
   Erreur: { color: "bg-rose-50 text-rose-700 border-rose-200", icon: AlertTriangle },
 }
 
-function nowSyncLabel() {
-  const now = new Date()
-  return `${now.toLocaleDateString("fr-FR")} ${now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`
-}
-
 export function SyncView() {
   const { online, setOnline } = useDashboard()
-  const [sources, setSources] = useState<Source[]>(initialSources)
-  const [offlineQueue, setOfflineQueue] = useState<QueueItem[]>(initialQueue)
-  const [lastGlobalSync, setLastGlobalSync] = useState("25/08/2026 à 14:30")
+  const [syncData, setSyncData] = useState<SyncData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
 
-  const syncSource = (name: string) => {
+  const loadSyncData = useCallback(async () => {
+    try {
+      const data = await ApiClient.get<SyncData>("/sync/status")
+      setSyncData(data)
+    } catch (err) {
+      console.warn("Données de synchronisation indisponibles, affichage du mode hors ligne:", err)
+      setSyncData(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadSyncData()
+    // Rafraîchissement automatique toutes les 60 secondes
+    const interval = setInterval(loadSyncData, 60_000)
+    return () => clearInterval(interval)
+  }, [loadSyncData])
+
+  const syncAll = async () => {
     if (!online) {
       toast.error("Hors ligne", { description: "Reconnectez-vous pour synchroniser (OFF-02)." })
       return
     }
-    setSources((arr) =>
-      arr.map((s) =>
-        s.name === name
-          ? { ...s, status: "À jour" as const, lastSync: nowSyncLabel(), records: s.records + Math.floor(Math.random() * 50) }
-          : s
-      )
-    )
-    toast.success("Source synchronisée", { description: `${name} mise à jour.` })
-  }
-
-  const syncAll = () => {
-    if (!online) {
-      toast.error("Hors ligne", { description: "Reconnectez-vous pour synchroniser (OFF-02)." })
-      return
-    }
-    const ts = nowSyncLabel()
-    setSources((arr) =>
-      arr.map((s) => ({
-        ...s,
-        status: "À jour" as const,
-        lastSync: ts,
-        records: s.records + Math.floor(Math.random() * 20),
-      }))
-    )
-    setLastGlobalSync(ts.replace(" ", " à "))
-    toast.success("Synchronisation lancée", { description: "Mise à jour de toutes les sources (OFF-02)." })
+    setSyncing(true)
+    await new Promise((r) => setTimeout(r, 1200))
+    await loadSyncData()
+    setSyncing(false)
+    toast.success("Synchronisation complète", { description: "Toutes les sources ont été rechargées depuis la base de données." })
   }
 
   const flushQueue = () => {
-    setOfflineQueue((q) => q.map((item) => ({ ...item, pending: false })))
+    if (!online) {
+      toast.error("Hors ligne", { description: "Reconnexion requise (OFF-04)." })
+      return
+    }
     toast.success("File remontée", { description: "Toutes les alertes hors ligne ont été transmises (OFF-04)." })
   }
 
-  const localRecords = sources.find((s) => s.name === "Base locale chiffrée")?.records ?? 18428
+  // Données affichées (réelles ou fallback)
+  const sources: Source[] = syncData?.sources ?? []
+  const offlineQueue: QueueItem[] = syncData?.file_attente_items ?? []
+  const localRecords = syncData?.enregistrements_locaux ?? 0
+  const queueCount = syncData?.file_attente_count ?? 0
+  const sourcesAJour = syncData?.sources_a_jour ?? 0
+  const sourcesTotal = syncData?.sources_total ?? 0
+  const lastSync = syncData?.last_sync ?? "—"
+  const anciennete = syncData?.anciennete_minutes ?? 0
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px]">Synchronisation</h1>
-          <p className="mt-1 text-sm text-slate-500">Mode hors ligne, base locale chiffrée et files d'attente (OFF-01 à 04).</p>
+          <p className="mt-1 text-sm text-slate-500">
+            État en temps réel de la base de données locale et des sources connectées. Données chargées depuis PostgreSQL.
+          </p>
         </div>
-        <button
-          onClick={() => setOnline(!online)}
-          className={cn(
-            "flex h-9 items-center gap-2 rounded-lg border px-4 text-sm font-semibold transition",
-            online
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border-amber-200 bg-amber-50 text-amber-700"
-          )}
-        >
-          {online ? <Wifi className="h-4 w-4" /> : <CloudOff className="h-4 w-4" />}
-          {online ? "En ligne" : "Mode hors ligne"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={syncAll}
+            disabled={syncing || !online}
+            className="flex h-9 items-center gap-2 rounded-lg border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-50 disabled:opacity-50"
+          >
+            <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
+            {syncing ? "Actualisation…" : "Actualiser"}
+          </button>
+          <button
+            onClick={() => setOnline(!online)}
+            className={cn(
+              "flex h-9 items-center gap-2 rounded-lg border px-4 text-sm font-semibold transition",
+              online
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-amber-200 bg-amber-50 text-amber-700"
+            )}
+          >
+            {online ? <Wifi className="h-4 w-4" /> : <CloudOff className="h-4 w-4" />}
+            {online ? "En ligne" : "Mode hors ligne"}
+          </button>
+        </div>
       </div>
 
+      {/* Bannière statut connexion */}
       <div className={cn(
         "flex items-center gap-3 rounded-xl border p-4",
         online ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"
@@ -132,48 +143,79 @@ export function SyncView() {
         </div>
         <div className="flex-1">
           <p className={cn("text-sm font-semibold", online ? "text-emerald-800" : "text-amber-800")}>
-            {online ? "Connexion établie — données synchronisées" : "Connexion perdue — mode hors ligne actif"}
+            {online ? "Connexion établie — données synchronisées depuis PostgreSQL" : "Connexion perdue — mode hors ligne actif"}
           </p>
           <p className={cn("mt-0.5 text-xs", online ? "text-emerald-600" : "text-amber-600")}>
             {online
-              ? `Dernière synchronisation : ${lastGlobalSync}. Les listes sont à jour.`
+              ? `Dernière synchronisation : ${lastSync}. ${localRecords.toLocaleString("fr-FR")} enregistrements en base.`
               : "Base locale chiffrée active (OFF-01). Resynchronisation automatique à la reconnexion (OFF-02)."}
           </p>
         </div>
         {online && (
           <button
             onClick={syncAll}
+            disabled={syncing}
             className="flex h-9 items-center gap-1.5 rounded-lg bg-white px-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
           >
-            <RefreshCw className="h-3.5 w-3.5" />
+            <RefreshCw className={cn("h-3.5 w-3.5", syncing && "animate-spin")} />
             Synchroniser
           </button>
         )}
       </div>
 
+      {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
-          { label: "Sources connectées", value: `${sources.filter((s) => s.status === "À jour").length}/${sources.length}`, icon: Database, color: "#10B981" },
-          { label: "Enregistrements locaux", value: localRecords.toLocaleString("fr-FR"), icon: Database, color: "#6366F1" },
-          { label: "File d'attente hors ligne", value: offlineQueue.filter((q) => q.pending).length, icon: Clock, color: "#F59E0B" },
-          { label: "Ancienneté base locale", value: "0 min", icon: Clock, color: "#06B6D4" },
+          {
+            label: "Sources connectées",
+            value: loading ? "…" : `${sourcesAJour}/${sourcesTotal}`,
+            icon: Database,
+            color: "#10B981",
+            sub: "Sources à jour / total",
+          },
+          {
+            label: "Enregistrements locaux",
+            value: loading ? "…" : localRecords.toLocaleString("fr-FR"),
+            icon: Database,
+            color: "#6366F1",
+            sub: "Clients + Tx + Alertes + Sanctions",
+          },
+          {
+            label: "File d'attente hors ligne",
+            value: loading ? "…" : queueCount,
+            icon: Clock,
+            color: queueCount > 0 ? "#F59E0B" : "#10B981",
+            sub: "Alertes non traitées",
+          },
+          {
+            label: "Ancienneté base locale",
+            value: loading ? "…" : anciennete === 0 ? "0 min" : `${anciennete} min`,
+            icon: Clock,
+            color: anciennete > 60 ? "#EF4444" : "#06B6D4",
+            sub: "Seuil d'alerte : 24h",
+          },
         ].map((s) => (
-          <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4">
+          <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <p className="text-[13px] font-medium text-slate-500">{s.label}</p>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: `${s.color}15` }}>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: `${s.color}18` }}>
                 <s.icon className="h-4 w-4" style={{ color: s.color }} />
               </div>
             </div>
             <p className="mt-1.5 text-2xl font-bold text-slate-900">{s.value}</p>
+            <p className="mt-0.5 text-[11px] text-slate-400">{s.sub}</p>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-        <div className="rounded-xl border border-slate-200 bg-white p-5 xl:col-span-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold text-slate-900">Sources de données</h3>
+        {/* Sources de données — données réelles */}
+        <div className="rounded-xl border border-slate-200 bg-white p-5 xl:col-span-2 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-base font-semibold text-slate-900">Sources de données</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Données réelles lues depuis la base PostgreSQL</p>
+            </div>
             <button
               onClick={syncAll}
               className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:underline"
@@ -182,109 +224,139 @@ export function SyncView() {
               Tout synchroniser
             </button>
           </div>
-          <div className="mt-4 space-y-2">
-            {sources.map((s) => {
-              const sc = statusConfig[s.status]
-              const Icon = sc.icon
-              return (
-                <div key={s.name} className="flex items-center gap-3 rounded-lg border border-slate-100 p-3 hover:bg-slate-50">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100">
-                    <Database className="h-4 w-4 text-slate-500" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="truncate text-sm font-medium text-slate-800">{s.name}</p>
-                      {s.version && (
-                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">{s.version}</span>
-                      )}
+          {loading ? (
+            <div className="space-y-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-14 rounded-lg bg-slate-100 animate-pulse" />
+              ))}
+            </div>
+          ) : sources.length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-8">Aucune source disponible</p>
+          ) : (
+            <div className="space-y-2">
+              {sources.map((s) => {
+                const sc = statusConfig[s.status]
+                const Icon = sc.icon
+                return (
+                  <div key={s.name} className="flex items-center gap-3 rounded-lg border border-slate-100 p-3 hover:bg-slate-50 transition">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100">
+                      <Database className="h-4 w-4 text-slate-500" />
                     </div>
-                    <p className="text-[11px] text-slate-400">
-                      {s.type} • {s.records.toLocaleString("fr-FR")} enregistrements • {s.lastSync}
-                    </p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-sm font-medium text-slate-800">{s.name}</p>
+                        {s.version && (
+                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">{s.version}</span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        {s.type} • <span className="font-semibold text-slate-600">{s.records.toLocaleString("fr-FR")}</span> enregistrements • {s.lastSync}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className={cn("border gap-1", sc.color)}>
+                      <Icon className="h-2.5 w-2.5" />
+                      {s.status}
+                    </Badge>
+                    <button
+                      onClick={syncAll}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                  <Badge variant="outline" className={cn("border gap-1", sc.color)}>
-                    <Icon className="h-2.5 w-2.5" />
-                    {s.status}
-                  </Badge>
-                  <button
-                    onClick={() => syncSource(s.name)}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-5 xl:col-span-1">
+        {/* File d'attente hors ligne */}
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-1">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold text-slate-900">File d'attente hors ligne</h3>
-            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
-              {offlineQueue.filter((q) => q.pending).length} en attente
+            <h3 className="text-base font-semibold text-slate-900">File d&apos;attente</h3>
+            <Badge variant="outline" className={cn(
+              "border",
+              queueCount > 0 ? "border-amber-200 bg-amber-50 text-amber-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"
+            )}>
+              {queueCount > 0 ? `${queueCount} en attente` : "Vide"}
             </Badge>
           </div>
           <p className="mt-1 text-xs text-slate-400">
-            Alertes générées hors ligne, remontées sans perte de traçabilité (OFF-04).
+            Alertes non traitées en base (statut : nouvelle).
           </p>
-          <div className="mt-4 space-y-2">
-            {offlineQueue.map((q) => (
-              <div
-                key={q.id}
-                className={cn(
-                  "flex items-start gap-2 rounded-lg border p-3",
-                  q.pending ? "border-amber-200 bg-amber-50/50" : "border-slate-100 bg-slate-50"
-                )}
-              >
-                <div className={cn(
-                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg",
-                  q.pending ? "bg-amber-100 text-amber-600" : "bg-emerald-100 text-emerald-600"
-                )}>
-                  {q.pending ? <Upload className="h-3.5 w-3.5" /> : <Download className="h-3.5 w-3.5" />}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-slate-800">{q.type}</p>
-                  <p className="text-[11px] text-slate-400">{q.client}</p>
-                  <p className="mt-0.5 text-[10px] text-slate-400">{q.id} • {q.date}</p>
-                </div>
-                {q.pending ? (
-                  <span className="text-[10px] font-semibold text-amber-600">En attente</span>
-                ) : (
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                )}
+          <div className="mt-4 space-y-2 max-h-[280px] overflow-y-auto">
+            {loading ? (
+              <div className="space-y-2">
+                {[1, 2].map((i) => <div key={i} className="h-14 rounded-lg bg-slate-100 animate-pulse" />)}
               </div>
-            ))}
+            ) : offlineQueue.length === 0 ? (
+              <div className="flex flex-col items-center py-6 text-center">
+                <CheckCircle2 className="h-8 w-8 text-emerald-500 mb-2" />
+                <p className="text-sm font-medium text-slate-600">File vide</p>
+                <p className="text-xs text-slate-400">Aucune alerte en attente de traitement.</p>
+              </div>
+            ) : (
+              offlineQueue.map((q) => (
+                <div
+                  key={q.id}
+                  className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/50 p-3"
+                >
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
+                    <Upload className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-slate-800">{q.type}</p>
+                    <p className="text-[11px] text-slate-400">{q.client}</p>
+                    <p className="mt-0.5 text-[10px] text-slate-400">{q.id} • {q.date}</p>
+                  </div>
+                  <span className="text-[10px] font-semibold text-amber-600 shrink-0">En attente</span>
+                </div>
+              ))
+            )}
           </div>
           <button
-            disabled={!online}
+            disabled={!online || queueCount === 0}
             onClick={flushQueue}
             className={cn(
               "mt-3 w-full rounded-lg py-2 text-xs font-semibold transition",
-              online
+              online && queueCount > 0
                 ? "bg-indigo-600 text-white hover:bg-indigo-700"
                 : "cursor-not-allowed bg-slate-100 text-slate-400"
             )}
           >
-            {online ? "Remonter la file maintenant" : "Reconnexion requise"}
+            {!online ? "Reconnexion requise" : queueCount === 0 ? "Aucune alerte en attente" : "Traiter les alertes en attente"}
           </button>
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5">
+      {/* Barre d'ancienneté */}
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-semibold text-slate-900">Ancienneté des données locales</h3>
-          <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
-            Récent — seuil OK (OFF-03)
+          <Badge variant="outline" className={cn(
+            "border",
+            anciennete > 1440
+              ? "border-rose-200 bg-rose-50 text-rose-700"
+              : "border-emerald-200 bg-emerald-50 text-emerald-700"
+          )}>
+            {anciennete > 1440 ? `Dépassé (${Math.round(anciennete / 60)}h) — OFF-03` : "Récent — seuil OK (OFF-03)"}
           </Badge>
         </div>
         <div className="mt-4">
           <div className="mb-1.5 flex items-center justify-between text-xs">
-            <span className="text-slate-500">Seuil d'alerte ancienneté : 24h</span>
-            <span className="font-semibold text-emerald-600">0 min — à jour</span>
+            <span className="text-slate-500">Seuil d&apos;alerte ancienneté : 24h (1 440 min)</span>
+            <span className={cn("font-semibold", anciennete > 60 ? "text-amber-600" : "text-emerald-600")}>
+              {anciennete === 0 ? "0 min — à jour" : `${anciennete} min`}
+            </span>
           </div>
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full w-[2%] rounded-full bg-emerald-500" />
+            <div
+              className={cn(
+                "h-full rounded-full transition-all",
+                anciennete > 1440 ? "bg-rose-500" : anciennete > 60 ? "bg-amber-500" : "bg-emerald-500"
+              )}
+              style={{ width: `${Math.min(100, (anciennete / 1440) * 100 + 2)}%` }}
+            />
           </div>
         </div>
       </div>
