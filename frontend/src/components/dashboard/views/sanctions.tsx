@@ -81,6 +81,11 @@ export function SanctionsView() {
           const sim = simMatch ? parseInt(simMatch[1], 10) : Math.max(70, a.score)
           const isPPE = (a.type || "").toLowerCase().includes("ppe") || (a.facteurs?.[0] || "").toLowerCase().includes("ppe")
           const listType: Match["listType"] = isPPE ? "PPE" : "ONU"
+          const mapStatus = (s: string): Match["status"] => {
+            if (s === "cloturee") return "confirme"
+            if (s === "classee") return "rejete"
+            return "en_attente"
+          }
           return {
             id: a.ref || `FLT-${a.id.slice(0, 6)}`,
             client: a.client,
@@ -89,7 +94,7 @@ export function SanctionsView() {
             listType,
             matchedEntry: a.facteurs?.[0] || `${a.client} (${listType})`,
             similarity: sim,
-            status: a.status === "resolue" ? "confirme" : a.status === "rejetee" ? "rejete" : "en_attente",
+            status: mapStatus(a.status),
             date: new Date().toLocaleDateString("fr-FR"),
           }
         })

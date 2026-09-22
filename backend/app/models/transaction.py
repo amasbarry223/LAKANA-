@@ -14,6 +14,7 @@ class Transaction(Base):
     compte_source_id = Column(String, nullable=True)
     numero_compte_expediteur = Column(String, index=True, nullable=True)  # Numéro de compte de l'expéditeur
     compte_destination_id = Column(String, nullable=True)
+    numero_compte_beneficiaire = Column(String, index=True, nullable=True)  # Numéro de compte du bénéficiaire
     beneficiaire_nom = Column(String, index=True, nullable=True)
     
     montant = Column(Float, nullable=False)
