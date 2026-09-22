@@ -18,19 +18,31 @@ LAKANA s'intercale comme une **couche intelligente de sécurité et de conformit
 
 ## 2. Architecture Technique Globale
 
-![Architecture LAKANA](C:\Users\DELL\.gemini\antigravity-ide\brain\b9b5bb3e-2b6a-46b9-af9c-3db71082932a\lakana_architecture_flow_1790120742390.jpg)
+![Architecture LAKANA - Bouclier Intermédiaire](C:\Users\DELL\.gemini\antigravity-ide\brain\b9b5bb3e-2b6a-46b9-af9c-3db71082932a\lakana_man_in_middle_arch_1790120872861.jpg)
+
+### Pourquoi LAKANA se place ENTRE le Système Existant et la Base de Données ?
+
+Contrairement à des logiciels de conformité classiques qui tournent "en différé" le soir ou après coup (ce qui est trop tard si l'argent a déjà quitté la caisse), LAKANA agit comme un **BOUCLIER ACTIF EN LIGNE (Inline Interceptor / Gatekeeper)** :
+
+1. **Aucune modification du code source du Core Banking (CBS)** :
+   Le système existant de la microfinance continue d'envoyer ses requêtes comme à son habitude.
+2. **Interception Synchrone à la milliseconde (`interceptor.sql`)** :
+   Grâce à des hooks et triggers PL/pgSQL de type `BEFORE INSERT` / `BEFORE UPDATE`, LAKANA s'intercale **directement sur le canal de transit** vers le disque dur de la base de données.
+3. **Verdict immédiat & Transactions Autonomes (`dblink`)** :
+   - **Si l'opération est suspecte ou interdite (ex: Sanction ONU/CENTIF, Smurfing, Multi-comptes frauduleux)** : LAKANA déclenche un `RAISE EXCEPTION`. La transaction est **annulée net (ROLLBACK)** avant même d'avoir pu être inscrite dans le grand livre !
+   - En parallèle, via une transaction autonome `dblink`, LAKANA sauvegarde l'alerte et déclenche les notifications WhatsApp et Email sans que l'annulation de la transaction n'efface la trace de la tentative de fraude.
+   - **Si l'opération est saine** : La transaction passe et s'écrit de manière sécurisée dans la base PostgreSQL.
 
 ### Composants Clés
 
 | Composant | Technologie | Rôle dans la chaîne |
 | :--- | :--- | :--- |
-| **CBS Existant** | Logiciel de caisse / SFD | Enrôlement des clients et saisie des opérations de caisse. |
-| **Base Centrale Partagée** | PostgreSQL 15+ | Entrepôt unifié des comptes, clients et transactions. |
-| **Pare-feu Triggers SQL** | PL/pgSQL (`interceptor.sql`) | Interception synchrone à la milliseconde pour bloquer tout client sanctionné avant enregistrement en base. |
-| **Moteur Backend LAKANA** | FastAPI (Python 3.14) | Moteur de règles métier, scoring composite, détection de fractionnement, fuzzy matching, et gestion des alertes. |
-| **Moteur IA & Prédiction** | Scikit-Learn (Isolation Forest & Random Forest) | Détection d'anomalies multidimensionnelles et notation de risque sans boîte noire. |
-| **Passerelle Multi-Canal** | WasenderAPI & SMTP TLS (Gmail) | Transmission instantanée des alertes aux décideurs sur WhatsApp Business et Courriel. |
-| **Frontend Décisionnel** | Next.js 16 (Turbopack, TailwindCSS) | Double interface dédiée : Agent de guichet (contrôle préalable) et Analyste conformité (investigation 360°). |
+| **Système Existant (CBS / SFD)** | Logiciel de caisse / Terminal Guichet | Génère les flux de transactions et requêtes métier sans rien changer à ses habitudes. |
+| **Bouclier Intercepteur LAKANA** | Triggers PL/pgSQL + API FastAPI | S'interpose entre le logiciel et les tables pour inspecter, filtrer et valider ou rejeter chaque opération en temps réel. |
+| **Moteur Sémantique & Fuzzy Matching** | Algorithme Phonétique Africain + Jaro-Winkler | Criblage instantané des sociétaires sur listes de sanctions, PPE et multi-comptes avec tolérance phonétique. |
+| **Base Centrale PostgreSQL** | PostgreSQL 15+ | Reçoit uniquement les écritures ayant franchi avec succès le filtre du bouclier LAKANA. |
+| **Passerelle Multi-Canal** | WasenderAPI & SMTP TLS (Gmail) | Alerte instantanément les responsables par WhatsApp et Courriel dès qu'une anomalie est interceptée. |
+| **Dashboard de Supervision** | Next.js 16 (React, TailwindCSS) | Vue dédiée Guichetier (contrôle amont) et Analyste (audit, traçabilité et déclarations CENTIF). |
 
 ---
 
