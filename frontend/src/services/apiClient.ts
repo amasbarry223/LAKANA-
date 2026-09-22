@@ -58,4 +58,28 @@ export class ApiClient {
     }
     return res.json()
   }
+
+  static async delete<T>(path: string, params?: Record<string, any>): Promise<T> {
+    const url = new URL(`${this.baseUrl}${path.startsWith("/") ? path : `/${path}`}`)
+    if (params) {
+      Object.keys(params).forEach((key) => {
+        if (params[key] !== undefined && params[key] !== null) {
+          url.searchParams.append(key, String(params[key]))
+        }
+      })
+    }
+
+    const res = await fetch(url.toString(), {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    })
+
+    if (!res.ok) {
+      throw new Error(`API DELETE Error [${res.status}]: ${res.statusText} on ${path}`)
+    }
+    return res.json()
+  }
 }

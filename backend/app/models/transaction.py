@@ -12,6 +12,7 @@ class Transaction(Base):
     reference = Column(String, unique=True, index=True, nullable=False)
     client_id = Column(String, ForeignKey("clients.id", ondelete="CASCADE"), nullable=False)
     compte_source_id = Column(String, nullable=True)
+    numero_compte_expediteur = Column(String, index=True, nullable=True)  # Numéro de compte de l'expéditeur
     compte_destination_id = Column(String, nullable=True)
     beneficiaire_nom = Column(String, index=True, nullable=True)
     

@@ -14,6 +14,7 @@ export interface DashboardStats {
   clients_filtres: string
   alertes_actives: number
   alertes_bloquantes: number
+  alertes_analyser?: number
   investigations_en_cours: number
   score_moyen: string
 }

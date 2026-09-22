@@ -7,6 +7,7 @@ class TransactionBase(BaseModel):
     reference: str
     client_id: str
     compte_source_id: Optional[str] = None
+    numero_compte_expediteur: Optional[str] = None
     compte_destination_id: Optional[str] = None
     beneficiaire_nom: Optional[str] = None
     montant: float = Field(gt=0, description="Montant de l'opération en FCFA")

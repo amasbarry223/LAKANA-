@@ -54,6 +54,8 @@ def create_transaction(
 
     if account:
         tx_in.compte_source_id = account.id
+        if not tx_in.numero_compte_expediteur:
+            tx_in.numero_compte_expediteur = account.numero_compte
         if tx_in.type_operation in ["Dépôt", "Virement reçu"]:
             account.solde += tx_in.montant
         elif tx_in.type_operation in ["Retrait", "Virement émis", "Transfert"]:

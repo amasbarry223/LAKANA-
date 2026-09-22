@@ -71,7 +71,7 @@ function DashboardListeners() {
   return null
 }
 
-const views: Record<string, React.ComponentType<{ onLogout?: () => void; onSelectClient?: (client: any) => void }>> = {
+const views: Record<string, React.ComponentType<any>> = {
   "Tableau de bord": OverviewView,
   "Centre d'alertes": AlertsCenterView,
   "Clients & Enrôlement": ClientsManagementView,

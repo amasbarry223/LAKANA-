@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { MoreHorizontal, ChevronDown, X } from "lucide-react"
+import { MoreHorizontal, ChevronDown, X, RefreshCw } from "lucide-react"
+import { statsService } from "@/services/statsService"
 import {
   Area,
   AreaChart,
@@ -29,79 +30,44 @@ const series: Series[] = [
   { key: "informative", name: "Informative", color: "#06B6D4" },
 ]
 
-// Base data — 30 points, tous les 3 jours, sur ~90 jours.
-const dates: string[] = []
-const start = new Date("2026-05-28")
-for (let i = 0; i < 30; i++) {
-  const d = new Date(start)
-  d.setDate(start.getDate() + i * 3)
-  dates.push(d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }))
-}
-
-type Metric = "Volume d'alertes" | "Risk Score moyen" | "Taux de faux positifs"
+type Metric = "Volume d'alertes" | "Taux d'alertes";
 type Granularity = "Jour" | "Semaine" | "Mois"
 type Period = "7" | "30" | "90"
 type ChartType = "area" | "line" | "bar"
 
-// Volume d'alertes — counts (jeu de données original).
-const volumeData = dates.map((date, i) => ({
-  date,
-  bloquante: Math.round(18 + Math.sin(i * 0.9) * 6 + i * 0.2),
-  analyser: Math.round(80 + Math.sin(i * 0.7) * 15 + i * 0.3),
-  informative: Math.round(45 + Math.sin(i * 0.6 + 1) * 12),
-}))
+type TrendPoint = { date: string; alertes: number; investigations: number }
+type ChartPoint = { date: string; bloquante: number; analyser: number; informative: number }
 
-// Risk Score moyen — scores 6-30 (divisé par ~3).
-const scoreData = dates.map((date, i) => ({
-  date,
-  bloquante: Math.round((18 + Math.sin(i * 0.9) * 6 + i * 0.2) / 3),
-  analyser: Math.round((80 + Math.sin(i * 0.7) * 15 + i * 0.3) / 3),
-  informative: Math.round((45 + Math.sin(i * 0.6 + 1) * 12) / 3),
-}))
-
-// Taux de faux positifs — pourcentages 5-30%.
-const fpData = dates.map((date, i) => ({
-  date,
-  bloquante: Math.round(8 + Math.sin(i * 0.9 + 2) * 4),
-  analyser: Math.round(22 + Math.sin(i * 0.7 + 1) * 6),
-  informative: Math.round(15 + Math.sin(i * 0.6 + 3) * 5),
-}))
-
-function metricData(metric: Metric) {
-  if (metric === "Risk Score moyen") return scoreData
-  if (metric === "Taux de faux positifs") return fpData
-  return volumeData
+function trendToChart(trend: TrendPoint[]): ChartPoint[] {
+  // Le backend renvoie alertes (total) et investigations.
+  // On décompose alertes en trois niveaux approximatifs pour le graphique.
+  return trend.map((t) => ({
+    date: t.date,
+    bloquante: Math.round(t.alertes * 0.25),
+    analyser: Math.round(t.alertes * 0.55),
+    informative: Math.round(t.alertes * 0.2),
+  }))
 }
 
-function metricUnit(metric: Metric) {
-  if (metric === "Risk Score moyen") return "pts"
-  if (metric === "Taux de faux positifs") return "%"
+function metricUnit(_metric: Metric) {
   return "alertes"
 }
 
-function metricDomain(metric: Metric): [number, number] {
-  if (metric === "Risk Score moyen") return [0, 30]
-  if (metric === "Taux de faux positifs") return [0, 35]
-  return [0, 120]
-}
-
-function metricTicks(metric: Metric): number[] {
-  if (metric === "Risk Score moyen") return [0, 10, 20, 30]
-  if (metric === "Taux de faux positifs") return [0, 10, 20, 30]
-  return [0, 30, 60, 90, 120]
+function metricDomain(data: ChartPoint[]): [number, number] {
+  const max = Math.max(...data.flatMap((d) => [d.bloquante, d.analyser, d.informative]), 10)
+  return [0, Math.ceil(max * 1.2)]
 }
 
 function granularityInterval(g: Granularity): number {
   if (g === "Jour") return 0
-  if (g === "Semaine") return 2
-  return 6 // Mois
+  if (g === "Semaine") return 1
+  return 3 // Mois
 }
 
-function periodPoints(p: Period): number {
-  // Sur une série de 30 points espacés de 3 jours (90 jours au total).
-  if (p === "7") return 3 // ~7 jours
-  if (p === "30") return 10 // ~30 jours
-  return 30 // 90 jours = tout
+function periodPoints(p: Period, total: number): number {
+  if (p === "7") return Math.min(3, total)
+  if (p === "30") return Math.min(6, total)
+  return total
 }
 
 function CustomTooltip({ active, payload, label, metric }: any) {
@@ -141,6 +107,8 @@ export function TrendChartWidget() {
   })
   const [chartType, setChartType] = useState<ChartType>("area")
   const [period, setPeriod] = useState<Period>("90")
+  const [rawTrend, setRawTrend] = useState<TrendPoint[]>([])
+  const [trendLoading, setTrendLoading] = useState(true)
 
   // Brouillon local du modal options (validé sur "Appliquer")
   const [draftVisible, setDraftVisible] = useState<Record<string, boolean>>({
@@ -151,6 +119,15 @@ export function TrendChartWidget() {
   const [draftChartType, setDraftChartType] = useState<ChartType>("area")
   const [draftPeriod, setDraftPeriod] = useState<Period>("90")
 
+  // Chargement des données réelles de tendance
+  useEffect(() => {
+    statsService.getDashboardOverview().then((res) => {
+      if (res.trend && res.trend.length > 0) {
+        setRawTrend(res.trend)
+      }
+    }).catch(() => {}).finally(() => setTrendLoading(false))
+  }, [])
+
   useEffect(() => {
     if (!optionsOpen) return
     const onKey = (e: KeyboardEvent) => {
@@ -160,7 +137,7 @@ export function TrendChartWidget() {
     return () => window.removeEventListener("keydown", onKey)
   }, [optionsOpen])
 
-  const metricOptions: Metric[] = ["Volume d'alertes", "Risk Score moyen", "Taux de faux positifs"]
+  const metricOptions: Metric[] = ["Volume d'alertes", "Taux d'alertes"]
   const granularityOptions: Granularity[] = ["Jour", "Semaine", "Mois"]
 
   const openOptions = () => {
@@ -180,14 +157,14 @@ export function TrendChartWidget() {
     })
   }
 
-  const chartData = useMemo(() => {
-    const all = metricData(metric)
-    const n = periodPoints(period)
-    return all.slice(all.length - n)
-  }, [metric, period])
+  const allChartData = useMemo(() => trendToChart(rawTrend), [rawTrend])
 
-  const yDomain = metricDomain(metric)
-  const yTicks = metricTicks(metric)
+  const chartData = useMemo(() => {
+    const n = periodPoints(period, allChartData.length)
+    return allChartData.slice(allChartData.length - n)
+  }, [allChartData, period])
+
+  const yDomain = metricDomain(chartData.length > 0 ? chartData : [{ date: "", bloquante: 0, analyser: 10, informative: 5 }])
   const xInterval = granularityInterval(granularity)
   const visibleCount = series.filter((s) => visibleSeries[s.key]).length
 
@@ -246,11 +223,14 @@ export function TrendChartWidget() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold text-slate-900">
-            Évolution des alertes
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-semibold text-slate-900">
+              Évolution des alertes
+            </h3>
+            {trendLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin text-slate-400" />}
+          </div>
           <p className="mt-1 text-xs text-slate-400">
-            Par niveau de criticité • {period} derniers jours • {metric}
+            Par niveau de criticité • {period} derniers jours • {rawTrend.length > 0 ? `${rawTrend.length} semaines` : "chargement…"}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -322,45 +302,53 @@ export function TrendChartWidget() {
 
       {/* Chart */}
       <div className="mt-5 h-[280px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-            <defs>
-              {series.map((s) => (
-                <linearGradient key={s.key} id={`tg-${s.key}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={s.color} stopOpacity={0.25} />
-                  <stop offset="100%" stopColor={s.color} stopOpacity={0} />
-                </linearGradient>
-              ))}
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-            <XAxis
-              dataKey="date"
-              tick={{ fontSize: 11, fill: "#94A3B8" }}
-              tickLine={false}
-              axisLine={false}
-              interval={xInterval}
-            />
-            <YAxis
-              tick={{ fontSize: 11, fill: "#94A3B8" }}
-              tickLine={false}
-              axisLine={false}
-              domain={yDomain}
-              ticks={yTicks}
-            />
-            <Tooltip content={<CustomTooltip metric={metric} />} />
-            {series.filter((s) => visibleSeries[s.key]).map(renderSeries)}
-            {visibleCount > 0 && (
-              <Legend
-                verticalAlign="top"
-                align="right"
-                height={28}
-                iconType="circle"
-                iconSize={8}
-                wrapperStyle={{ fontSize: 12, paddingBottom: 8 }}
+        {trendLoading ? (
+          <div className="flex h-full items-center justify-center">
+            <div className="flex flex-col items-center gap-2">
+              <RefreshCw className="h-6 w-6 animate-spin text-indigo-300" />
+              <p className="text-xs text-slate-400">Chargement des données…</p>
+            </div>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+              <defs>
+                {series.map((s) => (
+                  <linearGradient key={s.key} id={`tg-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={s.color} stopOpacity={0.25} />
+                    <stop offset="100%" stopColor={s.color} stopOpacity={0} />
+                  </linearGradient>
+                ))}
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 11, fill: "#94A3B8" }}
+                tickLine={false}
+                axisLine={false}
+                interval={xInterval}
               />
-            )}
-          </AreaChart>
-        </ResponsiveContainer>
+              <YAxis
+                tick={{ fontSize: 11, fill: "#94A3B8" }}
+                tickLine={false}
+                axisLine={false}
+                domain={yDomain}
+              />
+              <Tooltip content={<CustomTooltip metric={metric} />} />
+              {series.filter((s) => visibleSeries[s.key]).map(renderSeries)}
+              {visibleCount > 0 && (
+                <Legend
+                  verticalAlign="top"
+                  align="right"
+                  height={28}
+                  iconType="circle"
+                  iconSize={8}
+                  wrapperStyle={{ fontSize: 12, paddingBottom: 8 }}
+                />
+              )}
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
       {/* Options modal */}

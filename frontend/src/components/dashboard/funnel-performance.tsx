@@ -8,6 +8,9 @@ import { navigateTo } from "@/lib/navigate"
 import { useDashboard, type AlertItem } from "@/lib/dashboard-context"
 import { AlertDetailModal } from "@/components/dashboard/alert-detail-modal"
 
+import { useEffect } from "react"
+import { alertService } from "@/services/alertService"
+
 const spark = (n: number, base: number, vol: number, trend: number) => {
   const arr: { v: number }[] = []
   for (let i = 0; i < n; i++) {
@@ -21,101 +24,15 @@ type AlertRow = AlertItem & {
   delta: string
   color: string
   data: { v: number }[]
-  icon: React.ComponentType<{ className?: string }>
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
 }
 
-const allAlerts: AlertRow[] = [
-  {
-    ref: "ALR-241",
-    client: "Traoré, Moussa",
-    clientId: "CLI-1042",
-    score: 87,
-    type: "Fractionnement",
-    level: "bloquante",
-    module: "Fractionnement",
-    analyste: "A. Touré",
-    up: true,
-    delta: "9 pts",
-    color: "#EF4444",
-    data: spark(14, 70, 3, 1.2),
-    icon: Split,
-  },
-  {
-    ref: "ALR-238",
-    client: "Diarra, Fatoumata",
-    clientId: "CLI-1087",
-    score: 72,
-    type: "Correspondance PPE",
-    level: "bloquante",
-    module: "Filtrage sanctions",
-    analyste: "A. Touré",
-    up: true,
-    delta: "5 pts",
-    color: "#EF4444",
-    data: spark(14, 60, 2.5, 0.9),
-    icon: ShieldAlert,
-  },
-  {
-    ref: "ALR-235",
-    client: "Keïta, Ibrahim",
-    clientId: "CLI-1103",
-    score: 64,
-    type: "Volume inhabituel",
-    level: "analyser",
-    module: "Risk Score",
-    analyste: "M. Diallo",
-    up: true,
-    delta: "4 pts",
-    color: "#F59E0B",
-    data: spark(14, 55, 2, 0.6),
-    icon: Activity,
-  },
-  {
-    ref: "ALR-229",
-    client: "Coulibaly, Aïssata",
-    clientId: "CLI-1066",
-    score: 58,
-    type: "Fréquence anormale",
-    level: "analyser",
-    module: "Comportementale",
-    analyste: "A. Touré",
-    up: true,
-    delta: "3 pts",
-    color: "#F59E0B",
-    data: spark(14, 50, 2.5, 0.5),
-    icon: Gauge,
-  },
-  {
-    ref: "ALR-225",
-    client: "Touré, Seydou",
-    clientId: "CLI-1055",
-    score: 41,
-    type: "Relations inhabituelles",
-    level: "informative",
-    module: "Risk Score",
-    analyste: "F. Koné",
-    up: false,
-    delta: "2 pts",
-    color: "#06B6D4",
-    data: spark(14, 46, 2, -0.4),
-    icon: UserPlus,
-  },
-  {
-    ref: "ALR-219",
-    client: "Sangaré, Mariam",
-    clientId: "CLI-1098",
-    score: 36,
-    type: "Comportement atypique",
-    level: "informative",
-    module: "Comportementale",
-    analyste: "M. Diallo",
-    up: false,
-    delta: "6 pts",
-    color: "#06B6D4",
-    data: spark(14, 44, 1.8, -0.6),
-    icon: FileSearch,
-  },
-]
+const MODULE_ICONS: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
+  Fractionnement: Split,
+  "Filtrage sanctions": ShieldAlert,
+  "Risk Score": Activity,
+  Comportementale: Gauge,
+}
 
 const levelMap: Record<string, AlertItem["level"]> = {
   Bloquante: "bloquante",
@@ -145,9 +62,39 @@ function MiniSpark({ color, data }: { color: string; data: { v: number }[] }) {
 export function FunnelPerformance() {
   const { filters } = useDashboard()
   const [selectedAlert, setSelectedAlert] = useState<AlertItem | null>(null)
+  const [fetchedAlerts, setFetchedAlerts] = useState<AlertRow[]>([])
+
+  useEffect(() => {
+    alertService.getAlerts().then((raw) => {
+      if (raw && raw.length > 0) {
+        const rows: AlertRow[] = raw.map((a, idx) => {
+          const isBloquante = a.level === "bloquante"
+          const color = isBloquante ? "#EF4444" : a.level === "analyser" ? "#F59E0B" : "#06B6D4"
+          return {
+            ref: a.ref,
+            client: a.client,
+            clientId: a.clientId,
+            score: a.score,
+            type: a.type,
+            level: a.level,
+            module: a.module,
+            analyste: a.analyste,
+            up: isBloquante || a.score >= 50,
+            delta: `${Math.max(2, (a.score % 9) + 1)} pts`,
+            color,
+            data: spark(14, Math.max(30, a.score - 10), 2.5, 0.8),
+            icon: MODULE_ICONS[a.module] || (isBloquante ? ShieldAlert : Activity),
+          }
+        })
+        // Tri décroissant par score
+        rows.sort((a, b) => b.score - a.score)
+        setFetchedAlerts(rows)
+      }
+    }).catch(() => {})
+  }, [])
 
   const alerts = useMemo(() => {
-    return allAlerts.filter((a) => {
+    return fetchedAlerts.filter((a) => {
       if (filters.level !== "Tous niveaux") {
         const mapped = levelMap[filters.level]
         if (mapped && a.level !== mapped) return false
@@ -159,7 +106,7 @@ export function FunnelPerformance() {
       if (filters.analyste !== "Tous analystes" && a.analyste !== filters.analyste) return false
       return true
     })
-  }, [filters])
+  }, [fetchedAlerts, filters])
 
   return (
     <>

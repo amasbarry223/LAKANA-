@@ -25,6 +25,15 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         seed_demo_data(db)
+        # Initialisation et entraînement automatique des modèles ML si non présents
+        from app.ml.predictor import models_are_ready
+        from app.ml.model_trainer import train_models
+        if not models_are_ready():
+            logger.info("Modèles ML non détectés — Entraînement initial automatique (Isolation Forest & Random Forest)...")
+            train_models(db)
+            logger.info("Modèles ML entraînés et opérationnels.")
+    except Exception as e:
+        logger.warning(f"Avertissement initialisation ML : {e}")
     finally:
         db.close()
     

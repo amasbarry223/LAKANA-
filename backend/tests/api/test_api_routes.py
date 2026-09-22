@@ -71,6 +71,42 @@ class TestApiRoutes(unittest.TestCase):
         self.assertIn("synthese", data)
         self.assertIn("rappel_conformite", data)
 
+    def test_ai_chat_endpoint(self):
+        # 1. Requête générale
+        res_gen = self.client.post("/api/v1/assistant-ia/chat", json={"message": "Bonjour"})
+        self.assertEqual(res_gen.status_code, 200)
+        data_gen = res_gen.json()
+        self.assertEqual(data_gen["intent"], "GENERAL")
+        self.assertIn("response", data_gen)
+        self.assertIn("suggestions", data_gen)
+
+        # 2. Requête explication d'un client réel en base (Diarra)
+        res_cli = self.client.post("/api/v1/assistant-ia/chat", json={"message": "Expliquer le score de Diarra"})
+        self.assertEqual(res_cli.status_code, 200)
+        data_cli = res_cli.json()
+        self.assertEqual(data_cli["intent"], "EXPLAIN_CLIENT")
+        self.assertIsNotNone(data_cli["context_client"])
+        self.assertIn("Diarra", data_cli["response"])
+
+        # 3. Requête top risque
+        res_top = self.client.post("/api/v1/assistant-ia/chat", json={"message": "Quels sont les clients les plus risqués ?"})
+        self.assertEqual(res_top.status_code, 200)
+        self.assertEqual(res_top.json()["intent"], "TOP_RISQUE")
+
+        # 4. Requête fractionnement
+        res_frac = self.client.post("/api/v1/assistant-ia/chat", json={"message": "Y a-t-il du fractionnement détecté ?"})
+        self.assertEqual(res_frac.status_code, 200)
+        self.assertEqual(res_frac.json()["intent"], "FRACTIONNEMENT")
+
+    def test_ai_context_endpoint(self):
+        res = self.client.get("/api/v1/assistant-ia/context")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertIn("stats_alertes", data)
+        self.assertIn("stats_clients", data)
+        self.assertIn("models_ready", data)
+        self.assertIn("suggested_queries", data)
+
 
 if __name__ == "__main__":
     unittest.main()

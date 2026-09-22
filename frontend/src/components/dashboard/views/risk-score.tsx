@@ -35,7 +35,7 @@ type Criterion = {
   label: string
   weight: number
   description: string
-  icon: React.ComponentType<{ className?: string }>
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
   color: string
 }
 

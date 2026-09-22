@@ -1,59 +1,31 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { X } from "lucide-react"
+import { statsService, type FunnelReason } from "@/services/statsService"
 
-// Top motifs d'alerte — basés sur les critères de scoring (section 14 du cahier des charges)
-type Reason = {
-  label: string
-  pct: number
-  color: string
-}
-
-const reasons: Reason[] = [
-  { label: "Fractionnement potentiel", pct: 34.9, color: "#6366F1" },
-  { label: "Volume inhabituel", pct: 23.1, color: "#3B82F6" },
-  { label: "Correspondance PPE/sanctions", pct: 18.3, color: "#06B6D4" },
-  { label: "Fréquence anormale", pct: 14.7, color: "#67E8F9" },
-  { label: "Relations inhabituelles", pct: 8.9, color: "#CBD5E1" },
+const DEFAULT_REASONS: FunnelReason[] = [
+  { label: "Fractionnement potentiel", count: 2, pct: 34.9, color: "#6366F1", clients: [] },
+  { label: "Volume inhabituel", count: 2, pct: 23.1, color: "#3B82F6", clients: [] },
+  { label: "Correspondance PPE/sanctions", count: 1, pct: 18.3, color: "#06B6D4", clients: [] },
+  { label: "Fréquence anormale", count: 1, pct: 14.7, color: "#67E8F9", clients: [] },
 ]
-
-// Noms malian réalistes pour la répartition mockée
-const malianNames = [
-  "Traoré, Moussa",
-  "Diarra, Aïcha",
-  "Keïta, Ibrahim",
-  "Coulibaly, Fatoumata",
-  "Touré, Modibo",
-  "Sangaré, Aminata",
-  "Diabaté, Sékou",
-  "Camara, Kadiatou",
-  "Diallo, Oumar",
-  "Cissé, Mariam",
-]
-
-function buildBreakdown(reason: Reason) {
-  // Mock deterministic par index de label pour avoir 4-5 lignes stables
-  const seed = reason.label.length
-  const rows = 4 + (seed % 2) // 4 ou 5 lignes
-  const used = new Set<number>()
-  const items: { client: string; alerts: number; pct: number }[] = []
-  let remaining = 100
-  for (let i = 0; i < rows; i++) {
-    let idx = (seed + i * 3) % malianNames.length
-    while (used.has(idx)) idx = (idx + 1) % malianNames.length
-    used.add(idx)
-    const share = i === rows - 1 ? remaining : Math.max(4, Math.round((remaining / (rows - i)) * 0.6))
-    remaining -= share
-    const alerts = Math.max(1, Math.round((share / 100) * 456 * (reason.pct / 100)))
-    items.push({ client: malianNames[idx], alerts, pct: share })
-  }
-  return items
-}
 
 export function DropoffReasons() {
-  const max = Math.max(...reasons.map((r) => r.pct))
-  const [selectedReason, setSelectedReason] = useState<Reason | null>(null)
+  const [reasons, setReasons] = useState<FunnelReason[]>(DEFAULT_REASONS)
+  const [selectedReason, setSelectedReason] = useState<FunnelReason | null>(null)
+  const [totalAlerts, setTotalAlerts] = useState<number | null>(null)
+
+  useEffect(() => {
+    statsService.getFunnelAnalytics().then((res) => {
+      if (res?.reasons && res.reasons.length > 0) {
+        setReasons(res.reasons)
+      }
+      if (res?.total_alerts !== undefined) {
+        setTotalAlerts(res.total_alerts)
+      }
+    }).catch(() => {})
+  }, [])
+
+  const max = Math.max(...reasons.map((r) => r.pct), 1)
 
   useEffect(() => {
     if (!selectedReason) return
@@ -68,7 +40,7 @@ export function DropoffReasons() {
     <div className="rounded-xl border border-slate-200 bg-white p-5">
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-slate-900">
-          Top motifs d'alerte
+          Top motifs d&apos;alerte
         </h3>
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
           Ce mois
@@ -96,7 +68,9 @@ export function DropoffReasons() {
       </div>
 
       <p className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-400">
-        Basé sur 456 alertes ce mois
+        {totalAlerts !== null
+          ? `Basé sur ${totalAlerts} alerte${totalAlerts > 1 ? "s" : ""} ce mois`
+          : `Basé sur ${reasons.reduce((s, r) => s + r.count, 0)} alertes ce mois`}
       </p>
 
       {/* Detail modal */}
@@ -147,18 +121,26 @@ export function DropoffReasons() {
                   <thead className="bg-slate-50">
                     <tr className="text-left text-xs text-slate-500">
                       <th className="px-3 py-2 font-medium">Client</th>
-                      <th className="px-3 py-2 text-right font-medium">Alertes</th>
-                      <th className="px-3 py-2 text-right font-medium">Part</th>
+                      <th className="px-3 py-2 text-center font-medium">Réf.</th>
+                      <th className="px-3 py-2 text-right font-medium">Score</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {buildBreakdown(selectedReason).map((row) => (
-                      <tr key={row.client}>
-                        <td className="px-3 py-2 text-slate-700">{row.client}</td>
-                        <td className="px-3 py-2 text-right text-slate-700">{row.alerts}</td>
-                        <td className="px-3 py-2 text-right font-medium text-slate-900">{row.pct}%</td>
+                    {selectedReason.clients && selectedReason.clients.length > 0 ? (
+                      selectedReason.clients.map((row) => (
+                        <tr key={row.ref}>
+                          <td className="px-3 py-2 text-slate-700 font-medium">{row.client}</td>
+                          <td className="px-3 py-2 text-center text-xs text-slate-500">{row.ref}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-slate-900">{row.score}/100</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={3} className="px-3 py-3 text-center text-xs text-slate-400">
+                          {selectedReason.count} alerte(s) liée(s) à ce motif en base de données.
+                        </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>

@@ -44,7 +44,7 @@ const formatColor: Record<Report["format"], string> = {
   XLSX: "bg-emerald-50 text-emerald-700 border-emerald-200",
 }
 
-const templates = [
+const templates: { title: string; desc: string; type: Report["type"]; color: string }[] = [
   { title: "Déclaration de soupçon CENTIF", desc: "Format réglementaire CENTIF-Mali", type: "CENTIF-Mali", color: "#EF4444" },
   { title: "Rapport trimestriel BCEAO", desc: "Conformité LBC/FT — Banque centrale", type: "BCEAO", color: "#3B82F6" },
   { title: "Synthèse mensuelle interne", desc: "Tableau de bord conformité", type: "Contrôle interne", color: "#64748B" },

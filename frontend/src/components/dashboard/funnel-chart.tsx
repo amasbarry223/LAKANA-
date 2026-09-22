@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { navigateTo } from "@/lib/navigate"
 import { cn } from "@/lib/utils"
 
+import { statsService } from "@/services/statsService"
+
 type Step = {
   name: string
   value: number
@@ -13,13 +15,13 @@ type Step = {
   color: string
 }
 
-// Pipeline de traitement LBC/FT — section 8 du cahier des charges
-const steps: Step[] = [
-  { name: "Transactions analysées", value: 12847, pct: 100, color: "#6366F1" },
-  { name: "Correspondances PPE/sanctions", value: 1203, pct: 9.4, color: "#7C8DF5" },
-  { name: "Alertes générées", value: 456, pct: 3.5, color: "#06B6D4" },
-  { name: "Investigations ouvertes", value: 124, pct: 1.0, color: "#22D3EE" },
-  { name: "Décisions documentées", value: 89, pct: 0.7, color: "#5EEAD4" },
+// Valeurs de repli représentatives
+const DEFAULT_STEPS: Step[] = [
+  { name: "Transactions analysées", value: 1200, pct: 100, color: "#6366F1" },
+  { name: "Correspondances PPE/sanctions", value: 120, pct: 10.0, color: "#7C8DF5" },
+  { name: "Alertes générées", value: 45, pct: 3.8, color: "#06B6D4" },
+  { name: "Investigations ouvertes", value: 12, pct: 1.0, color: "#22D3EE" },
+  { name: "Décisions documentées", value: 8, pct: 0.7, color: "#5EEAD4" },
 ]
 
 const fmt = (n: number) => n.toLocaleString("fr-FR")
@@ -27,6 +29,23 @@ const fmt = (n: number) => n.toLocaleString("fr-FR")
 export function FunnelChartWidget() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [calibrated, setCalibrated] = useState(false)
+  const [steps, setSteps] = useState<Step[]>(DEFAULT_STEPS)
+  const [topReason, setTopReason] = useState<{ label: string; count: number } | null>(null)
+  const [totalAlerts, setTotalAlerts] = useState<number | null>(null)
+
+  useEffect(() => {
+    statsService.getFunnelAnalytics().then((res) => {
+      if (res?.steps && res.steps.length > 0) {
+        setSteps(res.steps)
+      }
+      if (res?.reasons && res.reasons.length > 0) {
+        setTopReason(res.reasons[0])
+      }
+      if (res?.total_alerts !== undefined) {
+        setTotalAlerts(res.total_alerts)
+      }
+    }).catch(() => {})
+  }, [])
 
   // Escape key closes the detail modal
   useEffect(() => {
@@ -121,17 +140,27 @@ export function FunnelChartWidget() {
       {/* Footer stats */}
       <div className="mt-5 grid grid-cols-1 gap-2.5 border-t border-slate-100 pt-4 sm:grid-cols-2">
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-slate-500">Taux d'alerte global :</span>
-          <span className="font-semibold text-indigo-600">3,55%</span>
+          <span className="text-slate-500">Taux d&#39;alerte global :</span>
+          <span className="font-semibold text-indigo-600">
+            {steps.length > 1
+              ? `${steps[2]?.pct ?? "—"}%`
+              : "—"}
+          </span>
         </div>
         <div className="flex items-center gap-2 text-sm">
           <span className="text-slate-500">Total traité :</span>
-          <span className="font-semibold text-slate-900">12 847</span>
+          <span className="font-semibold text-slate-900">
+            {steps[0] ? fmt(steps[0].value) : "—"} transactions
+          </span>
         </div>
         <div className="flex items-center gap-2 text-sm">
           <span className="text-slate-500">Plus grosse source :</span>
           <span className="font-semibold text-rose-600">
-            Fractionnement (167 alertes)
+            {topReason
+              ? `${topReason.label} (${topReason.count} alerte${topReason.count > 1 ? "s" : ""})`
+              : totalAlerts !== null
+              ? `${totalAlerts} alertes au total`
+              : "—"}
           </span>
         </div>
         <div className="flex items-center gap-2 text-sm">
@@ -224,15 +253,21 @@ export function FunnelChartWidget() {
             <div className="mt-5 grid grid-cols-1 gap-2.5 rounded-lg bg-slate-50 p-4 sm:grid-cols-3">
               <div>
                 <p className="text-[11px] text-slate-400">Total traité</p>
-                <p className="mt-0.5 text-sm font-semibold text-slate-900">12 847 transactions</p>
+                <p className="mt-0.5 text-sm font-semibold text-slate-900">
+                  {steps[0] ? `${fmt(steps[0].value)} transactions` : "—"}
+                </p>
               </div>
               <div>
-                <p className="text-[11px] text-slate-400">Taux d'alerte global</p>
-                <p className="mt-0.5 text-sm font-semibold text-indigo-600">3,55%</p>
+                <p className="text-[11px] text-slate-400">Taux d&#39;alerte global</p>
+                <p className="mt-0.5 text-sm font-semibold text-indigo-600">
+                  {steps.length > 2 ? `${steps[2].pct}%` : "—"}
+                </p>
               </div>
               <div>
                 <p className="text-[11px] text-slate-400">Plus grosse source</p>
-                <p className="mt-0.5 text-sm font-semibold text-rose-600">Fractionnement (167)</p>
+                <p className="mt-0.5 text-sm font-semibold text-rose-600">
+                  {topReason ? `${topReason.label} (${topReason.count})` : "—"}
+                </p>
               </div>
             </div>
 

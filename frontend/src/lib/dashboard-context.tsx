@@ -21,8 +21,6 @@ export type ImportItem = {
   incoherences?: number
 }
 
-export type AlertLevel = "bloquante" | "analyser" | "informative"
-
 export type AlertItem = {
   ref: string
   client: string

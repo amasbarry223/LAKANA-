@@ -1,7 +1,9 @@
 "use client"
 
-import { AlertTriangle, Sparkles, Trophy, ChevronRight } from "lucide-react"
+import { useState, useEffect } from "react"
+import { AlertTriangle, Sparkles, Trophy, ChevronRight, ShieldAlert } from "lucide-react"
 import { navigateTo } from "@/lib/navigate"
+import { statsService } from "@/services/statsService"
 
 type Insight = {
   icon: React.ComponentType<{ className?: string }>
@@ -14,38 +16,37 @@ type Insight = {
   clientId?: string
 }
 
-const insights: Insight[] = [
-  {
-    icon: AlertTriangle,
-    iconBg: "bg-rose-50",
-    iconColor: "text-rose-500",
-    title: "Score critique détecté",
-    desc: "Le client Traoré M. a atteint un score de 87/100 — investigation requise.",
-    accent: "text-rose-600",
-    target: "Investigations",
-    clientId: "CLI-1042",
-  },
-  {
-    icon: Sparkles,
-    iconBg: "bg-cyan-50",
-    iconColor: "text-cyan-500",
-    title: "Correspondances PPE en attente",
-    desc: "3 correspondances PPE nécessitent une revue humaine avant tout blocage.",
-    accent: "text-cyan-600",
-    target: "Filtrage sanctions/PPE",
-  },
-  {
-    icon: Trophy,
-    iconBg: "bg-emerald-50",
-    iconColor: "text-emerald-500",
-    title: "Investigation clôturée",
-    desc: "L'alerte ALR-124 a été classée et tracée dans le journal d'audit.",
-    accent: "text-emerald-600",
-    target: "Journal d'audit",
-  },
-]
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  AlertTriangle,
+  Sparkles,
+  Trophy,
+  ShieldAlert,
+}
 
 export function FunnelInsights() {
+  const [insights, setInsights] = useState<Insight[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    statsService.getFunnelAnalytics().then((res) => {
+      if (res?.insights && res.insights.length > 0) {
+        const mapped: Insight[] = res.insights.map((ins) => ({
+          icon: ICON_MAP[ins.icon] || AlertTriangle,
+          iconBg: ins.iconBg,
+          iconColor: ins.iconColor,
+          title: ins.title,
+          desc: ins.desc,
+          accent: ins.accent,
+          target: ins.target,
+          clientId: ins.clientId,
+        }))
+        setInsights(mapped)
+      }
+    }).finally(() => {
+      setLoading(false)
+    })
+  }, [])
+
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5">
       <div className="flex items-center justify-between">

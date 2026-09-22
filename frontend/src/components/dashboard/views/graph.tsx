@@ -100,8 +100,8 @@ export function GraphView() {
         id: n.id,
         label: n.label,
         type: n.type as any,
-        x: n.x,
-        y: n.y,
+        x: n.x ?? 0,
+        y: n.y ?? 0,
         alert: n.alert,
         details: n.details,
       }))
