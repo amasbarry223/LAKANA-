@@ -15,4 +15,11 @@ class SanctionEntry(Base):
     liste_nom = Column(String, nullable=False)               # "Sanctions ONU", "Liste PPE Mali"...
     titre_fonction = Column(String, nullable=True)           # "Conseiller ministériel", "Directeur"...
     nationalite = Column(String, default="Mali")
+    
+    # Champs réglementaires officiels canevas PPE (Hackathon / SFD)
+    agence = Column(String, default="Agence Centrale Bamako", nullable=True)
+    numero_compte = Column(String, nullable=True, index=True)
+    lieu_naissance = Column(String, nullable=True)
+    lieu_residence = Column(String, nullable=True)
+    
     date_inscription = Column(DateTime, default=datetime.utcnow)

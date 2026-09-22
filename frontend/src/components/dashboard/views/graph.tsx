@@ -65,6 +65,7 @@ export function GraphView() {
   const [selected, setSelected] = useState<string | null>(null)
   const [hovered, setHovered] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<"client" | "global">("client")
+  const [showAllLabels, setShowAllLabels] = useState(false)
   const [exportMenuOpen, setExportMenuOpen] = useState(false)
   const exportMenuRef = useRef<HTMLDivElement>(null)
 

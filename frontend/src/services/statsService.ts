@@ -148,6 +148,34 @@ export const statsService = {
       }
     }
   },
+
+  // ─── 3 REGISTRES RÉGLEMENTAIRES OFFICIELS SFD ──────────────────────────────
+  async getRegistreOperationsSuspectes(): Promise<any[]> {
+    try {
+      return await ApiClient.get<any[]>("/stats/registre-operations-suspectes")
+    } catch (e) {
+      console.error("Erreur chargement registre opérations suspectes :", e)
+      return []
+    }
+  },
+
+  async getRegistreTransactions15M(): Promise<any[]> {
+    try {
+      return await ApiClient.get<any[]>("/stats/registre-transactions-15m")
+    } catch (e) {
+      console.error("Erreur chargement registre transactions 15M :", e)
+      return []
+    }
+  },
+
+  async getRegistrePPE(): Promise<any[]> {
+    try {
+      return await ApiClient.get<any[]>("/stats/registre-ppe")
+    } catch (e) {
+      console.error("Erreur chargement registre PPE :", e)
+      return []
+    }
+  },
 }
 
 export const auditService = {

@@ -31,6 +31,13 @@ class ClientBase(BaseModel):
     ville: Optional[str] = "Bamako"
     pays: Optional[str] = "Mali"
     telephone: Optional[str] = None
+    
+    # Champs réglementaires officiels
+    numero_compte: Optional[str] = None
+    adresse_complete: Optional[str] = None
+    agence: Optional[str] = "Agence Centrale Bamako"
+    lieu_naissance: Optional[str] = None
+    lieu_residence: Optional[str] = None
 
     # Type : "Particulier" ou "Entreprise"
     type_client: str = "Particulier"

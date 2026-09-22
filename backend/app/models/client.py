@@ -13,10 +13,14 @@ class Client(Base):
     nom = Column(String, index=True, nullable=False)
     prenom = Column(String, nullable=True)
     date_naissance = Column(String, nullable=True)
+    lieu_naissance = Column(String, nullable=True)  # Canevas officiel PPE
     profession = Column(String, nullable=True)
     ville = Column(String, nullable=True, default="Bamako")
     pays = Column(String, nullable=True, default="Mali")
     telephone = Column(String, nullable=True)
+    adresse_complete = Column(String, nullable=True) # Canevas officiel Opérations Suspectes & 15M+
+    lieu_residence = Column(String, nullable=True)   # Canevas officiel PPE
+    agence = Column(String, default="Agence Centrale Bamako", index=True) # Agence de rattachement du sociétaire
     
     # Type de client : "Particulier" ou "Entreprise"
     type_client = Column(String, default="Particulier")

@@ -11,6 +11,12 @@ class SanctionEntryBase(BaseModel):
     liste_nom: str
     titre_fonction: Optional[str] = None
     nationalite: str = "Mali"
+    
+    # Champs réglementaires officiels canevas PPE
+    agence: Optional[str] = "Agence Centrale Bamako"
+    numero_compte: Optional[str] = None
+    lieu_naissance: Optional[str] = None
+    lieu_residence: Optional[str] = None
 
 
 class SanctionEntryCreate(SanctionEntryBase):

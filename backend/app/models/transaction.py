@@ -19,9 +19,17 @@ class Transaction(Base):
     
     montant = Column(Float, nullable=False)
     devise = Column(String, default="XOF")
-    type_operation = Column(String, default="Dépôt")  # Dépôt, Retrait, Virement, Mobile Money
+    type_operation = Column(String, default="Dépôt")  # Dépôt, Retrait, Virement, Crédit, Mobile Money
     canal = Column(String, default="Guichet")          # Guichet, Agent, Mobile
     description = Column(String, nullable=True)
+    
+    # Champs réglementaires obligatoires SFD (Canevas CENTIF / BCEAO / Hackathon)
+    numero_depot = Column(String, nullable=True, index=True)         # N° Dépôt (ex: DEP-2026-0841)
+    agence = Column(String, default="Agence Centrale Bamako", index=True) # Agence d'exécution
+    cause_operation = Column(String, nullable=True)                  # Cause / Motif ou libellé économique
+    caractere = Column(String, default="Habituel")                   # Habituel ou Inhabituel
+    operateur = Column(String, default="Guichetier 01", nullable=True) # Opérateur de guichet / agent
+    
     date_transaction = Column(DateTime, default=datetime.utcnow, index=True)
 
     # Relations

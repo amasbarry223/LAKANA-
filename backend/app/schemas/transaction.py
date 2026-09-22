@@ -16,6 +16,13 @@ class TransactionBase(BaseModel):
     type_operation: str = "Dépôt"
     canal: str = "Guichet"
     description: Optional[str] = None
+    
+    # Champs réglementaires officiels
+    numero_depot: Optional[str] = None
+    agence: Optional[str] = "Agence Centrale Bamako"
+    cause_operation: Optional[str] = None
+    caractere: Optional[str] = "Habituel"
+    operateur: Optional[str] = "Guichetier 01"
 
 
 class TransactionCreate(TransactionBase):
