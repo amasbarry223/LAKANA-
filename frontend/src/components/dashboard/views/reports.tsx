@@ -1,11 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { FileBarChart, Download, Calendar, CheckCircle2, Clock, FileText, ChevronRight, ChevronDown, Loader2, X } from "lucide-react"
+import { FileBarChart, Download, Calendar, CheckCircle2, Clock, FileText, ChevronRight, ChevronDown, Loader2, X, Printer } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { jsPDF } from "jspdf"
 
 type Report = {
   id: string
@@ -51,6 +50,73 @@ const templates: { title: string; desc: string; type: Report["type"]; color: str
   { title: "Synthèse mensuelle interne", desc: "Tableau de bord conformité", type: "Contrôle interne", color: "#64748B" },
   { title: "Export investigations clôturées", desc: "Liste des dossiers traités", type: "Synthèse mensuelle", color: "#6366F1" },
 ]
+
+function buildNativePdfBlob(report: {
+  id: string
+  title: string
+  period: string
+  type: string
+  generatedAt: string
+  lines: string[]
+}): Blob {
+  const clean = (str: string) =>
+    String(str)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\\/g, "\\\\")
+      .replace(/\(/g, "\\(")
+      .replace(/\)/g, "\\)")
+
+  let stream = "BT\n"
+  stream += "/F1 16 Tf\n40 780 Td\n(" + clean("LAKANA - BOUCLIER AML/CFT & CONFORMITE") + ") Tj\n"
+  stream += "/F1 11 Tf\n0 -30 Td\n(" + clean("Rapport officiel : " + report.title) + ") Tj\n"
+  stream += "0 -18 Td\n(" + clean("Reference : " + report.id + "  |  Periode : " + report.period + "  |  Destinataire : " + report.type) + ") Tj\n"
+  stream += "0 -18 Td\n(" + clean("Genere le : " + report.generatedAt + "  |  Statut : Certifie (Ref. BO-06)") + ") Tj\n"
+  stream += "0 -30 Td\n/F1 12 Tf\n(" + clean("SYNTHESE DES CONTROLES ET INDICATEURS :") + ") Tj\n"
+  stream += "/F1 10 Tf\n0 -22 Td\n"
+
+  for (const line of report.lines) {
+    stream += "(" + clean(line) + ") Tj\n0 -18 Td\n"
+  }
+
+  stream += "0 -40 Td\n/F1 8 Tf\n"
+  stream += "(" + clean("Document confidentiel certifie genere par la plateforme LAKANA AML/CFT.") + ") Tj\n"
+  stream += "0 -14 Td\n"
+  stream += "(" + clean("Soumis aux obligations de secret professionnel et bancaire (Directives UEMOA/CENTIF).") + ") Tj\n"
+  stream += "ET\n"
+
+  const encoder = new TextEncoder()
+  const streamBytes = encoder.encode(stream)
+  const streamLength = streamBytes.length
+
+  const obj1 = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"
+  const obj2 = "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n"
+  const obj3 = "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n"
+  const obj4 = `4 0 obj\n<< /Length ${streamLength} >>\nstream\n${stream}endstream\nendobj\n`
+  const obj5 = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n"
+
+  const header = "%PDF-1.4\n"
+  const body = [obj1, obj2, obj3, obj4, obj5]
+
+  let fullPdf = header
+  const offsets: number[] = []
+
+  for (const o of body) {
+    offsets.push(encoder.encode(fullPdf).length)
+    fullPdf += o
+  }
+
+  const startxref = encoder.encode(fullPdf).length
+  let xref = "xref\n0 6\n0000000000 65535 f \n"
+  for (const off of offsets) {
+    xref += String(off).padStart(10, "0") + " 00000 n \n"
+  }
+
+  const trailer = `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${startxref}\n%%EOF\n`
+  fullPdf += xref + trailer
+
+  return new Blob([encoder.encode(fullPdf)], { type: "application/pdf" })
+}
 
 export function ReportsView() {
   const [period, setPeriod] = useState("Août 2026")
@@ -386,94 +452,124 @@ export function ReportsView() {
               </button>
               <button
                 onClick={() => {
+                  const printWin = window.open("", "_blank")
+                  if (printWin) {
+                    printWin.document.write(`
+                      <html>
+                        <head>
+                          <title>LAKANA - ${previewReport.id}</title>
+                          <style>
+                            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px; color: #0f172a; }
+                            .header { border-bottom: 2px solid #0f172a; padding-bottom: 15px; margin-bottom: 25px; }
+                            .brand { font-size: 20px; font-weight: bold; color: #4338ca; }
+                            .title { font-size: 18px; font-weight: bold; margin-top: 15px; }
+                            .meta { color: #64748b; font-size: 13px; margin-top: 5px; }
+                            table { width: 100%; border-collapse: collapse; margin-top: 25px; }
+                            th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; font-size: 13px; }
+                            th { background: #f8fafc; font-weight: 600; }
+                            .footer { margin-top: 50px; border-top: 1px solid #cbd5e1; padding-top: 15px; font-size: 11px; color: #94a3b8; }
+                          </style>
+                        </head>
+                        <body>
+                          <div class="header">
+                            <div class="brand">LAKANA — Système de Conformité AML/CFT (UEMOA)</div>
+                            <div class="title">${previewReport.title}</div>
+                            <div class="meta">Réf : ${previewReport.id} | Période : ${previewReport.period} | Date : ${previewReport.generatedAt} | Destinataire : ${previewReport.type}</div>
+                          </div>
+                          <h3>Synthèse des opérations et alertes réglementaires (Réf. BO-06)</h3>
+                          <table>
+                            <thead>
+                              <tr>
+                                <th>Paramètre / Opération</th>
+                                <th>Détails & Montants</th>
+                                <th>Statut de conformité</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td>Portefeuille surveillé</td>
+                                <td>216 clients actifs & 19 690 transactions réelles</td>
+                                <td>Conforme BCEAO</td>
+                              </tr>
+                              <tr>
+                                <td>Alertes sous investigation</td>
+                                <td>5 dossiers critiques à transmission CENTIF</td>
+                                <td>Transmission immédiate (48h)</td>
+                              </tr>
+                              <tr>
+                                <td>Détections Smurfing / Fractionnement</td>
+                                <td>67 comptes en zone de fractionnement de seuil</td>
+                                <td>Signalement actif</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          <div class="footer">
+                            Document officiel certifié généré par la plateforme LAKANA AML/CFT. Soumis au secret bancaire et aux dispositions réglementaires UEMOA/CENTIF.
+                          </div>
+                          <script>
+                            window.onload = function() { window.print(); }
+                          </script>
+                        </body>
+                      </html>
+                    `)
+                    printWin.document.close()
+                  }
+                }}
+                className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                Imprimer
+              </button>
+              <button
+                onClick={() => {
                   if (previewReport.format === "PDF") {
                     try {
-                      const doc = new jsPDF()
-                      // Bandeau d'en-tête
-                      doc.setFillColor(30, 41, 59)
-                      doc.rect(0, 0, 210, 24, "F")
-                      doc.setTextColor(255, 255, 255)
-                      doc.setFontSize(14)
-                      doc.setFont("helvetica", "bold")
-                      doc.text("LAKANA — Système de Détection AML/CFT (UEMOA)", 14, 16)
-
-                      // Métadonnées
-                      doc.setFontSize(12)
-                      doc.setFont("helvetica", "bold")
-                      doc.setTextColor(15, 23, 42)
-                      doc.text(previewReport.title, 14, 35)
-
-                      doc.setFontSize(9)
-                      doc.setFont("helvetica", "normal")
-                      doc.setTextColor(100, 116, 139)
-                      doc.text(`Identifiant : ${previewReport.id}   |   Période : ${previewReport.period}   |   Format : PDF Officiel`, 14, 42)
-                      doc.text(`Destinataire réglementaire : ${previewReport.type}   |   Date de génération : ${previewReport.generatedAt}`, 14, 48)
-
-                      doc.setDrawColor(203, 213, 225)
-                      doc.line(14, 52, 196, 52)
-
-                      // Corps du rapport
-                      doc.setFontSize(11)
-                      doc.setFont("helvetica", "bold")
-                      doc.setTextColor(15, 23, 42)
-                      doc.text("Données de synthèse réglementaire (Réf. BO-06) :", 14, 62)
-
-                      doc.setFontSize(9)
-                      doc.setFont("helvetica", "normal")
-                      let y = 72
-
+                      let lines: string[] = []
                       if (previewReport.type === "CENTIF-Mali") {
-                        const rows = [
-                          "• Déclarant: Traoré Moussa | Montant: 4 800 000 FCFA | Motif: Fractionnement répété | Date: 25/08/2026",
-                          "• Déclarant: Diarra Fatoumata [PPE] | Montant: 3 650 000 FCFA | Motif: Volume atypique | Date: 24/08/2026",
-                          "• Déclarant: Sangaré Ousmane | Montant: 2 100 000 FCFA | Motif: Comportement anormal | Date: 23/08/2026",
-                          "• Déclarant: Coulibaly Aïssata | Montant: 2 850 000 FCFA | Motif: Fréquence suspecte | Date: 20/08/2026",
+                        lines = [
+                          "Declarant: Traore Moussa | Montant: 4 800 000 FCFA | Motif: Fractionnement repete | Date: 25/08/2026",
+                          "Declarant: Diarra Fatoumata [PPE] | Montant: 3 650 000 FCFA | Motif: Volume atypique | Date: 24/08/2026",
+                          "Declarant: Sangare Ousmane | Montant: 2 100 000 FCFA | Motif: Comportement anormal | Date: 23/08/2026",
+                          "Declarant: Coulibaly Aissata | Montant: 2 850 000 FCFA | Motif: Frequence suspecte | Date: 20/08/2026",
                         ]
-                        rows.forEach((r) => {
-                          doc.text(r, 14, y)
-                          y += 9
-                        })
                       } else if (previewReport.type === "BCEAO") {
-                        const indicators = [
-                          "• Volume total analysé : 19 690 transactions réelles surveillées",
-                          "• Portefeuille de comptes : 216 clients actifs évalués",
-                          "• Alertes de conformité générées : 7 dossiers prioritaires",
-                          "• Dossiers sous transmission CENTIF : 5 signalements bloquants",
-                          "• Taux de conformité des diligences : 98,6%",
+                        lines = [
+                          "Volume total analyse : 19 690 transactions reelles surveillees",
+                          "Portefeuille de comptes : 216 clients actifs evalues",
+                          "Alertes de conformite generees : 7 dossiers prioritaires",
+                          "Dossiers sous transmission CENTIF : 5 signalements bloquants",
+                          "Taux de conformite des diligences : 98,6%",
                         ]
-                        indicators.forEach((ind) => {
-                          doc.text(ind, 14, y)
-                          y += 9
-                        })
                       } else {
-                        const stats = [
-                          "• Fractionnement de seuil (Smurfing) : 67 comptes identifiés",
-                          "• Détections PPE / Personnes Politiquement Exposées : 19 comptes ciblés",
-                          "• Alertes bloquantes immédiates : 5 transactions suspendues",
-                          "• Re-scoring algorithmique ML exécuté avec succès",
+                        lines = [
+                          "Fractionnement de seuil (Smurfing) : 67 comptes identifies",
+                          "Detections PPE / Personnes Politiquement Exposees : 19 comptes cibles",
+                          "Alertes bloquantes immediates : 5 transactions suspendues",
+                          "Re-scoring algorithmique ML execute avec succes",
                         ]
-                        stats.forEach((s) => {
-                          doc.text(s, 14, y)
-                          y += 9
-                        })
                       }
 
-                      // Pied de page légal
-                      doc.setDrawColor(203, 213, 225)
-                      doc.line(14, 260, 196, 260)
-                      doc.setFontSize(8)
-                      doc.setTextColor(148, 163, 184)
-                      doc.text("Document certifié conforme généré automatiquement par la plateforme LAKANA AML/CFT.", 14, 268)
-                      doc.text("Confidentiel — Soumis aux obligations de secret bancaire et aux directives UEMOA/CENTIF.", 14, 273)
+                      const blob = buildNativePdfBlob({
+                        id: previewReport.id,
+                        title: previewReport.title,
+                        period: previewReport.period,
+                        type: previewReport.type,
+                        generatedAt: previewReport.generatedAt,
+                        lines,
+                      })
 
-                      doc.save(`${previewReport.id}.pdf`)
+                      const url = URL.createObjectURL(blob)
+                      const a = document.createElement("a")
+                      a.href = url
+                      a.download = `${previewReport.id}.pdf`
+                      a.click()
+                      URL.revokeObjectURL(url)
                       toast.success("Document PDF téléchargé", { description: `${previewReport.id}.pdf prêt à l'ouverture.` })
                     } catch (err) {
                       console.error("Erreur PDF:", err)
                       toast.error("Erreur de génération PDF")
                     }
                   } else {
-                    // Export CSV pour Excel
                     let csv = "\uFEFF"
                     csv += `LAKANA — ${previewReport.title}\n`
                     csv += `Reference;${previewReport.id}\nPeriode;${previewReport.period}\nType;${previewReport.type}\nDate;${previewReport.generatedAt}\n\n`
