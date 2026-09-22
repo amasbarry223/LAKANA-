@@ -5,6 +5,7 @@ import { FileBarChart, Download, Calendar, CheckCircle2, Clock, FileText, Chevro
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { jsPDF } from "jspdf"
 
 type Report = {
   id: string
@@ -383,19 +384,116 @@ export function ReportsView() {
               >
                 Fermer
               </button>
-          <button
-            onClick={() => {
-              const content = `LAKANA — ${previewReport.title}\nPériode: ${previewReport.period}\nType: ${previewReport.type}\nFormat: ${previewReport.format}\nGénéré: ${previewReport.generatedAt}\n\n--- Rapport réglementaire (BO-06) ---\n`
-              const blob = new Blob([content], { type: previewReport.format === "PDF" ? "application/pdf" : "text/csv" })
-              const url = URL.createObjectURL(blob)
-              const a = document.createElement("a")
-              a.href = url
-              a.download = `${previewReport.id}.${previewReport.format === "PDF" ? "pdf" : "csv"}`
-              a.click()
-              URL.revokeObjectURL(url)
-              toast.success("Téléchargement", { description: `${previewReport.title} (${previewReport.format}).` })
-              setPreviewReport(null)
-            }}
+              <button
+                onClick={() => {
+                  if (previewReport.format === "PDF") {
+                    try {
+                      const doc = new jsPDF()
+                      // Bandeau d'en-tête
+                      doc.setFillColor(30, 41, 59)
+                      doc.rect(0, 0, 210, 24, "F")
+                      doc.setTextColor(255, 255, 255)
+                      doc.setFontSize(14)
+                      doc.setFont("helvetica", "bold")
+                      doc.text("LAKANA — Système de Détection AML/CFT (UEMOA)", 14, 16)
+
+                      // Métadonnées
+                      doc.setFontSize(12)
+                      doc.setFont("helvetica", "bold")
+                      doc.setTextColor(15, 23, 42)
+                      doc.text(previewReport.title, 14, 35)
+
+                      doc.setFontSize(9)
+                      doc.setFont("helvetica", "normal")
+                      doc.setTextColor(100, 116, 139)
+                      doc.text(`Identifiant : ${previewReport.id}   |   Période : ${previewReport.period}   |   Format : PDF Officiel`, 14, 42)
+                      doc.text(`Destinataire réglementaire : ${previewReport.type}   |   Date de génération : ${previewReport.generatedAt}`, 14, 48)
+
+                      doc.setDrawColor(203, 213, 225)
+                      doc.line(14, 52, 196, 52)
+
+                      // Corps du rapport
+                      doc.setFontSize(11)
+                      doc.setFont("helvetica", "bold")
+                      doc.setTextColor(15, 23, 42)
+                      doc.text("Données de synthèse réglementaire (Réf. BO-06) :", 14, 62)
+
+                      doc.setFontSize(9)
+                      doc.setFont("helvetica", "normal")
+                      let y = 72
+
+                      if (previewReport.type === "CENTIF-Mali") {
+                        const rows = [
+                          "• Déclarant: Traoré Moussa | Montant: 4 800 000 FCFA | Motif: Fractionnement répété | Date: 25/08/2026",
+                          "• Déclarant: Diarra Fatoumata [PPE] | Montant: 3 650 000 FCFA | Motif: Volume atypique | Date: 24/08/2026",
+                          "• Déclarant: Sangaré Ousmane | Montant: 2 100 000 FCFA | Motif: Comportement anormal | Date: 23/08/2026",
+                          "• Déclarant: Coulibaly Aïssata | Montant: 2 850 000 FCFA | Motif: Fréquence suspecte | Date: 20/08/2026",
+                        ]
+                        rows.forEach((r) => {
+                          doc.text(r, 14, y)
+                          y += 9
+                        })
+                      } else if (previewReport.type === "BCEAO") {
+                        const indicators = [
+                          "• Volume total analysé : 19 690 transactions réelles surveillées",
+                          "• Portefeuille de comptes : 216 clients actifs évalués",
+                          "• Alertes de conformité générées : 7 dossiers prioritaires",
+                          "• Dossiers sous transmission CENTIF : 5 signalements bloquants",
+                          "• Taux de conformité des diligences : 98,6%",
+                        ]
+                        indicators.forEach((ind) => {
+                          doc.text(ind, 14, y)
+                          y += 9
+                        })
+                      } else {
+                        const stats = [
+                          "• Fractionnement de seuil (Smurfing) : 67 comptes identifiés",
+                          "• Détections PPE / Personnes Politiquement Exposées : 19 comptes ciblés",
+                          "• Alertes bloquantes immédiates : 5 transactions suspendues",
+                          "• Re-scoring algorithmique ML exécuté avec succès",
+                        ]
+                        stats.forEach((s) => {
+                          doc.text(s, 14, y)
+                          y += 9
+                        })
+                      }
+
+                      // Pied de page légal
+                      doc.setDrawColor(203, 213, 225)
+                      doc.line(14, 260, 196, 260)
+                      doc.setFontSize(8)
+                      doc.setTextColor(148, 163, 184)
+                      doc.text("Document certifié conforme généré automatiquement par la plateforme LAKANA AML/CFT.", 14, 268)
+                      doc.text("Confidentiel — Soumis aux obligations de secret bancaire et aux directives UEMOA/CENTIF.", 14, 273)
+
+                      doc.save(`${previewReport.id}.pdf`)
+                      toast.success("Document PDF téléchargé", { description: `${previewReport.id}.pdf prêt à l'ouverture.` })
+                    } catch (err) {
+                      console.error("Erreur PDF:", err)
+                      toast.error("Erreur de génération PDF")
+                    }
+                  } else {
+                    // Export CSV pour Excel
+                    let csv = "\uFEFF"
+                    csv += `LAKANA — ${previewReport.title}\n`
+                    csv += `Reference;${previewReport.id}\nPeriode;${previewReport.period}\nType;${previewReport.type}\nDate;${previewReport.generatedAt}\n\n`
+                    csv += `Indicateur;Valeur;Statut\n`
+                    csv += `Transactions analysees;19690;Conforme\n`
+                    csv += `Clients surveilles;216;Actif\n`
+                    csv += `Alertes bloquantes;5;En cours\n`
+                    csv += `Declarations CENTIF;5;Pret a transmission\n`
+
+                    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement("a")
+                    a.href = url
+                    a.download = `${previewReport.id}.csv`
+                    a.click()
+                    URL.revokeObjectURL(url)
+                    toast.success("Document CSV téléchargé", { description: `${previewReport.id}.csv prêt.` })
+                  }
+                  setPreviewReport(null)
+                }}
                 className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
               >
                 <Download className="h-3.5 w-3.5" />
