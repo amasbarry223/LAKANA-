@@ -354,7 +354,7 @@ export function Client360View() {
   useEffect(() => {
     let mounted = true
     clientService
-      .getAll()
+      .getClients()
       .then((backendClients) => {
         if (!mounted || !backendClients || backendClients.length === 0) return
         setClientList((prevList) => {
@@ -501,6 +501,7 @@ export function Client360View() {
               <User className="h-3.5 w-3.5" />
               {c.name}
             </button>
+          ))}
         </div>
       </div>
 

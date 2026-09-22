@@ -58,6 +58,10 @@ function mapToBackend(client: Partial<Client>): any {
 }
 
 export const clientService = {
+  async getAll(query?: string): Promise<Client[]> {
+    return this.getClients(query)
+  },
+
   async getClients(query?: string): Promise<Client[]> {
     try {
       const raw = await ApiClient.get<any[]>("/clients", query ? { q: query } : undefined)
