@@ -172,6 +172,134 @@ class DetectionService:
                 }
         return None
 
+    def check_multi_accounts_identity(self, db: Session, client: Any) -> Dict[str, Any]:
+        """
+        Règle R-MLT-01 : Détection de multi-comptes ou création de nouveau compte pour la même personne.
+        Identifiants analysés :
+        - Personne physique : Numéro CNI / NINA / Pièce d'identité (piece_identite).
+        - Personne morale (Entreprise) : NIF ou RCCM.
+        """
+        from app.models.client import Client
+        from app.models.account import Account
+
+        if not client:
+            return {
+                "has_multi_accounts": False,
+                "comptes_count": 0,
+                "comptes": [],
+                "identifiant_cle": "Inconnu",
+                "alerte_active": False,
+                "facteurs": [],
+                "message": "Aucun sociétaire spécifié."
+            }
+
+        matched_client_ids = {client.id}
+        identifiant_desc = "Fiche sociétaire"
+
+        # 1. Vérification CNI / NINA pour Particulier
+        if client.piece_identite and len(client.piece_identite.strip()) >= 4:
+            clean_cni = client.piece_identite.strip()
+            identifiant_desc = f"CNI/NINA: {clean_cni}"
+            same_cni_clients = (
+                db.query(Client)
+                .filter(Client.piece_identite == clean_cni)
+                .all()
+            )
+            for c in same_cni_clients:
+                matched_client_ids.add(c.id)
+
+        # 2. Vérification NIF / RCCM pour Entreprise
+        if client.nif and len(client.nif.strip()) >= 4:
+            clean_nif = client.nif.strip()
+            identifiant_desc = f"NIF: {clean_nif}"
+            same_nif_clients = (
+                db.query(Client)
+                .filter(Client.nif == clean_nif)
+                .all()
+            )
+            for c in same_nif_clients:
+                matched_client_ids.add(c.id)
+
+        if client.rccm and len(client.rccm.strip()) >= 4:
+            clean_rccm = client.rccm.strip()
+            if "NIF" not in identifiant_desc:
+                identifiant_desc = f"RCCM: {clean_rccm}"
+            same_rccm_clients = (
+                db.query(Client)
+                .filter(Client.rccm == clean_rccm)
+                .all()
+            )
+            for c in same_rccm_clients:
+                matched_client_ids.add(c.id)
+
+        # 3. Récupérer tous les comptes associés à cette identité unique
+        comptes_db = (
+            db.query(Account)
+            .filter(Account.client_id.in_(list(matched_client_ids)))
+            .order_by(Account.date_ouverture.desc())
+            .all()
+        )
+
+        if not comptes_db and client.comptes:
+            comptes_db = list(client.comptes)
+
+        now = datetime.utcnow()
+        has_recent_new_account = False
+        comptes_list = []
+
+        for acc in comptes_db:
+            is_recent = False
+            if acc.date_ouverture:
+                delta_days = (now - acc.date_ouverture).days
+                if delta_days <= 60:
+                    is_recent = True
+                    has_recent_new_account = True
+            comptes_list.append({
+                "numero_compte": acc.numero_compte,
+                "type_compte": acc.type_compte,
+                "solde": acc.solde,
+                "devise": acc.devise or "XOF",
+                "date_ouverture": acc.date_ouverture.strftime("%d/%m/%Y") if acc.date_ouverture else "N/A",
+                "is_recent": is_recent,
+            })
+
+        total_comptes = len(comptes_list)
+        has_multi = total_comptes > 1
+        facteurs = []
+
+        if has_multi:
+            facteurs.append(f"{total_comptes} comptes bancaires distincts identifiés sous l'identifiant légal '{identifiant_desc}'.")
+            if len(matched_client_ids) > 1:
+                facteurs.append(f"Dédoublement d'enrôlement détecté : {len(matched_client_ids)} fiches sociétaires distinctes partagent le même identifiant légal.")
+            if has_recent_new_account:
+                facteurs.append("Création récente d'un compte supplémentaire au sein du réseau.")
+
+        consigne = (
+            f"Vérifier le motif économique d'ouverture de plusieurs comptes sous l'identifiant '{identifiant_desc}'. S'assurer de la justification avant d'autoriser la transaction."
+            if has_multi
+            else "Sociétaire titulaire d'un compte unique. Aucun dédoublement d'identité."
+        )
+
+        return {
+            "has_multi_accounts": has_multi,
+            "comptes_count": total_comptes,
+            "comptes": comptes_list,
+            "identifiant_cle": identifiant_desc,
+            "has_recent_new_account": has_recent_new_account,
+            "multiple_client_records": len(matched_client_ids) > 1,
+            "alerte_active": has_multi,
+            "score": 65 if has_multi else 0,
+            "niveau": "analyser" if has_multi else "conforme",
+            "facteurs": facteurs,
+            "consigne_guichet": consigne,
+            "message": (
+                f"[VIGILANCE MULTI-COMPTES] {total_comptes} comptes identifiés pour le même titulaire ({identifiant_desc}). Contrôle préalable requis."
+                if has_multi
+                else "Un seul compte actif identifié sous cet identifiant."
+            )
+        }
+
 
 detection_service = DetectionService()
+
 

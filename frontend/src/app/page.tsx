@@ -74,9 +74,7 @@ function DashboardListeners() {
 const views: Record<string, React.ComponentType<any>> = {
   "Tableau de bord": OverviewView,
   "Centre d'alertes": AlertsCenterView,
-  "Clients & Enrôlement": ClientsManagementView,
-  "Transactions": TransactionSimulatorView,
-  "Simulateur de transactions": TransactionSimulatorView,
+  "Contrôle & Pré-filtrage Sociétaire": TransactionSimulatorView,
   "Client 360°": Client360View,
   "Graphe de relations": GraphView,
   "Investigations": InvestigationsView,
@@ -236,7 +234,7 @@ function DashboardContent({
             <View
               onLogout={active === "Mon profil" ? onLogout : undefined}
               onSelectClient={
-                active === "Clients & Enrôlement"
+                active === "Contrôle & Pré-filtrage Sociétaire"
                   ? (c: any) => handleNavigate("Client 360°", { clientId: c.id || c.codeClient })
                   : undefined
               }

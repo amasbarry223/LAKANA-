@@ -1,6 +1,15 @@
 import { ApiClient } from "./apiClient"
 import type { SanctionMatch, SanctionEntry } from "@/models/sanction"
 
+export interface CompteInfo {
+  numero_compte: string
+  type_compte: string
+  solde: number
+  devise?: string
+  date_ouverture?: string
+  is_recent?: boolean
+}
+
 export interface PreCheckResult {
   found: boolean
   client_id: string
@@ -14,6 +23,11 @@ export interface PreCheckResult {
   reference_sanction?: string
   fonction_ppe?: string
   type_ppe?: string
+  has_multi_accounts?: boolean
+  comptes_count?: number
+  comptes?: CompteInfo[]
+  identifiant_cle?: string
+  has_recent_new_account?: boolean
   message: string
   consigne_guichet: string
 }

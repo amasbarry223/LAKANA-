@@ -150,6 +150,17 @@ def create_transaction(
             "facteurs": scoring_result["facteurs"],
         })
 
+    # Règle 7 : Multi-comptes ou création de nouveau compte sous même CNI/NIF (R-MLT-01)
+    multi_identity_res = detection_service.check_multi_accounts_identity(db, client)
+    if multi_identity_res["has_multi_accounts"]:
+        detected_alerts.append({
+            "type": f"Multi-comptes détecté ({multi_identity_res['identifiant_cle']})",
+            "niveau": "analyser",
+            "module": "Multi-comptes CNI/NIF",
+            "score": multi_identity_res["score"],
+            "facteurs": multi_identity_res["facteurs"],
+        })
+
     # 6. ENREGISTREMENT ET EXPÉDITION MULTI-CANAL DES ALERTES (WhatsApp & Email)
     if detected_alerts:
         primary_alert = detected_alerts[0]

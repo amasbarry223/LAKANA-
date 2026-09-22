@@ -219,18 +219,18 @@ export function OverviewView() {
       {/* ACTIONS RAPIDES POUR LE GUICHET                                   */}
       {/* ───────────────────────────────────────────────────────────────── */}
       {isGuichet && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div
-            onClick={() => navigateTo("Transactions")}
+            onClick={() => navigateTo("Contrôle & Pré-filtrage Sociétaire")}
             className="group flex cursor-pointer items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 transition hover:bg-emerald-100/70 hover:shadow-sm dark:border-emerald-900 dark:bg-emerald-950/30"
           >
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-sm">
-                <Send className="h-5 w-5" />
+                <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-emerald-950 dark:text-emerald-200">Saisir / Contrôler opération</p>
-                <p className="text-xs text-emerald-700 dark:text-emerald-400">Dépôt, retrait ou transfert avec pare-feu</p>
+                <p className="text-sm font-semibold text-emerald-950 dark:text-emerald-200">Contrôle Sociétaire (CNI / NIF / PPE)</p>
+                <p className="text-xs text-emerald-700 dark:text-emerald-400">Pré-filtrage Sanctions, PPE et Multi-comptes avant transaction</p>
               </div>
             </div>
             <ChevronRight className="h-5 w-5 text-emerald-600 transition group-hover:translate-x-0.5" />
@@ -245,27 +245,11 @@ export function OverviewView() {
                 <Search className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-indigo-950 dark:text-indigo-200">Cribler un sociétaire</p>
-                <p className="text-xs text-indigo-700 dark:text-indigo-400">Vérification immédiate ONU · CENTIF</p>
+                <p className="text-sm font-semibold text-indigo-950 dark:text-indigo-200">Cribler un nom (Listes Sanctions)</p>
+                <p className="text-xs text-indigo-700 dark:text-indigo-400">Vérification immédiate ONU · CENTIF · UEMOA</p>
               </div>
             </div>
             <ChevronRight className="h-5 w-5 text-indigo-600 transition group-hover:translate-x-0.5" />
-          </div>
-
-          <div
-            onClick={() => navigateTo("Clients & Enrôlement")}
-            className="group flex cursor-pointer items-center justify-between rounded-xl border border-slate-200 bg-white p-4 transition hover:bg-slate-50 hover:shadow-sm dark:border-slate-800 dark:bg-slate-900"
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800 text-white shadow-sm dark:bg-slate-700">
-                <Users className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Fiche Client & KYC</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Rechercher un compte ou sociétaire</p>
-              </div>
-            </div>
-            <ChevronRight className="h-5 w-5 text-slate-400 transition group-hover:translate-x-0.5" />
           </div>
         </div>
       )}

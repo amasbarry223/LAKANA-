@@ -38,12 +38,13 @@ def pre_check_guichet(client_id: str, db: Session = Depends(get_db)):
     """
     from app.models.client import Client
     from app.services.notification_service import notification_service
+    from app.services.detection_service import detection_service
 
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         client = db.query(Client).filter(Client.code_client == client_id).first()
     if not client:
-        return {"found": False, "is_ppe": False, "is_sanctioned": False, "message": "Client non répertorié"}
+        return {"found": False, "is_ppe": False, "is_sanctioned": False, "has_multi_accounts": False, "message": "Client non répertorié"}
 
     nom_complet = f"{client.prenom or ''} {client.nom}".strip()
     
@@ -55,9 +56,11 @@ def pre_check_guichet(client_id: str, db: Session = Depends(get_db)):
     is_sanctioned = len(sanction_matches) > 0
     is_ppe = client.est_ppe or len(ppe_matches) > 0
 
+    # 2. Vérification multi-comptes / dédoublement par CNI ou NIF (R-MLT-01)
+    multi_acc = detection_service.check_multi_accounts_identity(db, client)
+
     if is_sanctioned:
         top_match = sanction_matches[0]
-        # Alerte d'urgence WhatsApp & Email expédiée immédiatement
         alr_ref = f"ALR-GEL-{top_match.code_entree or '999'}"
         notification_service.dispatch_aml_alert(
             alerte_ref=alr_ref,
@@ -84,12 +87,37 @@ def pre_check_guichet(client_id: str, db: Session = Depends(get_db)):
             "liste_sanction": top_match.liste_nom,
             "reference_sanction": top_match.code_entree,
             "fonction_ppe": client.fonction_ppe,
+            "has_multi_accounts": multi_acc["has_multi_accounts"],
+            "comptes_count": multi_acc["comptes_count"],
+            "comptes": multi_acc["comptes"],
+            "identifiant_cle": multi_acc["identifiant_cle"],
+            "has_recent_new_account": multi_acc["has_recent_new_account"],
             "message": f"[GEL DES AVOIRS] SOCIETAIRE SOUS SANCTION OFFICIELLE ({top_match.liste_nom} - Ref: {top_match.code_entree}). Gel des avoirs actif : Toute operation est strictement interdite. La Direction de la Conformite a ete alertee par WhatsApp et Email.",
             "consigne_guichet": "Ne pas exécuter l'opération. Prétexter un contrôle technique et aviser discrètement le responsable d'agence.",
         }
 
     elif is_ppe:
         fonction = client.fonction_ppe or (ppe_matches[0].titre_fonction if ppe_matches else "Personne Politiquement Exposée")
+        
+        # Si le client PPE a en plus des multi-comptes
+        if multi_acc["has_multi_accounts"]:
+            alr_ref = f"ALR-MLT-{client.code_client}"
+            notification_service.dispatch_aml_alert(
+                alerte_ref=alr_ref,
+                type_alerte=f"Multi-comptes PPE ({multi_acc['identifiant_cle']})",
+                niveau="analyser",
+                client_nom=nom_complet,
+                montant_fcfa=0,
+                facteurs=multi_acc["facteurs"] + [f"Statut PPE : {fonction}"],
+                agence=client.agence or "Agence Centrale Bamako",
+            )
+
+        consigne = (
+            f"Vigilance PPE renforcée + Contrôle multi-comptes : {multi_acc['comptes_count']} comptes rattachés ({multi_acc['identifiant_cle']}). Accord de l'encadrement requis."
+            if multi_acc["has_multi_accounts"]
+            else "Demander le justificatif de provenance des fonds. S'assurer de la conformité du profil économique."
+        )
+
         return {
             "found": True,
             "client_id": client.id,
@@ -101,8 +129,44 @@ def pre_check_guichet(client_id: str, db: Session = Depends(get_db)):
             "niveau": "analyser",
             "fonction_ppe": fonction,
             "type_ppe": client.type_ppe or "Nationale",
-            "message": f"[VIGILANCE RENFORCEE] SOCIETAIRE PPE (Personne Politiquement Exposee) DETECTE : Titulaire de mandat public ('{fonction}'). Declaration de l'origine economique des fonds et accord de l'encadrement requis.",
-            "consigne_guichet": "Demander le justificatif de provenance des fonds. S'assurer de la conformité du profil économique.",
+            "has_multi_accounts": multi_acc["has_multi_accounts"],
+            "comptes_count": multi_acc["comptes_count"],
+            "comptes": multi_acc["comptes"],
+            "identifiant_cle": multi_acc["identifiant_cle"],
+            "has_recent_new_account": multi_acc["has_recent_new_account"],
+            "message": f"[VIGILANCE RENFORCEE] SOCIETAIRE PPE (Personne Politiquement Exposee) DETECTE : Titulaire de mandat public ('{fonction}')." + (f" Titulaire de {multi_acc['comptes_count']} comptes ({multi_acc['identifiant_cle']})." if multi_acc["has_multi_accounts"] else ""),
+            "consigne_guichet": consigne,
+        }
+
+    elif multi_acc["has_multi_accounts"]:
+        # Alerte multi-comptes pour client ordinaire
+        alr_ref = f"ALR-MLT-{client.code_client}"
+        notification_service.dispatch_aml_alert(
+            alerte_ref=alr_ref,
+            type_alerte=f"Création de nouveau compte / Multi-comptes ({multi_acc['identifiant_cle']})",
+            niveau="analyser",
+            client_nom=nom_complet,
+            montant_fcfa=0,
+            facteurs=multi_acc["facteurs"],
+            agence=client.agence or "Agence Centrale Bamako",
+        )
+
+        return {
+            "found": True,
+            "client_id": client.id,
+            "client_nom": nom_complet,
+            "code_client": client.code_client,
+            "is_ppe": False,
+            "is_sanctioned": False,
+            "bloquer_operations": False,
+            "niveau": "analyser",
+            "has_multi_accounts": True,
+            "comptes_count": multi_acc["comptes_count"],
+            "comptes": multi_acc["comptes"],
+            "identifiant_cle": multi_acc["identifiant_cle"],
+            "has_recent_new_account": multi_acc["has_recent_new_account"],
+            "message": multi_acc["message"],
+            "consigne_guichet": multi_acc["consigne_guichet"],
         }
 
     return {
@@ -114,7 +178,12 @@ def pre_check_guichet(client_id: str, db: Session = Depends(get_db)):
         "is_sanctioned": False,
         "bloquer_operations": False,
         "niveau": "conforme",
-        "message": "Sociétaire standard — Aucun signalement de filtrage négatif.",
+        "has_multi_accounts": False,
+        "comptes_count": multi_acc["comptes_count"],
+        "comptes": multi_acc["comptes"],
+        "identifiant_cle": multi_acc["identifiant_cle"],
+        "has_recent_new_account": False,
+        "message": "Sociétaire standard — Compte unique, aucun signalement de filtrage négatif.",
         "consigne_guichet": "Traitement guichet standard sous réserve des seuils légaux.",
     }
 

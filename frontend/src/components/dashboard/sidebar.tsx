@@ -3,12 +3,12 @@
 import {
   LayoutGrid,
   BellRing,
-  UserPlus,
   UserRound,
   Share2,
   FolderSearch,
   Sparkles,
   ShieldAlert,
+  ShieldCheck,
   Gauge,
   Activity,
   Split,
@@ -23,7 +23,6 @@ import {
   LogOut,
   X,
   UserCircle,
-  ArrowRightLeft,
 } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
@@ -49,8 +48,7 @@ const sections: NavSection[] = [
     title: "ANALYSE",
     items: [
       { label: "Centre d'alertes", icon: BellRing, active: true },
-      { label: "Clients & Enrôlement", icon: UserPlus },
-      { label: "Transactions", icon: ArrowRightLeft },
+      { label: "Contrôle & Pré-filtrage Sociétaire", icon: ShieldCheck },
       { label: "Client 360°", icon: UserRound },
       { label: "Graphe de relations", icon: Share2 },
       { label: "Investigations", icon: FolderSearch },
@@ -105,15 +103,14 @@ function SidebarContent({ active, onSelect, userName = "Aminata Touré", userRol
           items: [{ label: "Tableau de bord", icon: LayoutGrid }],
         },
         {
-          title: "OPÉRATIONS GUICHET",
+          title: "SÉCURITÉ & CONFORMITÉ GUICHET",
           items: [
-            { label: "Transactions", icon: ArrowRightLeft },
-            { label: "Clients & Enrôlement", icon: UserPlus },
+            { label: "Contrôle & Pré-filtrage Sociétaire", icon: ShieldCheck },
             { label: "Filtrage sanctions/PPE", icon: ShieldAlert },
           ],
         },
         {
-          title: "INFORMATIONS",
+          title: "COMMUNICATION & ALERTES",
           items: [
             { label: "Notifications", icon: Bell },
           ],
