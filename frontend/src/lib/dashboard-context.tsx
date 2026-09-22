@@ -22,6 +22,7 @@ export type ImportItem = {
 }
 
 export type AlertItem = {
+  id?: string
   ref: string
   client: string
   clientId: string
@@ -30,7 +31,11 @@ export type AlertItem = {
   level: AlertLevel
   module: string
   analyste: string
+  facteurs?: string[]
+  status?: string
+  createdAt?: string
 }
+
 
 export type FilterState = {
   status: string

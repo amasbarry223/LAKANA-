@@ -5,7 +5,10 @@ import type {
   AIChatRequest,
   AIChatResponse,
   AIContextResponse,
+  MLPredictResponse,
+  MLTrainResponse,
 } from "@/models/ai"
+
 
 export const aiService = {
   async explainScore(payload: AIExplainRequest): Promise<AIExplainResponse> {

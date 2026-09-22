@@ -20,12 +20,8 @@ export const investigationService = {
         score: i.score || 75,
       }))
     } catch (e) {
-      console.warn("API investigations indisponible, fallback local:", e)
-      return [
-        { ref: "INV-241", client: "Traoré, Moussa", alertRef: "ALR-241", type: "Fractionnement", analyste: "A. Touré", status: "en_cours", dateOuverture: "25/08/2026", notes: 4, pieces: 2, score: 87 },
-        { ref: "INV-238", client: "Diarra, Fatoumata", alertRef: "ALR-238", type: "Correspondance PPE", analyste: "A. Touré", status: "en_cours", dateOuverture: "24/08/2026", notes: 2, pieces: 1, score: 72 },
-        { ref: "INV-219", client: "Touré, Seydou", alertRef: "ALR-219", type: "Relations inhabituelles", analyste: "M. Diallo", status: "transmise", dateOuverture: "15/08/2026", dateCloture: "21/08/2026", decision: "Déclaration de soupçon transmise au CENTIF", notes: 7, pieces: 5, score: 81 },
-      ]
+      console.error("Erreur API investigations :", e)
+      return []
     }
   },
 

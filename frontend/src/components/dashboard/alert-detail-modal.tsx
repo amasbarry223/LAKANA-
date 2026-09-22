@@ -85,12 +85,21 @@ export function AlertDetailModal({ alert, onClose }: AlertDetailModalProps) {
           </div>
 
           <div className="rounded-lg border border-slate-200 p-3">
-            <p className="text-xs font-medium text-slate-400">Facteurs déclencheurs</p>
-            <ul className="mt-2 space-y-1 text-sm text-slate-600">
-              <li>• Score de risque : {alert.score}/100</li>
-              <li>• Module d'origine : {alert.module}</li>
-              <li>• Niveau de priorité : {levelLabel[alert.level]}</li>
-            </ul>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Facteurs déclencheurs réels</p>
+            {alert.facteurs && alert.facteurs.length > 0 ? (
+              <ul className="mt-2 space-y-2 text-sm">
+                {alert.facteurs.map((facteur, idx) => (
+                  <li key={idx} className="flex items-start gap-2 rounded bg-slate-50 p-2 text-xs text-slate-700">
+                    <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-600" />
+                    <span>{facteur}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="mt-2 rounded bg-slate-50 p-2 text-xs text-slate-500">
+                Aucun facteur spécifique supplémentaire rapporté par le moteur de détection.
+              </div>
+            )}
           </div>
         </div>
 

@@ -1,3 +1,4 @@
+import math
 from typing import Dict, Any, List, Set
 from collections import defaultdict
 from sqlalchemy.orm import Session
@@ -84,7 +85,7 @@ class GraphService:
                 label=nom_affichage,
                 type="client",
                 x=400,
-                y=250,
+                y=260,
                 alert=client_alert,
                 details={
                     "score": client.risk_score,
@@ -102,13 +103,16 @@ class GraphService:
         comptes = db.query(Account).filter(Account.client_id == client_id).all()
         for idx, cpt in enumerate(comptes):
             cpt_id = f"cpt_{cpt.id}"
+            # Disposition des comptes au-dessus du client
+            compte_x = 300 + (idx * 200) if len(comptes) > 1 else 400
+            compte_y = 130
             nodes.append(
                 GraphNode(
                     id=cpt_id,
                     label=f"Cpte {cpt.numero_compte}",
                     type="compte",
-                    x=250 + (idx * 300),
-                    y=140,
+                    x=compte_x,
+                    y=compte_y,
                     alert=False,
                     details={"solde": cpt.solde, "devise": cpt.devise},
                 )
@@ -142,21 +146,17 @@ class GraphService:
                     beneficiaires_data[b_nom]["dates"].add(t.date_transaction.strftime("%Y-%m-%d"))
 
         total_flux = sum(b["cumul"] for b in beneficiaires_data.values())
-        b_idx = 0
+        num_b = len(beneficiaires_data)
 
-        for b_nom, b_info in beneficiaires_data.items():
+        for b_idx, (b_nom, b_info) in enumerate(beneficiaires_data.items()):
             b_id = f"ben_{b_idx}"
             cumul = b_info["cumul"]
             max_unitaire = b_info["max_unitaire"]
             dates = b_info["dates"]
 
-            # CONDITION 1 : Le seuil de transactions journalières de l'individu atteint 15 millions
             condition_15m_journalier = any(d in jours_critiques_15m for d in dates) or cumul >= self.SEUIL_JOURNALIER_ALERTE
-
-            # CONDITION 2 : Montant supérieur à 2 fois les transactions habituelles de l'individu
             condition_deux_fois_habituel = (max_unitaire > seuil_deux_fois_habituel) or (cumul > seuil_deux_fois_habituel)
 
-            # Déclenchement de la coloration rouge
             is_suspicious = (
                 condition_15m_journalier
                 or condition_deux_fois_habituel
@@ -169,13 +169,27 @@ class GraphService:
             if condition_deux_fois_habituel:
                 motif_alerte.append(f"Montant > 2x transactions habituelles (> {seuil_deux_fois_habituel:,.0f} F)")
 
+            # Disposition aérée en deux couronnes concentriques équilibrées
+            if num_b <= 6:
+                angle = (math.pi * 0.85 * b_idx / max(num_b - 1, 1)) + math.pi * 0.08
+                bx = round(400 + 260 * math.cos(angle + math.pi / 2))
+                by = round(260 + 200 * math.sin(angle + math.pi / 2))
+            else:
+                is_outer = (b_idx % 2 == 1)
+                radius_x = 340 if is_outer else 220
+                radius_y = 280 if is_outer else 180
+                step_angle = (2 * math.pi * b_idx) / num_b - math.pi / 2
+                bx = round(400 + radius_x * math.cos(step_angle))
+                by = round(260 + radius_y * math.sin(step_angle))
+
+
             nodes.append(
                 GraphNode(
                     id=b_id,
                     label=b_nom,
                     type="beneficiaire",
-                    x=120 + (b_idx * 170),
-                    y=380,
+                    x=bx,
+                    y=by,
                     alert=is_suspicious,
                     details={
                         "cumul": cumul,
@@ -187,7 +201,6 @@ class GraphService:
                 )
             )
 
-            # Lien vers le bénéficiaire
             parent_node = f"cpt_{comptes[0].id}" if comptes else client_node_id
             edges.append(
                 GraphEdge(
@@ -197,7 +210,6 @@ class GraphService:
                     strong=is_suspicious,
                 )
             )
-            b_idx += 1
 
         return FinancialGraphOut(
             client_id=client.id,
@@ -207,5 +219,110 @@ class GraphService:
             total_flux_detectes=total_flux,
         )
 
+    def build_global_graph(self, db: Session, limit_clients: int = 15) -> FinancialGraphOut:
+        """Génère la cartographie globale de tous les clients principaux, comptes et flux croisés."""
+        # 1. Sélection des clients prioritaires (les plus risqués ou représentatifs)
+        top_clients = (
+            db.query(Client)
+            .order_by(Client.risk_score.desc())
+            .limit(limit_clients)
+            .all()
+        )
+
+        nodes: List[GraphNode] = []
+        edges: List[GraphEdge] = []
+        existing_nodes: Set[str] = set()
+        beneficiaires_seen: Dict[str, str] = {}  # nom -> node_id
+
+        total_flux = 0.0
+        n_clients = len(top_clients)
+
+        # Disposition en cercle des clients autour du centre (500, 350)
+        cx, cy, radius_clients = 500, 350, 260
+
+        for idx, client in enumerate(top_clients):
+            angle = (2 * math.pi * idx) / max(n_clients, 1)
+            cli_x = round(cx + radius_clients * math.cos(angle))
+            cli_y = round(cy + radius_clients * math.sin(angle))
+
+            cli_id = f"cli_{client.id}"
+            nom_affichage = client.nom if not client.prenom else f"{client.nom} {client.prenom}"
+            if client.raison_sociale:
+                nom_affichage = client.raison_sociale
+
+            nodes.append(
+                GraphNode(
+                    id=cli_id,
+                    label=nom_affichage,
+                    type="client",
+                    x=cli_x,
+                    y=cli_y,
+                    alert=client.risk_score >= 70,
+                    details={
+                        "score": client.risk_score,
+                        "code": client.code_client,
+                        "ppe": client.est_ppe,
+                    },
+                )
+            )
+            existing_nodes.add(cli_id)
+
+            # Transactions récentes pour ce client
+            txs = (
+                db.query(Transaction)
+                .filter(Transaction.client_id == client.id)
+                .order_by(Transaction.date_transaction.desc())
+                .limit(8)
+                .all()
+            )
+
+            for t in txs:
+                total_flux += t.montant
+                if not t.beneficiaire_nom:
+                    continue
+
+                b_clean = t.beneficiaire_nom.strip()
+                if b_clean not in beneficiaires_seen:
+                    ben_id = f"ben_glob_{len(beneficiaires_seen)}"
+                    # Positionner le bénéficiaire légèrement décalé vers l'extérieur ou l'intérieur
+                    ben_angle = angle + (len(beneficiaires_seen) * 0.15)
+                    ben_radius = radius_clients + 110 if len(beneficiaires_seen) % 2 == 0 else radius_clients - 90
+                    bx = round(cx + ben_radius * math.cos(ben_angle))
+                    by = round(cy + ben_radius * math.sin(ben_angle))
+
+                    nodes.append(
+                        GraphNode(
+                            id=ben_id,
+                            label=b_clean,
+                            type="beneficiaire",
+                            x=bx,
+                            y=by,
+                            alert=t.montant >= 5_000_000 or (client.risk_score >= 70 and t.montant >= 1_000_000),
+                            details={"dernier_montant": t.montant},
+                        )
+                    )
+                    beneficiaires_seen[b_clean] = ben_id
+                    existing_nodes.add(ben_id)
+                else:
+                    ben_id = beneficiaires_seen[b_clean]
+
+                edges.append(
+                    GraphEdge(
+                        from_node=cli_id,
+                        to_node=ben_id,
+                        label=f"{t.montant:,.0f} F",
+                        strong=t.montant >= 5_000_000,
+                    )
+                )
+
+        return FinancialGraphOut(
+            client_id="GLOBAL",
+            client_nom="Cartographie Réseau Global LAKANA",
+            noeuds=nodes,
+            liens=edges,
+            total_flux_detectes=total_flux,
+        )
+
 
 graph_service = GraphService()
+
