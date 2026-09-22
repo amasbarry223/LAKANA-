@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
-import { Bell, AlertTriangle, Clock, ShieldAlert, CheckCircle2, Trash2, Settings2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Bell, AlertTriangle, Clock, ShieldAlert, CheckCircle2, Trash2, Settings2, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { cn } from "@/lib/utils"
+import { alertService } from "@/services/alertService"
 
 type Notif = {
   id: string
@@ -39,9 +40,39 @@ const filters = ["Toutes", "Non lues", "Bloquantes", "Investigations"] as const
 
 export function NotificationsView() {
   const [filter, setFilter] = useState<(typeof filters)[number]>("Toutes")
-  const [items, setItems] = useState(notifs)
+  const [items, setItems] = useState<Notif[]>(notifs)
+  const [loading, setLoading] = useState(false)
   const [notifToDelete, setNotifToDelete] = useState<Notif | null>(null)
   const [clearAllOpen, setClearAllOpen] = useState(false)
+
+  const fetchNotifs = async () => {
+    setLoading(true)
+    try {
+      const alerts = await alertService.getAlerts()
+      const bloquantes = alerts.filter((a) => a.level === "bloquante" || a.score >= 75)
+      if (bloquantes.length > 0) {
+        const dynamicNotifs: Notif[] = bloquantes.map((a, i) => ({
+          id: `N-DYN-${a.id.slice(0, 5)}`,
+          type: "bloquante",
+          title: `Alerte ${a.level === "bloquante" ? "bloquante" : "critique"} non traitée`,
+          desc: `${a.ref || "ALR"} (${a.client}) — score ${a.score}/100, type: ${a.type}`,
+          time: i === 0 ? "Il y a 5 min" : `Il y a ${(i + 1) * 15} min`,
+          read: false,
+        }))
+        const existingIds = new Set(dynamicNotifs.map((n) => n.desc))
+        const remaining = notifs.filter((n) => !existingIds.has(n.desc))
+        setItems([...dynamicNotifs, ...remaining])
+      }
+    } catch (e) {
+      console.warn("Erreur chargement notifications:", e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchNotifs()
+  }, [])
 
   const filtered = items.filter((n) => {
     if (filter === "Toutes") return true
@@ -80,6 +111,14 @@ export function NotificationsView() {
           <p className="mt-1 text-sm text-slate-500">Alertes internes : délais, seuils dépassés, événements système (BO-09).</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={fetchNotifs}
+            disabled={loading}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900"
+            title="Actualiser les notifications"
+          >
+            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+          </button>
           <button onClick={markAllRead} className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50">
             <CheckCircle2 className="h-3.5 w-3.5" />
             Tout marquer lu

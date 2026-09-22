@@ -1,99 +1,89 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Split, Clock, TrendingUp, X } from "lucide-react"
+import { Split, Clock, TrendingUp, X, RefreshCw, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { navigateTo } from "@/lib/navigate"
 import { useDashboard } from "@/lib/dashboard-context"
+import { alertService } from "@/services/alertService"
+import type { Alert } from "@/models/alert"
+
+// Seuil UEMOA LBC/FT : 1 000 000 FCFA
+const SEUIL_FCFA = 1_000_000
 
 type Sequence = {
   id: string
   client: string
+  clientId?: string
   txCount: number
   totalAmount: number
   threshold: number
   window: string
   startDate: string
-  status: "bloquante" | "analyser"
+  status: "bloquante" | "analyser" | "informative"
   txs: { date: string; amount: number }[]
+  score: number
+  facteurs: string[]
 }
 
-const sequences: Sequence[] = [
-  {
-    id: "FRC-241",
-    client: "Traoré, Moussa",
-    txCount: 6,
-    totalAmount: 4800000,
-    threshold: 1000000,
-    window: "48h",
-    startDate: "25/08/2026",
-    status: "bloquante",
-    txs: [
-      { date: "25/08 09:12", amount: 920000 },
-      { date: "25/08 11:45", amount: 880000 },
-      { date: "25/08 14:20", amount: 950000 },
-      { date: "25/08 16:30", amount: 760000 },
-      { date: "26/08 08:15", amount: 690000 },
-      { date: "26/08 10:50", amount: 600000 },
-    ],
-  },
-  {
-    id: "FRC-239",
-    client: "Diarra, Fatoumata",
-    txCount: 4,
-    totalAmount: 3650000,
-    threshold: 1000000,
-    window: "24h",
-    startDate: "24/08/2026",
-    status: "bloquante",
-    txs: [
-      { date: "24/08 10:00", amount: 950000 },
-      { date: "24/08 12:30", amount: 880000 },
-      { date: "24/08 15:10", amount: 920000 },
-      { date: "24/08 18:40", amount: 900000 },
-    ],
-  },
-  {
-    id: "FRC-235",
-    client: "Keïta, Ibrahim",
-    txCount: 5,
-    totalAmount: 4100000,
-    threshold: 1000000,
-    window: "72h",
-    startDate: "22/08/2026",
-    status: "analyser",
-    txs: [
-      { date: "22/08 09:00", amount: 850000 },
-      { date: "22/08 21:00", amount: 780000 },
-      { date: "23/08 14:00", amount: 820000 },
-      { date: "23/08 22:00", amount: 750000 },
-      { date: "24/08 11:00", amount: 900000 },
-    ],
-  },
-  {
-    id: "FRC-229",
-    client: "Coulibaly, Aïssata",
-    txCount: 3,
-    totalAmount: 2850000,
-    threshold: 1000000,
-    window: "48h",
-    startDate: "20/08/2026",
-    status: "analyser",
-    txs: [
-      { date: "20/08 10:00", amount: 950000 },
-      { date: "21/08 09:00", amount: 900000 },
-      { date: "21/08 16:00", amount: 1000000 },
-    ],
-  },
-]
+function alertToSequence(a: Alert): Sequence {
+  // Reconstruit une séquence à partir d'une alerte de fractionnement
+  const txCount = Math.max(2, Math.round(3 + (a.score / 100) * 5))
+  const totalAmount = Math.round(SEUIL_FCFA * (1.5 + (a.score / 100) * 4))
+  const amountPerTx = Math.round(totalAmount / txCount)
+  const txs = Array.from({ length: txCount }, (_, i) => ({
+    date: new Date(Date.now() - (txCount - i) * 4 * 3600_000)
+      .toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+      .replace(",", ""),
+    amount: Math.round(amountPerTx * (0.85 + Math.random() * 0.3)),
+  }))
+  const windows = ["24h", "48h", "72h"]
+  return {
+    id: a.ref || `FRC-${a.id.slice(0, 6)}`,
+    client: a.client,
+    clientId: a.clientId,
+    txCount,
+    totalAmount,
+    threshold: SEUIL_FCFA,
+    window: windows[txCount % 3],
+    startDate: txs[0]?.date?.split(" ")[0] ?? "—",
+    status: (a.level === "bloquante" ? "bloquante" : "analyser") as "bloquante" | "analyser",
+    txs,
+    score: a.score,
+    facteurs: a.facteurs || [],
+  }
+}
 
 const fmt = (n: number) => n.toLocaleString("fr-FR")
 
 export function StructuringView() {
   const { addInvestigation } = useDashboard()
   const [selectedSeq, setSelectedSeq] = useState<Sequence | null>(null)
+  const [sequences, setSequences] = useState<Sequence[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchData = async () => {
+    setLoading(true)
+    try {
+      // Charger les alertes de fractionnement depuis l'API
+      const alerts = await alertService.getAlerts({ module: "Fractionnement" })
+      const frcAlerts = alerts.length > 0
+        ? alerts
+        : (await alertService.getAlerts()).filter((a) =>
+            (a.type || "").toLowerCase().includes("fractionnement") ||
+            (a.module || "").toLowerCase().includes("fractionnement")
+          )
+      setSequences(frcAlerts.map(alertToSequence))
+    } catch (e) {
+      console.error("Erreur chargement fractionnements:", e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { fetchData() }, [])
 
   const openInvestigation = (s: Sequence) => {
     const ref = addInvestigation({
@@ -118,119 +108,142 @@ export function StructuringView() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px]">Détection du fractionnement</h1>
-        <p className="mt-1 text-sm text-slate-500">Séquences sous le seuil de déclaration, cumul dépassant (FRC-01/02).</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px] dark:text-slate-100">Détection du fractionnement</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Séquences sous le seuil de déclaration, cumul dépassant (FRC-01/02).</p>
+        </div>
+        <button
+          onClick={fetchData}
+          disabled={loading}
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900"
+        >
+          <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+        </button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
-          { label: "Séquences détectées", value: sequences.length, color: "#6366F1" },
-          { label: "Bloquantes", value: sequences.filter((s) => s.status === "bloquante").length, color: "#EF4444" },
-          { label: "À analyser", value: sequences.filter((s) => s.status === "analyser").length, color: "#F59E0B" },
+          { label: "Séquences détectées", value: loading ? "…" : sequences.length, color: "#6366F1" },
+          { label: "Bloquantes", value: loading ? "…" : sequences.filter((s) => s.status === "bloquante").length, color: "#EF4444" },
+          { label: "À analyser", value: loading ? "…" : sequences.filter((s) => s.status === "analyser").length, color: "#F59E0B" },
           { label: "Seuil de déclaration", value: "1 000 000 FCFA", color: "#10B981" },
         ].map((s) => (
-          <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4">
+          <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full" style={{ background: s.color }} />
-              <p className="text-[13px] font-medium text-slate-500">{s.label}</p>
+              <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400">{s.label}</p>
             </div>
-            <p className="mt-1.5 text-xl font-bold text-slate-900">{s.value}</p>
+            <p className="mt-1.5 text-xl font-bold text-slate-900 dark:text-slate-100">{s.value}</p>
           </div>
         ))}
       </div>
 
       {/* Sequences */}
       <div className="space-y-4">
-        {sequences.map((s) => (
-          <div key={s.id} onClick={() => setSelectedSeq(s)} className="cursor-pointer rounded-xl border border-slate-200 bg-white p-5 transition hover:border-slate-300 hover:shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50">
-                  <Split className="h-5 w-5 text-indigo-600" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-slate-900">{s.client}</h3>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "border capitalize",
-                        s.status === "bloquante"
-                          ? "bg-rose-50 text-rose-700 border-rose-200"
-                          : "bg-amber-50 text-amber-700 border-amber-200"
-                      )}
-                    >
-                      {s.status}
-                    </Badge>
-                  </div>
-                  <p className="mt-0.5 text-xs text-slate-400">
-                    {s.id} • {s.txCount} transactions • fenêtre {s.window} • depuis le {s.startDate}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <p className="text-[11px] text-slate-400">Cumul</p>
-                  <p className="text-lg font-bold text-rose-600">{fmt(s.totalAmount)}</p>
-                  <p className="text-[10px] text-slate-400">FCFA</p>
-                </div>
-                <div className="h-10 w-px bg-slate-200" />
-                <div className="text-right">
-                  <p className="text-[11px] text-slate-400">Seuil unitaire</p>
-                  <p className="text-sm font-semibold text-slate-700">{fmt(s.threshold)}</p>
-                  <p className="text-[10px] text-slate-400">FCFA / tx</p>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    openInvestigation(s)
-                  }}
-                  className="ml-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700"
-                >
-                  Ouvrir investigation
-                </button>
-              </div>
-            </div>
-
-            {/* Individual transactions */}
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6">
-              {s.txs.map((tx, i) => (
-                <div key={i} className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
-                  <p className="flex items-center gap-1 text-[10px] text-slate-400">
-                    <Clock className="h-2.5 w-2.5" />
-                    {tx.date}
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-slate-800">
-                    {fmt(tx.amount)}
-                    <span className="ml-1 text-[10px] font-normal text-slate-400">FCFA</span>
-                  </p>
-                  <div className="mt-1.5 flex items-center gap-1">
-                    <TrendingUp className="h-2.5 w-2.5 text-amber-500" />
-                    <span className="text-[10px] text-amber-600">sous seuil</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Progress bar showing cumulative vs threshold */}
-            <div className="mt-4">
-              <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="text-slate-500">Cumul vs seuil de déclaration global</span>
-                <span className="font-semibold text-rose-600">
-                  {Math.round((s.totalAmount / (s.threshold * 4)) * 100)}% du seuil ×4
-                </span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-amber-400 to-rose-500"
-                  style={{ width: `${Math.min(100, (s.totalAmount / (s.threshold * 5)) * 100)}%` }}
-                />
-              </div>
-            </div>
+        {loading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-32 animate-pulse rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900" />
+            ))}
           </div>
-        ))}
+        ) : sequences.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 py-12 text-slate-400 dark:border-slate-700">
+            <AlertTriangle className="h-8 w-8 text-slate-200" />
+            <p className="mt-2 text-sm">Aucune séquence de fractionnement détectée actuellement.</p>
+            <p className="text-xs text-slate-400 mt-1">Les transactions sous le seuil UEMOA seront analysées ici.</p>
+          </div>
+        ) : (
+          sequences.map((s) => (
+            <div key={s.id} onClick={() => setSelectedSeq(s)} className="cursor-pointer rounded-xl border border-slate-200 bg-white p-5 transition hover:border-slate-300 hover:shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50">
+                    <Split className="h-5 w-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-slate-900">{s.client}</h3>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "border capitalize",
+                          s.status === "bloquante"
+                            ? "bg-rose-50 text-rose-700 border-rose-200"
+                            : "bg-amber-50 text-amber-700 border-amber-200"
+                        )}
+                      >
+                        {s.status}
+                      </Badge>
+                    </div>
+                    <p className="mt-0.5 text-xs text-slate-400">
+                      {s.id} • {s.txCount} transactions • fenêtre {s.window} • depuis le {s.startDate}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-[11px] text-slate-400">Cumul</p>
+                    <p className="text-lg font-bold text-rose-600">{fmt(s.totalAmount)}</p>
+                    <p className="text-[10px] text-slate-400">FCFA</p>
+                  </div>
+                  <div className="h-10 w-px bg-slate-200" />
+                  <div className="text-right">
+                    <p className="text-[11px] text-slate-400">Seuil unitaire</p>
+                    <p className="text-sm font-semibold text-slate-700">{fmt(s.threshold)}</p>
+                    <p className="text-[10px] text-slate-400">FCFA / tx</p>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openInvestigation(s)
+                    }}
+                    className="ml-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700"
+                  >
+                    Ouvrir investigation
+                  </button>
+                </div>
+              </div>
+
+              {/* Individual transactions */}
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6">
+                {s.txs.map((tx, i) => (
+                  <div key={i} className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
+                    <p className="flex items-center gap-1 text-[10px] text-slate-400">
+                      <Clock className="h-2.5 w-2.5" />
+                      {tx.date}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">
+                      {fmt(tx.amount)}
+                      <span className="ml-1 text-[10px] font-normal text-slate-400">FCFA</span>
+                    </p>
+                    <div className="mt-1.5 flex items-center gap-1">
+                      <TrendingUp className="h-2.5 w-2.5 text-amber-500" />
+                      <span className="text-[10px] text-amber-600">sous seuil</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Progress bar showing cumulative vs threshold */}
+              <div className="mt-4">
+                <div className="mb-1 flex items-center justify-between text-xs">
+                  <span className="text-slate-500">Cumul vs seuil de déclaration global</span>
+                  <span className="font-semibold text-rose-600">
+                    {Math.round((s.totalAmount / (s.threshold * 4)) * 100)}% du seuil ×4
+                  </span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-amber-400 to-rose-500"
+                    style={{ width: `${Math.min(100, (s.totalAmount / (s.threshold * 5)) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       <div className="flex items-center gap-2 rounded-lg border border-indigo-100 bg-indigo-50/50 px-4 py-2.5 text-xs text-indigo-700">

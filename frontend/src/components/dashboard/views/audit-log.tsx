@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ScrollText, Search, Download, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, X } from "lucide-react"
+import { ScrollText, Search, Download, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, X, RefreshCw } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { auditService } from "@/services/auditService"
 
 type LogEntry = {
   id: string
@@ -33,7 +34,7 @@ const logs: LogEntry[] = [
   { id: "LOG-1031", date: "24/08/2026 16:22:33", user: "Mariam Coulibaly", role: "Auditeur", module: "Journal d'audit", action: "Export journal période 01-24/08/2026", result: "Succès", ip: "10.0.4.22" },
 ]
 
-const modules = ["Tous modules", "Authentification", "Centre d'alertes", "Client 360°", "Investigations", "Risk Score", "Filtrage sanctions", "Utilisateurs", "Journal d'audit"]
+const modules = ["Tous modules", "Authentification", "Centre d'alertes", "Client 360°", "Investigations", "Risk Score", "Filtrage sanctions", "Utilisateurs", "Journal d'audit", "Surveillance Flux"]
 
 type SortColumn = "date" | "user" | "module" | "result"
 type SortDir = "asc" | "desc"
@@ -48,6 +49,7 @@ const moreModules = [
   "Utilisateurs",
   "Journal d'audit",
   "Rapports réglementaires",
+  "Surveillance Flux",
 ]
 
 function SortIcon({ column, sortBy, sortDir }: { column: SortColumn; sortBy: SortColumn | null; sortDir: SortDir }) {
@@ -56,12 +58,42 @@ function SortIcon({ column, sortBy, sortDir }: { column: SortColumn; sortBy: Sor
 }
 
 export function AuditLogView() {
+  const [items, setItems] = useState<LogEntry[]>(logs)
+  const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState("")
   const [module, setModule] = useState("Tous modules")
   const [sortBy, setSortBy] = useState<SortColumn | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>("asc")
   const [moreOpen, setMoreOpen] = useState(false)
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null)
+
+  const fetchLogs = async () => {
+    setLoading(true)
+    try {
+      const data = await auditService.getAuditLogs({ limit: 50 })
+      if (data && data.length > 0) {
+        const dynamicLogs: LogEntry[] = data.map((d, i) => ({
+          id: d.id ? `LOG-${d.id.slice(0, 6)}` : `LOG-${1100 + i}`,
+          date: d.timestamp ? new Date(d.timestamp).toLocaleString("fr-FR") : new Date().toLocaleString("fr-FR"),
+          user: d.utilisateur || "Système",
+          role: d.role || "Système",
+          module: d.module || "Surveillance Flux",
+          action: d.action || "Action enregistrée",
+          result: (d.details || "").toLowerCase().includes("échec") || (d.action || "").toLowerCase().includes("échouée") ? "Échec" : "Succès",
+          ip: d.ip_address || "127.0.0.1",
+        }))
+        setItems([...dynamicLogs, ...logs])
+      }
+    } catch (e) {
+      console.warn("Erreur chargement logs audit:", e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchLogs()
+  }, [])
 
   useEffect(() => {
     if (!selectedLog) return
@@ -81,7 +113,7 @@ export function AuditLogView() {
     }
   }
 
-  const filtered = logs.filter((l) => {
+  const filtered = items.filter((l) => {
     const queryOk = !query || l.user.toLowerCase().includes(query.toLowerCase()) || l.action.toLowerCase().includes(query.toLowerCase())
     const moduleOk = module === "Tous modules" || l.module === module
     return queryOk && moduleOk
@@ -105,7 +137,7 @@ export function AuditLogView() {
       }
       return s
     }
-    const rows = logs.map((l) =>
+    const rows = items.map((l) =>
       [l.date, l.user, l.role, l.module, l.action, l.result, l.ip].map(escape).join(",")
     )
     const csv = [headers.join(","), ...rows].join("\r\n")
@@ -128,22 +160,32 @@ export function AuditLogView() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px]">Journal d'audit</h1>
           <p className="mt-1 text-sm text-slate-500">Traçabilité complète des connexions, actions et décisions (BO-05).</p>
         </div>
-        <button
-          onClick={exportLogsCsv}
-          className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-        >
-          <Download className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Exporter (BO-06)</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchLogs}
+            disabled={loading}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900"
+            title="Actualiser le journal"
+          >
+            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+          </button>
+          <button
+            onClick={exportLogsCsv}
+            className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Exporter (BO-06)</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
-          { label: "Entrées aujourd'hui", value: 42, color: "#6366F1" },
-          { label: "Tentatives échouées", value: 3, color: "#EF4444" },
-          { label: "Connexions réussies", value: 18, color: "#10B981" },
-          { label: "Actions admin", value: 7, color: "#F59E0B" },
+          { label: "Entrées enregistrées", value: items.length, color: "#6366F1" },
+          { label: "Tentatives échouées", value: items.filter((l) => l.result === "Échec").length, color: "#EF4444" },
+          { label: "Actions réussies", value: items.filter((l) => l.result === "Succès").length, color: "#10B981" },
+          { label: "Actions admin", value: items.filter((l) => l.role.toLowerCase().includes("admin") || l.role.toLowerCase().includes("responsable")).length, color: "#F59E0B" },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex items-center gap-2">

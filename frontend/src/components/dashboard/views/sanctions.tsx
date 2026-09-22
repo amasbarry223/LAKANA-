@@ -52,13 +52,62 @@ function SortIcon({ column, sortBy, sortDir }: { column: SortColumn; sortBy: Sor
   return <Icon className="h-3 w-3" />
 }
 
+import { RefreshCw } from "lucide-react"
+import { alertService } from "@/services/alertService"
+
 export function SanctionsView() {
   const [items, setItems] = useState<Match[]>(matches)
+  const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState<(typeof filters)[number]>("Toutes")
   const [query, setQuery] = useState("")
   const [sortBy, setSortBy] = useState<SortColumn | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>("asc")
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null)
+
+  const fetchMatches = async () => {
+    setLoading(true)
+    try {
+      const alerts = await alertService.getAlerts()
+      const fltAlerts = alerts.filter(
+        (a) =>
+          (a.module || "").toLowerCase().includes("sanction") ||
+          (a.type || "").toLowerCase().includes("ppe") ||
+          (a.type || "").toLowerCase().includes("sanction") ||
+          (a.facteurs || []).some((f) => /sanction|ppe|liste/i.test(f))
+      )
+      if (fltAlerts.length > 0) {
+        const dynamicMatches: Match[] = fltAlerts.map((a) => {
+          const simMatch = a.facteurs?.[0]?.match(/(\d+)%/)
+          const sim = simMatch ? parseInt(simMatch[1], 10) : Math.max(70, a.score)
+          const isPPE = (a.type || "").toLowerCase().includes("ppe") || (a.facteurs?.[0] || "").toLowerCase().includes("ppe")
+          const listType: Match["listType"] = isPPE ? "PPE" : "ONU"
+          return {
+            id: a.ref || `FLT-${a.id.slice(0, 6)}`,
+            client: a.client,
+            clientId: a.clientId || "CLI-1000",
+            listName: isPPE ? "Liste PPE Mali" : "Sanctions ONU",
+            listType,
+            matchedEntry: a.facteurs?.[0] || `${a.client} (${listType})`,
+            similarity: sim,
+            status: a.status === "resolue" ? "confirme" : a.status === "rejetee" ? "rejete" : "en_attente",
+            date: new Date().toLocaleDateString("fr-FR"),
+          }
+        })
+        // Fusionner avec les données de référence en évitant les doublons
+        const existingIds = new Set(dynamicMatches.map((m) => m.client))
+        const remaining = matches.filter((m) => !existingIds.has(m.client))
+        setItems([...dynamicMatches, ...remaining])
+      }
+    } catch (e) {
+      console.warn("Erreur chargement sanctions dynamiques:", e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchMatches()
+  }, [])
 
   // Escape key closes the detail modal
   useEffect(() => {
@@ -103,9 +152,19 @@ export function SanctionsView() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px]">Filtrage sanctions & PPE</h1>
-        <p className="mt-1 text-sm text-slate-500">Correspondances par fuzzy matching calibré noms ouest-africains (FLT-01/02).</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px]">Filtrage sanctions & PPE</h1>
+          <p className="mt-1 text-sm text-slate-500">Correspondances par fuzzy matching calibré noms ouest-africains (FLT-01/02).</p>
+        </div>
+        <button
+          onClick={fetchMatches}
+          disabled={loading}
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900"
+          title="Actualiser les correspondances"
+        >
+          <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+        </button>
       </div>
 
       {/* Stats */}

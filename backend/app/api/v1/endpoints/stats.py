@@ -172,3 +172,47 @@ def get_funnel_analytics(db: Session = Depends(get_db)):
         "insights": insights,
         "total_alerts": total_alerts,
     }
+
+
+@router.get("/score-distribution")
+def get_score_distribution(db: Session = Depends(get_db)):
+    """Retourne la distribution réelle des scores de risque clients par tranche de 20 points."""
+    ranges = [
+        {"range": "0-20", "min": 0, "max": 20, "color": "#10B981"},
+        {"range": "21-40", "min": 21, "max": 40, "color": "#10B981"},
+        {"range": "41-60", "min": 41, "max": 60, "color": "#F59E0B"},
+        {"range": "61-80", "min": 61, "max": 80, "color": "#F59E0B"},
+        {"range": "81-100", "min": 81, "max": 100, "color": "#EF4444"},
+    ]
+    total = db.query(Client).count()
+    distribution = []
+    for r in ranges:
+        count = db.query(Client).filter(
+            Client.risk_score >= r["min"],
+            Client.risk_score <= r["max"]
+        ).count()
+        distribution.append({
+            "range": r["range"],
+            "count": count,
+            "pct": round((count / total * 100), 1) if total > 0 else 0,
+            "color": r["color"],
+        })
+
+    # Statistiques de scoring globales
+    score_moyen = db.query(func.avg(Client.risk_score)).scalar() or 0
+    score_max = db.query(func.max(Client.risk_score)).scalar() or 0
+    score_min = db.query(func.min(Client.risk_score)).scalar() or 0
+    eleves = db.query(Client).filter(Client.risk_score >= 70).count()
+    moyens = db.query(Client).filter(Client.risk_score >= 40, Client.risk_score < 70).count()
+    faibles = db.query(Client).filter(Client.risk_score < 40).count()
+
+    return {
+        "distribution": distribution,
+        "total_clients": total,
+        "score_moyen": round(float(score_moyen), 1),
+        "score_max": int(score_max),
+        "score_min": int(score_min),
+        "eleves": eleves,
+        "moyens": moyens,
+        "faibles": faibles,
+    }

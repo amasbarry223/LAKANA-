@@ -116,6 +116,38 @@ export const statsService = {
       }
     }
   },
+
+  async getScoreDistribution(): Promise<{
+    distribution: { range: string; count: number; pct: number; color: string }[]
+    total_clients: number
+    score_moyen: number
+    score_max: number
+    score_min: number
+    eleves: number
+    moyens: number
+    faibles: number
+  }> {
+    try {
+      return await ApiClient.get("/stats/score-distribution")
+    } catch (e) {
+      return {
+        distribution: [
+          { range: "0-20", count: 0, pct: 0, color: "#10B981" },
+          { range: "21-40", count: 0, pct: 0, color: "#10B981" },
+          { range: "41-60", count: 0, pct: 0, color: "#F59E0B" },
+          { range: "61-80", count: 0, pct: 0, color: "#F59E0B" },
+          { range: "81-100", count: 0, pct: 0, color: "#EF4444" },
+        ],
+        total_clients: 0,
+        score_moyen: 0,
+        score_max: 0,
+        score_min: 0,
+        eleves: 0,
+        moyens: 0,
+        faibles: 0,
+      }
+    }
+  },
 }
 
 export const auditService = {
