@@ -96,6 +96,31 @@ type SidebarProps = {
 function SidebarContent({ active, onSelect, userName = "Aminata Touré", userRole = "Analyste conformité", onLogout }: SidebarProps) {
   const initials = userName.split(" ").map((n) => n[0]).join("").slice(0, 2)
   const [menuOpen, setMenuOpen] = useState(false)
+  const isGuichet = userRole.toLowerCase().includes("guichet")
+
+  const sectionsToRender: NavSection[] = isGuichet
+    ? [
+        {
+          title: "",
+          items: [{ label: "Tableau de bord", icon: LayoutGrid }],
+        },
+        {
+          title: "OPÉRATIONS GUICHET",
+          items: [
+            { label: "Transactions", icon: ArrowRightLeft },
+            { label: "Clients & Enrôlement", icon: UserPlus },
+            { label: "Filtrage sanctions/PPE", icon: ShieldAlert },
+          ],
+        },
+        {
+          title: "INFORMATIONS",
+          items: [
+            { label: "Notifications", icon: Bell },
+          ],
+        },
+      ]
+    : sections
+
   return (
     <>
       {/* Logo */}
@@ -111,7 +136,7 @@ function SidebarContent({ active, onSelect, userName = "Aminata Touré", userRol
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5 sidebar-scroll">
-        {sections.map((section, sIdx) => (
+        {sectionsToRender.map((section, sIdx) => (
           <div key={sIdx} className="space-y-1">
             {section.title && (
               <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">

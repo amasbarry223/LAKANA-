@@ -26,12 +26,17 @@ import {
   Calendar,
   Layers,
   Check,
+  Lock,
+  Mail,
+  MessageSquare,
 } from "lucide-react"
 import { toast } from "sonner"
 import { clientService } from "@/services/clientService"
 import { transactionService, type SimulationResult } from "@/services/transactionService"
+import { filteringService, type PreCheckResult } from "@/services/filteringService"
 import type { Client } from "@/models/client"
 import type { Transaction } from "@/models/transaction"
+
 
 const TYPES_OPERATION = [
   "Dépôt",
@@ -157,6 +162,34 @@ function AmlResultCard({
               </div>
             </div>
           )}
+
+          {/* Notifications WhatsApp & Email transmises */}
+          <div className="mt-4 pt-3 border-t border-red-100">
+            <p className="text-xs font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
+              <Send className="w-3.5 h-3.5 text-indigo-600" />
+              Notifications d'alerte expédiées en temps réel :
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div className="flex items-center gap-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-bold flex items-center gap-1 text-[11px]">
+                    <MessageSquare className="w-3 h-3 text-emerald-600" /> WasenderAPI WhatsApp
+                  </p>
+                  <p className="text-[10px] text-emerald-600 truncate">+223 64 66 39 18</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg text-blue-800">
+                <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-bold flex items-center gap-1 text-[11px]">
+                    <Mail className="w-3 h-3 text-blue-600" /> Courriel Fiche CENTIF
+                  </p>
+                  <p className="text-[10px] text-blue-600 truncate">fombadaouda72@gmail.com</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -187,6 +220,10 @@ export function TransactionSimulatorView() {
   const [clientSearch, setClientSearch] = useState("")
   const [showDropdown, setShowDropdown] = useState(false)
 
+  // Pré-vérification PPE & Sanctions (Alerte préalable guichet)
+  const [preCheck, setPreCheck] = useState<PreCheckResult | null>(null)
+  const [loadingPreCheck, setLoadingPreCheck] = useState(false)
+
   // Simulation Form
   const [montant, setMontant] = useState("")
   const [typeOperation, setTypeOperation] = useState("Dépôt")
@@ -198,6 +235,58 @@ export function TransactionSimulatorView() {
   // Status
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<SimulationResult | null>(null)
+
+  // Pré-filtrage instantané à la sélection d'un client
+  useEffect(() => {
+    if (!selectedClient) {
+      setPreCheck(null)
+      return
+    }
+    let isMounted = true
+    setLoadingPreCheck(true)
+    filteringService
+      .preCheckGuichet(selectedClient.id)
+      .then((res) => {
+        if (isMounted) {
+          setPreCheck(res)
+          if (res.bloquer_operations) {
+            toast.error("GEL DES AVOIRS : Sociétaire sous sanction internationale, opération strictement bloquée !")
+          } else if (res.is_ppe) {
+            toast.warning(`Sociétaire PPE (Personne Politiquement Exposée) détecté (${res.fonction_ppe || "Mandat public"}). Vigilance renforcée requise !`)
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn("Erreur pre-check guichet:", err)
+        if (isMounted) {
+          setPreCheck({
+            found: true,
+            client_id: selectedClient.id,
+            client_nom: `${selectedClient.prenom || ""} ${selectedClient.nom}`.trim(),
+            code_client: selectedClient.codeClient,
+            is_ppe: !!selectedClient.estPpe,
+            is_sanctioned: false,
+            bloquer_operations: false,
+            niveau: selectedClient.estPpe ? "analyser" : "conforme",
+            fonction_ppe: selectedClient.fonctionPpe,
+            message: selectedClient.estPpe
+              ? `SOCIÉTAIRE PPE (Personne Politiquement Exposée) DÉTECTÉ (${selectedClient.fonctionPpe || "Mandat public"}). Vigilance renforcée requise.`
+              : "Sociétaire standard — Aucun signalement négatif.",
+            consigne_guichet: selectedClient.estPpe
+              ? "Demander le justificatif d'origine des fonds et aviser le chef d'agence."
+              : "Traitement standard sous réserve des seuils légaux.",
+          })
+        }
+      })
+      .finally(() => {
+        if (isMounted) setLoadingPreCheck(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [selectedClient])
+
 
   // 1. Charger les clients
   const loadClients = useCallback(async () => {
@@ -292,6 +381,10 @@ export function TransactionSimulatorView() {
   const handleSimulate = async () => {
     if (!selectedClient) {
       toast.error("Veuillez sélectionner un client")
+      return
+    }
+    if (preCheck?.bloquer_operations) {
+      toast.error("OPÉRATION BLOQUÉE : Sociétaire sous sanction officielle / Gel des avoirs.")
       return
     }
     if (!montantNum || montantNum <= 0) {
@@ -731,6 +824,83 @@ export function TransactionSimulatorView() {
                 )}
               </div>
 
+              {/* BANNIÈRE DE PRÉ-VÉRIFICATION GUICHET (PPE & SANCTIONS / GEL DES AVOIRS) */}
+              {loadingPreCheck ? (
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2 text-xs text-slate-500">
+                  <Spinner />
+                  <span>Filtrage préalable en cours sur les bases PPE et de sanctions...</span>
+                </div>
+              ) : preCheck?.bloquer_operations ? (
+                <div className="p-4 rounded-xl bg-red-50 border-2 border-red-500 text-red-950 space-y-2 animate-in fade-in-50">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center shrink-0 shadow">
+                      <Lock className="w-5 h-5 animate-pulse" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-bold text-red-700 text-sm tracking-wide uppercase">
+                          GEL DES AVOIRS / SANCTIONS ACTIVES
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-600 text-white animate-pulse">
+                          OPÉRATION STRICTEMENT INTERDITE
+                        </span>
+                      </div>
+                      <p className="text-xs text-red-800 font-medium mt-1">
+                        {preCheck.message}
+                      </p>
+                      <div className="mt-2.5 p-2.5 bg-red-100 rounded-lg border border-red-300 text-xs">
+                        <span className="font-bold text-red-900">Consigne stricte pour l'agent de guichet : </span>
+                        <span className="text-red-800 font-medium">{preCheck.consigne_guichet}</span>
+                      </div>
+                      <div className="mt-2 flex items-center gap-2 text-[11px] text-red-700">
+                        <span className="w-2 h-2 rounded-full bg-red-500" />
+                        <span>Alerte d'urgence transmise à la Direction de la Conformité par WhatsApp et Email.</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : preCheck?.is_ppe ? (
+                <div className="p-4 rounded-xl bg-purple-50 border-2 border-purple-300 text-purple-950 space-y-2 animate-in fade-in-50">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow">
+                      <Star className="w-5 h-5 text-amber-300" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-bold text-purple-900 text-sm tracking-wide uppercase">
+                          SOCIÉTAIRE PPE (Personne Politiquement Exposée) DÉTECTÉ
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-600 text-white">
+                          MANDAT : {preCheck.fonction_ppe || "Fonction publique"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-purple-800 font-medium mt-1">
+                        {preCheck.message}
+                      </p>
+                      <div className="mt-2.5 p-2.5 bg-purple-100 rounded-lg border border-purple-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <span className="font-bold text-purple-900">Consigne guichet : </span>
+                          <span className="text-purple-800">{preCheck.consigne_guichet}</span>
+                        </div>
+                        <span className="text-[10px] font-semibold text-purple-700 bg-white px-2 py-1 rounded border border-purple-200 shrink-0 self-start sm:self-auto">
+                          Alerte WhatsApp & Email au déclenchement
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : preCheck ? (
+                <div className="px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between">
+                  <span className="flex items-center gap-2 font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    Filtrage préalable conforme : Sociétaire non-PPE, sans signalement de sanction négatif.
+                  </span>
+                  <span className="text-[10px] text-emerald-700 font-bold uppercase bg-emerald-100 px-2 py-0.5 rounded">
+                    Guichet OK
+                  </span>
+                </div>
+              ) : null}
+
               {/* Montant & Devise */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -864,11 +1034,26 @@ export function TransactionSimulatorView() {
                   id="sim-submit"
                   type="button"
                   onClick={handleSimulate}
-                  disabled={loading || !selectedClient || !montantNum}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition shadow-sm"
+                  disabled={loading || !selectedClient || !montantNum || preCheck?.bloquer_operations}
+                  className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 font-semibold rounded-xl transition shadow-sm ${
+                    preCheck?.bloquer_operations
+                      ? "bg-red-600 hover:bg-red-700 text-white cursor-not-allowed opacity-90"
+                      : "bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white"
+                  }`}
                 >
-                  {loading ? <Spinner /> : <Send className="w-4 h-4" />}
-                  {loading ? "Analyse AML en cours..." : "Simuler et enregistrer la transaction"}
+                  {loading ? (
+                    <Spinner />
+                  ) : preCheck?.bloquer_operations ? (
+                    <>
+                      <Lock className="w-4 h-4 animate-pulse" />
+                      <span>Opération bloquée (Gel des avoirs)</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      <span>Simuler et exécuter l'opération guichet</span>
+                    </>
+                  )}
                 </button>
                 <button
                   id="sim-reset"

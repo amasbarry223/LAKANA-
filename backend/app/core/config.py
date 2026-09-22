@@ -35,6 +35,20 @@ class Settings(BaseSettings):
     # Assistant IA (Optionnel)
     ANTHROPIC_API_KEY: str = ""
 
+    # Passerelle WhatsApp (WasenderAPI)
+    WASENDER_API_KEY: str = ""
+    WASENDER_BASE_URL: str = "https://wasenderapi.com/api"
+    WASENDER_ALERT_PHONE: str = "+22364663918"
+
+    # Passerelle Email (SMTP)
+    ALERT_EMAIL: str = "fombadaouda72@gmail.com"
+    SMTP_SERVER: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = "fombadaouda72@gmail.com"
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = "fombadaouda72@gmail.com"
+    SMTP_TLS: bool = True
+
     model_config = SettingsConfigDict(
         env_file=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env"),
         env_file_encoding="utf-8",

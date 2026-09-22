@@ -96,10 +96,8 @@ const views: Record<string, React.ComponentType<any>> = {
 }
 
 function roleToUserName(role: string) {
-  if (role === "Analyste conformité") return "Aminata Touré"
-  if (role === "Responsable conformité") return "Fatoumata Koné"
-  if (role === "Administrateur système") return "Seydou Traoré"
-  if (role === "Auditeur (lecture seule)") return "Mariam Coulibaly"
+  if (role === "Agent de guichet" || role === "guichet") return "Bakary Diarra"
+  if (role === "Analyste conformité" || role === "analyste") return "Aminata Touré"
   return "Utilisateur"
 }
 
@@ -110,7 +108,7 @@ function DashboardContent({
   role: string
   onLogout: () => void
 }) {
-  const [active, setActive] = useState("Centre d'alertes")
+  const [active, setActive] = useState("Tableau de bord")
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const { theme, setTheme } = useTheme()

@@ -6,20 +6,18 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
 const roles = [
-  { value: "analyste", label: "Analyste conformité", mfa: false },
-  { value: "responsable", label: "Responsable conformité", mfa: true },
-  { value: "admin", label: "Administrateur système", mfa: true },
-  { value: "auditeur", label: "Auditeur (lecture seule)", mfa: true },
+  { value: "guichet", label: "Agent de guichet", defaultUser: "b.diarra@sfd.ml", defaultName: "Bakary Diarra", mfa: false },
+  { value: "analyste", label: "Analyste conformité", defaultUser: "a.toure@sfd.ml", defaultName: "Aminata Touré", mfa: false },
 ]
 
 const MAX_ATTEMPTS = 5
 const LOCKOUT_SECONDS = 60
 
 export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
+  const [username, setUsername] = useState("b.diarra@sfd.ml")
+  const [password, setPassword] = useState("password123")
   const [showPwd, setShowPwd] = useState(false)
-  const [role, setRole] = useState("analyste")
+  const [role, setRole] = useState("guichet")
   const [step, setStep] = useState<"login" | "mfa">("login")
   const [mfaCode, setMfaCode] = useState("")
   const [error, setError] = useState("")
@@ -30,7 +28,15 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
   const [resetEmail, setResetEmail] = useState("")
   const [resetSent, setResetSent] = useState(false)
 
-  const selectedRole = roles.find((r) => r.value === role)!
+  const selectedRole = roles.find((r) => r.value === role) || roles[0]
+
+  const selectPreset = (rVal: "guichet" | "analyste") => {
+    const target = roles.find((r) => r.value === rVal)!
+    setRole(target.value)
+    setUsername(target.defaultUser)
+    setPassword("password123")
+    setError("")
+  }
 
   // Lockout countdown timer (AUTH-04)
   useEffect(() => {
@@ -93,7 +99,6 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
       setError("Le code MFA doit comporter 6 chiffres (AUTH-05).")
       return
     }
-    // Any 6-digit code works for demo, except 000000 which fails
     if (mfaCode === "000000") {
       setError("Code MFA invalide. Vérifiez votre application d'authentification.")
       return
@@ -123,15 +128,45 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
           <p className="text-[11px] font-medium text-slate-400">le bouclier — conformité LBC/FT/FP</p>
         </div>
 
-        {/* Form body (compact) */}
+        {/* Form body */}
         <div className="px-6 py-5">
           {step === "login" ? (
             <>
               <div className="mb-3">
                 <h2 className="text-base font-semibold text-slate-900">Connexion</h2>
                 <p className="mt-0.5 text-[11px] text-slate-500">
-                  Authentification requise avant tout accès (AUTH-01).
+                  Choisissez votre profil d'accès (Agent de guichet ou Analyste).
                 </p>
+              </div>
+
+              {/* Rôles rapides en 1 clic */}
+              <div className="mb-3 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => selectPreset("guichet")}
+                  className={cn(
+                    "flex flex-col items-center justify-center rounded-lg border p-2 text-center transition",
+                    role === "guichet"
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-800"
+                      : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300"
+                  )}
+                >
+                  <span className="text-xs font-semibold">Agent guichet</span>
+                  <span className="text-[10px] text-slate-400">Bakary Diarra</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => selectPreset("analyste")}
+                  className={cn(
+                    "flex flex-col items-center justify-center rounded-lg border p-2 text-center transition",
+                    role === "analyste"
+                      ? "border-indigo-500 bg-indigo-50 text-indigo-800"
+                      : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300"
+                  )}
+                >
+                  <span className="text-xs font-semibold">Analyste</span>
+                  <span className="text-[10px] text-slate-400">Aminata Touré</span>
+                </button>
               </div>
 
               {/* Lockout banner */}
@@ -151,7 +186,7 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
                     <input
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="a.toure@sfd.ml"
+                      placeholder="b.diarra@sfd.ml"
                       disabled={locked}
                       className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:opacity-50"
                     />
@@ -183,16 +218,19 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
 
                 {/* Role selector */}
                 <div>
-                  <label className="text-[11px] font-medium text-slate-600">Rôle</label>
+                  <label className="text-[11px] font-medium text-slate-600">Rôle assigné</label>
                   <select
                     value={role}
-                    onChange={(e) => setRole(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value as "guichet" | "analyste"
+                      selectPreset(val)
+                    }}
                     disabled={locked}
                     className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:opacity-50"
                   >
                     {roles.map((r) => (
                       <option key={r.value} value={r.value}>
-                        {r.label}{r.mfa ? " (MFA requis)" : ""}
+                        {r.label} ({r.defaultName})
                       </option>
                     ))}
                   </select>
@@ -225,7 +263,7 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
                   disabled={locked}
                   className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 text-sm font-semibold text-white transition hover:bg-indigo-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {locked ? "Compte verrouillé" : selectedRole.mfa ? "Continuer vers MFA" : "Se connecter"}
+                  {locked ? "Compte verrouillé" : "Se connecter"}
                 </button>
               </form>
 
