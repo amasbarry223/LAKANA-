@@ -114,17 +114,33 @@ function DashboardContent({
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const { theme, setTheme } = useTheme()
-  const { newInvestigationOpen, newInvestigationPrefill, closeNewInvestigation } = useDashboard()
+  const {
+    newInvestigationOpen,
+    newInvestigationPrefill,
+    closeNewInvestigation,
+    selectedClientId,
+    setSelectedClientId,
+    setSelectedInvestigationRef,
+  } = useDashboard()
   const userName = roleToUserName(role)
 
   const handleNavigate = useCallback((label: string, options?: NavigateDetail["options"]) => {
     setActive(label)
+    if (options?.clientId) {
+      setSelectedClientId(options.clientId)
+      try {
+        sessionStorage.setItem("lakana_selected_client_id", options.clientId)
+      } catch {}
+    }
+    if (options?.investigationRef) {
+      setSelectedInvestigationRef(options.investigationRef)
+    }
     if (options?.clientId || options?.alertRef || options?.investigationRef) {
       window.dispatchEvent(
         new CustomEvent("lakana-navigate-payload", { detail: options })
       )
     }
-  }, [])
+  }, [setSelectedClientId, setSelectedInvestigationRef])
 
   const handleNewInvestigation = useCallback(() => {
     window.dispatchEvent(new CustomEvent("lakana-new-investigation"))
@@ -223,9 +239,10 @@ function DashboardContent({
               onLogout={active === "Mon profil" ? onLogout : undefined}
               onSelectClient={
                 active === "Clients & Enrôlement"
-                  ? (c: any) => handleNavigate("Client 360°", { clientId: c.codeClient || c.id })
+                  ? (c: any) => handleNavigate("Client 360°", { clientId: c.id || c.codeClient })
                   : undefined
               }
+              initialClientId={selectedClientId}
             />
           </div>
         </main>
@@ -252,6 +269,7 @@ function DashboardShell({
 
   return (
     <DashboardProvider userName={userName} userRole={userRole}>
+      <DashboardListeners />
       <DashboardContent role={role} onLogout={onLogout} />
     </DashboardProvider>
   )

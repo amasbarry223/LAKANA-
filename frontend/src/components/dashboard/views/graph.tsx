@@ -597,7 +597,12 @@ export function GraphView() {
 
               <button
                 onClick={() => {
-                  const targetId = selectedClient?.codeClient || selectedClient?.id || (sel?.type === "client" ? sel.id?.replace("cli_", "") : null)
+                  const targetId = selectedClient?.id || (sel?.type === "client" ? sel.id?.replace("cli_", "") : null) || selectedClient?.codeClient
+                  if (targetId) {
+                    try {
+                      sessionStorage.setItem("lakana_selected_client_id", targetId)
+                    } catch {}
+                  }
                   navigateTo("Client 360°", targetId ? { clientId: targetId } : undefined)
                 }}
                 className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition shadow-sm"
