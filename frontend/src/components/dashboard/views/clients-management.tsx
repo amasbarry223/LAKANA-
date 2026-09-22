@@ -1513,7 +1513,7 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                   <p className="text-xs text-slate-500 truncate max-w-[220px]">
                     {clientForAccount.typeClient === "Entreprise"
                       ? clientForAccount.raisonSociale || clientForAccount.nom
-                      : ${clientForAccount.nom} }.trim()}
+                      : `${clientForAccount.nom} ${clientForAccount.prenom || ""}`.trim()}
                     {" "}<span className="text-indigo-600 font-mono font-semibold">({clientForAccount.codeClient})</span>
                   </p>
                 </div>
