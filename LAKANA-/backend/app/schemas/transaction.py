@@ -12,9 +12,9 @@ class TransactionBase(BaseModel):
     numero_compte_beneficiaire: Optional[str] = None
     beneficiaire_nom: Optional[str] = None
     montant: float = Field(gt=0, description="Montant de l'opération en FCFA")
-    devise: str = "XOF"
-    type_operation: str = "Dépôt"
-    canal: str = "Guichet"
+    devise: Optional[str] = "XOF"
+    type_operation: Optional[str] = "Dépôt"
+    canal: Optional[str] = "Guichet"
     description: Optional[str] = None
     
     # Champs réglementaires officiels

@@ -5,9 +5,9 @@ from pydantic import BaseModel, ConfigDict
 
 class AccountBase(BaseModel):
     numero_compte: str
-    type_compte: str = "Courant"
-    solde: float = 0.0
-    devise: str = "XOF"
+    type_compte: Optional[str] = "Courant"
+    solde: Optional[float] = 0.0
+    devise: Optional[str] = "XOF"
 
 
 class AccountCreate(AccountBase):
@@ -40,7 +40,7 @@ class ClientBase(BaseModel):
     lieu_residence: Optional[str] = None
 
     # Type : "Particulier" ou "Entreprise"
-    type_client: str = "Particulier"
+    type_client: Optional[str] = "Particulier"
 
     # Entreprise
     raison_sociale: Optional[str] = None
@@ -52,12 +52,12 @@ class ClientBase(BaseModel):
 
     # Particulier & PPE
     piece_identite: Optional[str] = None
-    est_ppe: bool = False
+    est_ppe: Optional[bool] = False
     fonction_ppe: Optional[str] = None
     type_ppe: Optional[str] = None
     pays_mandat: Optional[str] = None
 
-    niveau_risque: str = "Faible"
+    niveau_risque: Optional[str] = "Faible"
 
 
 class ClientCreate(ClientBase):
@@ -88,8 +88,8 @@ class ClientUpdate(BaseModel):
 
 class ClientOut(ClientBase):
     id: str
-    risk_score: int
-    created_at: datetime
+    risk_score: Optional[int] = 0
+    created_at: Optional[datetime] = None
     comptes: List[AccountOut] = []
 
     model_config = ConfigDict(from_attributes=True)
