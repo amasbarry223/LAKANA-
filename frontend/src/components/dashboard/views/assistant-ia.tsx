@@ -159,7 +159,7 @@ export function AssistantIAView() {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            Consultation Réglementaire
+            Assistant IA
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Assistance à l'analyse et recherche documentaire conforme aux instructions BCEAO & CENTIF-Mali.
@@ -200,7 +200,7 @@ export function AssistantIAView() {
               </div>
               <div>
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  Consultation Réglementaire LAKANA
+                  Assistant IA LAKANA
                 </p>
                 <p className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />

@@ -70,7 +70,7 @@ const standardSections: NavSection[] = [
     items: [
       { label: "Fiches Sociétaires", icon: UserRound },
       { label: "Cartographie des flux", icon: Share2 },
-      { label: "Guide Réglementaire LBC", icon: MessageSquare },
+      { label: "Assistant IA", icon: MessageSquare },
     ],
   },
   {

@@ -48,7 +48,7 @@ const navCommands = [
   { label: "Vérification Sanctions & PPE", icon: ShieldAlert, keywords: "sanctions ppe screening onu centif uemoa gel avoirs" },
   { label: "Fiches Sociétaires", icon: UserRound, keywords: "client societaire fiche profil score risque comportement kyc" },
   { label: "Cartographie des flux", icon: Share2, keywords: "flux cartographie graphe reseau liens beneficiaire montants dates" },
-  { label: "Guide Réglementaire LBC", icon: MessageSquare, keywords: "guide reglementaire textes conformite bceao centif assistance uemoa" },
+  { label: "Assistant IA", icon: MessageSquare, keywords: "assistant ia guide reglementaire textes conformite bceao centif assistance uemoa intelligence" },
   { label: "Gestion des utilisateurs", icon: Users, keywords: "users utilisateurs agents conformite guichet rbac profils" },
   { label: "Rapports CENTIF & États", icon: FileBarChart, keywords: "rapports reports bceao centif str etats periodiques" },
   { label: "Piste d'audit", icon: ScrollText, keywords: "audit log tracabilite journal sha256" },
