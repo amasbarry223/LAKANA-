@@ -64,3 +64,18 @@ ENV/
 .pytest_cache/
 *.db
 *.sqlite3
+
+# Editeurs et agents
+.cursor/
+.cursorrules
+.claude/
+CLAUDE.md
+**/CLAUDE.md
+AGENTS.md
+**/AGENTS.md
+
+# Fichiers markdown (seul README.md est versionné dans le projet)
+*.md
+!README.md
+*/**/*.md
+!**/README.md
