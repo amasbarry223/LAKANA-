@@ -197,6 +197,9 @@ class GraphService:
                         "motif_alerte": " | ".join(motif_alerte) if motif_alerte else None,
                         "is_15m_journalier": condition_15m_journalier,
                         "is_2x_habituel": condition_deux_fois_habituel,
+                        "date_transaction": sorted(list(dates))[-1] if dates else None,
+                        "dates": sorted(list(dates)),
+                        "nb_transactions": len(dates),
                     },
                 )
             )
@@ -298,7 +301,10 @@ class GraphService:
                             x=bx,
                             y=by,
                             alert=t.montant >= 5_000_000 or (client.risk_score >= 70 and t.montant >= 1_000_000),
-                            details={"dernier_montant": t.montant},
+                            details={
+                                "dernier_montant": t.montant,
+                                "date_transaction": t.date_transaction.strftime("%Y-%m-%d") if t.date_transaction else None,
+                            },
                         )
                     )
                     beneficiaires_seen[b_clean] = ben_id

@@ -465,6 +465,7 @@ export function GraphView() {
               <th>Entité / Bénéficiaire</th>
               <th>Type</th>
               <th>Statut Risque</th>
+              <th>Date transaction</th>
               <th>Flux / Cumul Détecté</th>
               <th>Motif de coloration</th>
             </tr>
@@ -473,15 +474,24 @@ export function GraphView() {
             ${nodes
               .filter((n) => n.type !== "client")
               .map(
-                (n) => `
+                (n) => {
+                  const txDate = n.details?.date_transaction
+                    ? new Date(n.details.date_transaction).toLocaleDateString("fr-FR")
+                    : (n.details?.dates?.[0] ? new Date(n.details.dates[0]).toLocaleDateString("fr-FR") : (n.details?.date || "—"))
+                  const montantStr = n.details?.cumul
+                    ? Number(n.details.cumul).toLocaleString("fr-FR") + " FCFA"
+                    : (n.details?.dernier_montant ? Number(n.details.dernier_montant).toLocaleString("fr-FR") + " FCFA" : "—")
+                  return `
               <tr class="${n.alert ? "alert-row" : ""}">
                 <td><strong>${n.label}</strong></td>
                 <td>${n.type}</td>
                 <td>${n.alert ? "ALERTE ROUGE" : "Régulier"}</td>
-                <td>${n.details?.cumul ? Number(n.details.cumul).toLocaleString("fr-FR") + " FCFA" : "—"}</td>
+                <td><strong>${txDate}</strong></td>
+                <td>${montantStr}</td>
                 <td>${n.details?.motif_alerte || (n.alert ? "Dépassement seuils 15M ou 2x habituel" : "Conforme")}</td>
               </tr>
             `
+                }
               )
               .join("")}
           </tbody>
@@ -987,6 +997,22 @@ export function GraphView() {
                         <span className="text-slate-500">Cumul reçu :</span>
                         <span className="font-bold text-slate-800 font-mono">
                           {Number(sel.details.cumul).toLocaleString("fr-FR")} FCFA
+                        </span>
+                      </div>
+                    )}
+                    {sel.details.dernier_montant != null && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Montant transaction :</span>
+                        <span className="font-bold text-slate-800 font-mono">
+                          {Number(sel.details.dernier_montant).toLocaleString("fr-FR")} FCFA
+                        </span>
+                      </div>
+                    )}
+                    {sel.details.date_transaction && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Date transaction :</span>
+                        <span className="font-semibold text-slate-800">
+                          {new Date(sel.details.date_transaction).toLocaleDateString("fr-FR")}
                         </span>
                       </div>
                     )}

@@ -10,7 +10,7 @@ class User(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     nom_complet = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
-    role = Column(String, default="Analyste conformité")  # Analyste conformité, Responsable conformité, Administrateur système, Auditeur
+    role = Column(String, default="Analyste de conformité")  # Analyste de conformité, Agent guichet
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     mfa_enabled = Column(Boolean, default=False)

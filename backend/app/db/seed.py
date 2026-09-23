@@ -23,39 +23,39 @@ def seed_demo_data(db: Session):
 
     logger.info("Peuplement initial de la base de données LAKANA...")
 
-    # 2. Utilisateurs & Rôles (RBAC)
+    # 2. Utilisateurs & Rôles (RBAC) - Analyste de conformité et Agent guichet exclusivement
     users = [
         User(
             nom_complet="Aminata Touré",
             email="aminata.toure@sfd-bamako.ml",
-            role="Analyste conformité",
+            role="Analyste de conformité",
             hashed_password=get_password_hash("password123"),
             institution="SFD Bamako",
             mfa_enabled=False,
         ),
         User(
+            nom_complet="Bakary Diarra",
+            email="bakary.diarra@sfd-bamako.ml",
+            role="Agent guichet",
+            hashed_password=get_password_hash("password123"),
+            institution="Agence Centrale - Guichet 1",
+            mfa_enabled=False,
+        ),
+        User(
+            nom_complet="Oumar Cissé",
+            email="oumar.cisse@sfd-bamako.ml",
+            role="Analyste de conformité",
+            hashed_password=get_password_hash("password123"),
+            institution="Cellule d'Investigation LBC",
+            mfa_enabled=True,
+        ),
+        User(
             nom_complet="Fatoumata Koné",
             email="fatoumata.kone@sfd-bamako.ml",
-            role="Responsable conformité",
+            role="Agent guichet",
             hashed_password=get_password_hash("password123"),
-            institution="SFD Bamako",
-            mfa_enabled=True,
-        ),
-        User(
-            nom_complet="Seydou Traoré",
-            email="seydou.traore@sfd-bamako.ml",
-            role="Administrateur système",
-            hashed_password=get_password_hash("password123"),
-            institution="Direction Générale",
-            mfa_enabled=True,
-        ),
-        User(
-            nom_complet="Mariam Coulibaly",
-            email="mariam.coulibaly@audit-wa.ml",
-            role="Auditeur (lecture seule)",
-            hashed_password=get_password_hash("password123"),
-            institution="Cabinet Audit Externe",
-            mfa_enabled=True,
+            institution="Agence Fleuve - Guichet 2",
+            mfa_enabled=False,
         ),
     ]
     db.add_all(users)
@@ -277,8 +277,8 @@ def seed_demo_data(db: Session):
     # 9. Piste d'audit initiale
     audit_logs = [
         AuditLog(
-            utilisateur="Seydou Traoré",
-            role="Administrateur système",
+            utilisateur="Bakary Diarra",
+            role="Agent guichet",
             action="Mise à jour listes sanctions",
             module="Filtrage sanctions",
             cible="ONU / CENTIF",
@@ -287,7 +287,7 @@ def seed_demo_data(db: Session):
         ),
         AuditLog(
             utilisateur="Aminata Touré",
-            role="Analyste conformité",
+            role="Analyste de conformité",
             action="Ouverture investigation",
             module="Investigations",
             cible="INV-241",
