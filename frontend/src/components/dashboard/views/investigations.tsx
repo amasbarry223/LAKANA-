@@ -327,104 +327,81 @@ export function InvestigationsView() {
         {loading ? (
           <DetailPaneSkeleton className="xl:col-span-1" />
         ) : selectedInv ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-5 xl:col-span-1">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-slate-900">Détail du dossier</h3>
-              <Badge variant="outline" className="border-slate-200 text-slate-500">
-                {selectedInv.ref}
-              </Badge>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xs text-slate-400">Client</p>
-                <p className="mt-0.5 text-sm font-semibold text-slate-900">{selectedInv.client}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-lg bg-slate-50 p-3">
-                  <p className="text-xs text-slate-400">Alerte</p>
-                  <p className="mt-0.5 text-sm font-semibold text-slate-900">{selectedInv.alertRef}</p>
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900 xl:col-span-1 flex flex-col justify-between">
+            <div className="space-y-4">
+              {/* Header du dossier */}
+              <div className="flex items-start justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-slate-400">{selectedInv.ref}</span>
+                    <Badge variant="outline" className={cn("border text-[11px]", statusConfig[selectedInv.status].color)}>
+                      {statusConfig[selectedInv.status].label}
+                    </Badge>
+                  </div>
+                  <h3 className="mt-1 text-base font-bold text-slate-900 dark:text-slate-100">
+                    {selectedInv.client}
+                  </h3>
                 </div>
-                <div className="rounded-lg bg-slate-50 p-3">
-                  <p className="text-xs text-slate-400">Type</p>
-                  <p className="mt-0.5 text-sm font-semibold text-slate-900">{selectedInv.type}</p>
-                </div>
-                <div className="rounded-lg bg-slate-50 p-3">
-                  <p className="text-xs text-slate-400">Score</p>
-                  <p className="mt-0.5 text-sm font-semibold text-indigo-600">{selectedInv.score}/100</p>
-                </div>
-                <div className="rounded-lg bg-slate-50 p-3">
-                  <p className="text-xs text-slate-400">Analyste</p>
-                  <p className="mt-0.5 text-sm font-semibold text-slate-900">{selectedInv.analyste}</p>
+                <div className="text-right">
+                  <span className="text-xs font-medium text-slate-400">Score</span>
+                  <p className="font-mono text-base font-bold text-[#CD0D29]">{selectedInv.score}/100</p>
                 </div>
               </div>
 
-              {/* Goal Gradient Effect : Étapes réglementaires du dossier (Loi de Miller) */}
-              <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3.5 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-700">Parcours d'investigation</span>
-                  <span className="text-[11px] font-bold text-indigo-600">
-                    {selectedInv.status === "en_cours" ? "Étape 3/4 • Analyse" : "Étape 4/4 • Clôturé"}
-                  </span>
+              {/* Synthèse fluide du dossier */}
+              <div className="space-y-2.5 text-xs">
+                <div className="flex items-center justify-between py-1 border-b border-slate-50 dark:border-slate-800/60">
+                  <span className="text-slate-400">Alerte liée</span>
+                  <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{selectedInv.alertRef}</span>
                 </div>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {[
-                    { step: 1, label: "Ouverture", done: true },
-                    { step: 2, label: "Pièces KYC", done: true },
-                    { step: 3, label: "Analyse", done: true },
-                    { step: 4, label: "Décision", done: selectedInv.status !== "en_cours" },
-                  ].map((s) => (
-                    <div key={s.step} className="flex flex-col gap-1">
-                      <div
-                        className={cn(
-                          "h-1.5 rounded-full transition-all",
-                          s.done ? "bg-indigo-600" : "bg-slate-200"
-                        )}
-                      />
-                      <span className="text-[10px] text-center font-medium text-slate-500">
-                        {s.label}
-                      </span>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between py-1 border-b border-slate-50 dark:border-slate-800/60">
+                  <span className="text-slate-400">Typologie</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedInv.type}</span>
                 </div>
-              </div>
-
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xs text-slate-400">Ouverture</p>
-                <p className="mt-0.5 text-sm font-semibold text-slate-900">{selectedInv.dateOuverture}</p>
+                <div className="flex items-center justify-between py-1 border-b border-slate-50 dark:border-slate-800/60">
+                  <span className="text-slate-400">Analyste en charge</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedInv.analyste}</span>
+                </div>
+                <div className="flex items-center justify-between py-1 border-b border-slate-50 dark:border-slate-800/60">
+                  <span className="text-slate-400">Date d'ouverture</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedInv.dateOuverture}</span>
+                </div>
                 {selectedInv.dateCloture && (
-                  <>
-                    <p className="mt-2 text-xs text-slate-400">Clôture</p>
-                    <p className="mt-0.5 text-sm font-semibold text-slate-900">{selectedInv.dateCloture}</p>
-                  </>
+                  <div className="flex items-center justify-between py-1 border-b border-slate-50 dark:border-slate-800/60">
+                    <span className="text-slate-400">Date de clôture</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedInv.dateCloture}</span>
+                  </div>
                 )}
               </div>
 
+              {/* Justification & Décision motivée */}
               {selectedInv.decision && (
-                <div className="rounded-lg border border-slate-200 p-3">
-                  <p className="text-xs font-medium text-slate-400">Décision motivée</p>
-                  <p className="mt-1 text-sm text-slate-700">{selectedInv.decision}</p>
+                <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs dark:border-slate-800 dark:bg-slate-800/50">
+                  <p className="font-bold text-slate-700 dark:text-slate-300">Décision motivée :</p>
+                  <p className="mt-1 leading-relaxed text-slate-600 dark:text-slate-400">{selectedInv.decision}</p>
                 </div>
               )}
 
-              {/* Notes & pieces */}
-              <div className="flex items-center gap-2">
-                <div className="flex flex-1 items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
-                  <FileText className="h-4 w-4 text-slate-400" />
-                  <span className="text-sm font-medium text-slate-700">{selectedInv.notes} notes</span>
+              {/* Pièces et notes */}
+              <div className="flex items-center gap-2 pt-1">
+                <div className="flex flex-1 items-center gap-1.5 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-300">
+                  <FileText className="h-3.5 w-3.5 text-slate-400" />
+                  <span>{selectedInv.notes} note(s)</span>
                 </div>
-                <div className="flex flex-1 items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
-                  <Paperclip className="h-4 w-4 text-slate-400" />
-                  <span className="text-sm font-medium text-slate-700">{selectedInv.pieces} pièces</span>
+                <div className="flex flex-1 items-center gap-1.5 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-300">
+                  <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                  <span>{selectedInv.pieces} pièce(s)</span>
                 </div>
               </div>
+            </div>
 
+            {/* Action principale */}
+            <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800">
               {selectedInv.status === "en_cours" ? (
                 <button
                   onClick={() => { setDecisionType("cloturee"); setDecisionOpen(true) }}
                   disabled={submitting}
-                  className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50"
+                  className="w-full rounded-xl bg-[#070347] py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#0a0563] disabled:opacity-50"
                 >
                   Documenter une décision
                 </button>
@@ -432,25 +409,21 @@ export function InvestigationsView() {
                 <button
                   onClick={reopenInvestigation}
                   disabled={submitting}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
                   <User className="h-3.5 w-3.5" />
-                  Rouvrir le dossier (responsable)
+                  Rouvrir le dossier
                 </button>
               )}
-
-              <p className="text-center text-xs text-slate-400">
-                Traçabilité : auteur, date et décision enregistrés.
-              </p>
             </div>
           </div>
         ) : !loading ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-5 xl:col-span-1">
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 xl:col-span-1 dark:border-slate-800 dark:bg-slate-900">
             <EmptyState
               variant="compact"
               icon={FolderSearch}
               title="Aucun dossier sélectionné"
-              description="Sélectionnez un dossier dans la liste pour consulter ses détails, notes et pièces justificatives."
+              description="Sélectionnez un dossier dans la liste pour consulter ses détails."
             />
           </div>
         ) : null}

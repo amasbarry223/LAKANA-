@@ -1,11 +1,10 @@
 "use client"
 
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import {
   User,
   ShieldAlert,
   Wallet,
-  TrendingUp,
   AlertTriangle,
   Share2,
   ChevronRight,
@@ -18,7 +17,6 @@ import {
   X,
   RefreshCw,
   CheckCircle2,
-  Activity,
   AlertCircle,
   Search,
   ChevronDown,
@@ -40,7 +38,6 @@ import { navigateTo } from "@/lib/navigate"
 import { useDashboard } from "@/lib/dashboard-context"
 import { clientService } from "@/services/clientService"
 import { transactionService } from "@/services/transactionService"
-import { DataPagination } from "@/components/ui/data-pagination"
 import { usePaginatedFetch } from "@/hooks/use-pagination"
 import { DetailPaneSkeleton, StatCardsSkeleton, TableSkeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -51,12 +48,6 @@ import type { Client } from "@/models/client"
 import type { Transaction } from "@/models/transaction"
 import type { Alert } from "@/models/alert"
 import type { MLPredictResponse } from "@/models/ai"
-
-const levelColor: Record<string, string> = {
-  bloquante: "bg-rose-50 text-rose-700 border-rose-200",
-  analyser: "bg-amber-50 text-amber-700 border-amber-200",
-  informative: "bg-emerald-50 text-emerald-700 border-emerald-200",
-}
 
 function TxTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
@@ -82,6 +73,8 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
   const [clientsError, setClientsError] = useState<Error | string | null>(null)
   const [activeClientId, setActiveClientId] = useState<string | null>(null)
   const [clientSearchTerm, setClientSearchTerm] = useState("")
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const searchRef = useRef<HTMLDivElement>(null)
 
   // Données dynamiques spécifiques au client actif
   const [scoreData, setScoreData] = useState<any | null>(null)
@@ -98,6 +91,17 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
 
   const [selectedAccount, setSelectedAccount] = useState<any | null>(null)
   const [showFullKyc, setShowFullKyc] = useState(false)
+
+  // Fermer la recherche lors d'un clic en dehors
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setIsSearchOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   // 1. Détection de l'ID cible (recherche par prop, context, sessionStorage ou événement)
   const checkPendingTargetId = useCallback((): string | null => {
@@ -138,7 +142,6 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
     try {
       const data = await clientService.getClients()
       setClients(data)
-      // Déterminer le client initial à afficher
       const pendingId = checkPendingTargetId()
       if (pendingId && data.length > 0) {
         const needle = pendingId.trim().toLowerCase()
@@ -155,7 +158,6 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
           return
         }
       }
-      // Par défaut : premier client si aucun n'est encore sélectionné
       if (data.length > 0) {
         setActiveClientId((prev) => prev || data[0].id)
       }
@@ -171,7 +173,6 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
     loadClients()
   }, [loadClients])
 
-  // Synchronisation si selectedClientId ou initialClientId change après coup
   useEffect(() => {
     const pending = checkPendingTargetId()
     if (pending && clients.length > 0) {
@@ -190,7 +191,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
     }
   }, [selectedClientId, initialClientId, clients, checkPendingTargetId, setSelectedClientId])
 
-  // Client actuellement sélectionné
+  // Client actif
   const activeClient: Client | null = useMemo(() => {
     if (!activeClientId || clients.length === 0) return clients[0] || null
     const needle = activeClientId.trim().toLowerCase()
@@ -205,12 +206,10 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
     )
   }, [activeClientId, clients])
 
-  // Bandeau de sélection : recherche + rendu borné à 20 résultats (pas de barre de
-  // pages ici — c'est une recherche bornée, pas un tableau paginé, cf. graph.tsx).
-  const CLIENT_BAR_LIMIT = 20
-  const matchingClients = useMemo(() => {
+  // Recherche filtrée de clients
+  const filteredClients = useMemo(() => {
     const q = clientSearchTerm.trim().toLowerCase()
-    if (!q) return clients
+    if (!q) return clients.slice(0, 8)
     return clients.filter((c) => {
       const name = c.typeClient === "Entreprise" ? c.raisonSociale || c.nom : `${c.prenom || ""} ${c.nom}`.trim()
       return (
@@ -219,19 +218,12 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
         c.nom?.toLowerCase().includes(q) ||
         c.prenom?.toLowerCase().includes(q)
       )
-    })
+    }).slice(0, 8)
   }, [clients, clientSearchTerm])
-  const visibleClients = matchingClients.slice(0, CLIENT_BAR_LIMIT)
-  const hiddenClientsCount = Math.max(0, matchingClients.length - CLIENT_BAR_LIMIT)
 
-  // Historique paginé des transactions affiché dans la modale de détail de compte
-  // (découplé du chart d'évolution, qui garde son propre appel borné à ~50 tx)
+  // Historique paginé des transactions affiché dans la modale
   const {
     data: modalTransactions,
-    total: modalTxTotal,
-    page: modalTxPage,
-    setPage: setModalTxPage,
-    totalPages: modalTxTotalPages,
     loading: modalTxLoading,
   } = usePaginatedFetch<Transaction>(
     ({ skip, limit }) => {
@@ -248,7 +240,6 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
 
     let cancelled = false
 
-    // A. Récupération du score & facteurs explicatifs dynamiques
     setLoadingScore(true)
     clientService
       .getClientScore(activeClient.id)
@@ -256,14 +247,13 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
         if (!cancelled) setScoreData(res)
       })
       .catch((err) => {
-        console.warn("Score non disponible pour ce client:", err)
+        console.warn("Score non disponible:", err)
         if (!cancelled) setScoreData(null)
       })
       .finally(() => {
         if (!cancelled) setLoadingScore(false)
       })
 
-    // B. Récupération des transactions réelles de ce client
     setLoadingTxs(true)
     transactionService
       .getClientTransactions(activeClient.id)
@@ -271,14 +261,13 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
         if (!cancelled) setTransactions(txs)
       })
       .catch((err) => {
-        console.warn("Transactions non disponibles pour ce client:", err)
+        console.warn("Transactions non disponibles:", err)
         if (!cancelled) setTransactions([])
       })
       .finally(() => {
         if (!cancelled) setLoadingTxs(false)
       })
 
-    // C. Récupération des alertes réelles de ce client
     setLoadingAlerts(true)
     alertService
       .getAlerts()
@@ -294,14 +283,13 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
         }
       })
       .catch((err) => {
-        console.warn("Alertes non disponibles pour ce client:", err)
+        console.warn("Alertes non disponibles:", err)
         if (!cancelled) setAlerts([])
       })
       .finally(() => {
         if (!cancelled) setLoadingAlerts(false)
       })
 
-    // D. Récupération de l'analyse et prédiction IA
     setLoadingMl(true)
     aiService
       .predictClientRisk(activeClient.id)
@@ -309,7 +297,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
         if (!cancelled) setMlPrediction(pred)
       })
       .catch((err) => {
-        console.warn("Prédiction IA non disponible pour ce client:", err)
+        console.warn("Prédiction non disponible:", err)
         if (!cancelled) setMlPrediction(null)
       })
       .finally(() => {
@@ -321,10 +309,9 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
     }
   }, [activeClient?.id, activeClient?.codeClient, activeClient?.nom])
 
-  // Calcul des données du graphique chronologique
+  // Données du graphique chronologique
   const chartData = useMemo(() => {
     if (!transactions || transactions.length === 0) {
-      // Données de tendance par défaut basées sur le score du client
       const base = activeClient?.riskScore ? activeClient.riskScore * 30000 : 500000
       return [
         { date: "Sem. 1", montant: base * 0.8 },
@@ -337,7 +324,6 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
       ]
     }
 
-    // Regrouper les vraies transactions par date
     const grouped: Record<string, number> = {}
     const sorted = [...transactions].sort(
       (a, b) => new Date(a.dateTransaction).getTime() - new Date(b.dateTransaction).getTime()
@@ -352,35 +338,9 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
     return Object.entries(grouped).map(([date, montant]) => ({ date, montant }))
   }, [transactions, activeClient?.riskScore])
 
-  // Données de décomposition des facteurs
-  const decompositionFactors = useMemo(() => {
-    if (scoreData?.decomposition) {
-      const dec = scoreData.decomposition
-      return [
-        { label: "Fractionnement potentiel", points: dec.fractionnement?.points ?? 0, max: dec.fractionnement?.max ?? 25 },
-        { label: "Volume inhabituel", points: dec.volume?.points ?? 0, max: dec.volume?.max ?? 25 },
-        { label: "Fréquence anormale", points: dec.frequence?.points ?? 0, max: dec.frequence?.max ?? 15 },
-        { label: "Correspondance PPE / Sanctions", points: dec.sanctions_ppe?.points ?? (activeClient?.estPpe ? 15 : 0), max: dec.sanctions_ppe?.max ?? 15 },
-        { label: "Relations inhabituelles", points: dec.relations?.points ?? 0, max: dec.relations?.max ?? 10 },
-        { label: "Détection d'anomalie IA (ML)", points: dec.modele_ia?.points ?? (mlPrediction?.is_anomaly ? 10 : (mlPrediction?.anomaly_score && mlPrediction.anomaly_score >= 0.4 ? 5 : 0)), max: 10 },
-      ]
-    }
-
-    const currentScore = activeClient?.riskScore || 35
-    return [
-      { label: "Volume inhabituel", points: Math.min(25, Math.round(currentScore * 0.25)), max: 25 },
-      { label: "Fractionnement potentiel", points: Math.min(25, Math.round(currentScore * 0.25)), max: 25 },
-      { label: "Correspondance PPE", points: activeClient?.estPpe ? 15 : 0, max: 15 },
-      { label: "Fréquence anormale", points: Math.min(15, Math.round(currentScore * 0.15)), max: 15 },
-      { label: "Relations inhabituelles", points: Math.min(10, Math.round(currentScore * 0.1)), max: 10 },
-      { label: "Détection d'anomalie IA (ML)", points: mlPrediction?.is_anomaly ? 10 : (mlPrediction?.anomaly_score && mlPrediction.anomaly_score >= 0.4 ? 5 : 0), max: 10 },
-    ]
-  }, [scoreData, activeClient, mlPrediction])
-
   const clientScore = scoreData?.score ?? activeClient?.riskScore ?? 0
   const clientRiskLevel = scoreData?.niveau_risque ?? activeClient?.niveauRisque ?? (clientScore >= 70 ? "Élevé" : clientScore >= 40 ? "Moyen" : "Faible")
 
-  // Fermeture modale avec touche Echap
   useEffect(() => {
     if (!selectedAccount) return
     const onKey = (e: KeyboardEvent) => {
@@ -410,14 +370,6 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
           <div className="h-9 w-48 rounded-lg bg-slate-200" />
         </div>
         <StatCardsSkeleton count={4} />
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-          <DetailPaneSkeleton className="xl:col-span-1" />
-          <div className="rounded-xl border border-slate-200 bg-white p-5 xl:col-span-2 space-y-4 animate-pulse">
-            <div className="h-5 w-40 rounded bg-slate-200" />
-            <div className="h-40 rounded-lg bg-slate-100" />
-            <TableSkeleton rows={4} cols={4} />
-          </div>
-        </div>
       </div>
     )
   }
@@ -426,8 +378,8 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
     return (
       <EmptyState
         icon={User}
-        title="Aucun client trouvé"
-        description="La base de données ne contient aucun client pour le moment ou le sociétaire recherché n'a pas été trouvé."
+        title="Aucun sociétaire trouvé"
+        description="La base de données ne contient aucun sociétaire pour le moment."
         actionLabel="Actualiser les données"
         onAction={loadClients}
         className="my-12 rounded-xl border border-slate-200 bg-white"
@@ -448,78 +400,105 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
   const clientAccounts = activeClient.comptes || []
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-6 pb-8">
+      {/* ───────────────────────────────────────────────────────────────── */}
+      {/* 1. EN-TÊTE ÉPURÉ AVEC SÉLECTEUR DE SOCIÉTAIRE COMPACT              */}
+      {/* ───────────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200/80 pb-5 dark:border-slate-800">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Client 360°
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            Fiche Sociétaire 360°
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Fiche consolidée 100% connectée à la base : profil KYC, comptes réels, scoring et alertes.
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Vision consolidée du sociétaire, comptes bancaires, transactions et niveau de risque
           </p>
         </div>
 
-        {/* Sélecteur de clients : recherche + bandeau horizontal borné */}
-        <div className="flex flex-col items-end gap-1.5 max-w-full">
-          <div className="relative w-full sm:w-56">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={clientSearchTerm}
-              onChange={(e) => setClientSearchTerm(e.target.value)}
-              placeholder="Filtrer les clients..."
-              className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-8 pr-2.5 text-xs outline-none focus:border-indigo-400"
-            />
-          </div>
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
-            {visibleClients.map((c) => {
-              const isSelected = c.id === activeClient.id
-              const name = c.typeClient === "Entreprise" ? c.raisonSociale || c.nom : `${c.prenom || ""} ${c.nom}`.trim()
-              const score = c.riskScore ?? 0
-              const dotColor = score >= 70 ? "bg-rose-500" : score >= 40 ? "bg-amber-500" : "bg-emerald-500"
-
-              return (
-                <button
-                  key={c.id}
-                  onClick={() => setActiveClientId(c.id)}
-                  className={cn(
-                    "flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs md:text-sm font-medium transition shadow-sm",
-                    isSelected
-                      ? "border-indigo-500 bg-indigo-50 text-indigo-700 font-semibold ring-1 ring-indigo-500"
-                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                  )}
-                >
-                  <span className={cn("h-2 w-2 rounded-full shrink-0", dotColor)} />
-                  <span className="truncate max-w-[140px]">{name}</span>
-                  <span className="text-xs text-slate-400 font-mono">({c.codeClient})</span>
-                </button>
-              )
-            })}
-            {hiddenClientsCount > 0 && (
-              <span className="shrink-0 whitespace-nowrap text-xs text-slate-400">
-                +{hiddenClientsCount} autres résultats, affinez votre recherche
+        {/* Sélecteur de sociétaire compact et ergonomique */}
+        <div ref={searchRef} className="relative w-full sm:w-72">
+          <div
+            onClick={() => setIsSearchOpen(!isSearchOpen)}
+            className="flex cursor-pointer items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs shadow-xs hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900"
+          >
+            <div className="flex items-center gap-2 truncate">
+              <span className={cn(
+                "h-2 w-2 shrink-0 rounded-full",
+                clientScore >= 70 ? "bg-rose-500" : clientScore >= 40 ? "bg-amber-500" : "bg-emerald-500"
+              )} />
+              <span className="truncate font-semibold text-slate-800 dark:text-slate-200">
+                {clientFullName}
               </span>
-            )}
+              <span className="font-mono text-slate-400">({activeClient.codeClient})</span>
+            </div>
+            <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
           </div>
+
+          {isSearchOpen && (
+            <div className="absolute right-0 top-full z-30 mt-1 w-full rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-800 dark:bg-slate-900 animate-in fade-in-50 duration-100">
+              <div className="relative mb-2">
+                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={clientSearchTerm}
+                  onChange={(e) => setClientSearchTerm(e.target.value)}
+                  placeholder="Rechercher par nom ou code..."
+                  autoFocus
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-2.5 text-xs outline-none focus:border-indigo-400 dark:border-slate-700 dark:bg-slate-800"
+                />
+              </div>
+
+              <div className="max-h-56 overflow-y-auto space-y-1">
+                {filteredClients.map((c) => {
+                  const isSelected = c.id === activeClient.id
+                  const name = c.typeClient === "Entreprise" ? c.raisonSociale || c.nom : `${c.prenom || ""} ${c.nom}`.trim()
+                  const score = c.riskScore ?? 0
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => {
+                        setActiveClientId(c.id)
+                        setIsSearchOpen(false)
+                        setClientSearchTerm("")
+                      }}
+                      className={cn(
+                        "flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs transition",
+                        isSelected ? "bg-indigo-50 text-indigo-700 font-semibold dark:bg-indigo-950/50" : "text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className={cn(
+                          "h-2 w-2 shrink-0 rounded-full",
+                          score >= 70 ? "bg-rose-500" : score >= 40 ? "bg-amber-500" : "bg-emerald-500"
+                        )} />
+                        <span className="truncate">{name}</span>
+                      </div>
+                      <span className="font-mono text-[10px] text-slate-400">{c.codeClient}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Row 1: Profile + Risk Score */}
+      {/* ───────────────────────────────────────────────────────────────── */}
+      {/* 2. SYNTHÈSE PRINCIPALE : PROFIL & SCORE DU RISQUE                  */}
+      {/* ───────────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-        {/* Profile card */}
-        <div className="rounded-xl border border-slate-200 bg-white p-5 xl:col-span-1 shadow-sm">
+        {/* CARTE GAUCHE : Identité & Comptes */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900 xl:col-span-1">
           <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-lg font-bold text-white shadow-md">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#070347] to-indigo-700 text-base font-bold text-white shadow-xs">
               {clientInitials}
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="truncate text-base font-bold text-slate-900">{clientFullName}</h3>
+              <h3 className="truncate text-base font-bold text-slate-900 dark:text-slate-100">{clientFullName}</h3>
               <p className="text-xs font-mono font-medium text-slate-400">{activeClient.codeClient} • {activeClient.typeClient}</p>
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-3.5 flex flex-wrap gap-2">
             <StatusBadge
               variant={
                 clientRiskLevel === "Élevé"
@@ -542,55 +521,39 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
             )}
           </div>
 
-          <div className="mt-4 space-y-2 border-t border-slate-100 pt-3 text-xs">
-            <div className="flex items-center gap-2.5">
-              <Briefcase className="h-4 w-4 text-slate-400 shrink-0" />
-              <span className="text-slate-500">Activité :</span>
-              <span className="font-semibold text-slate-800 truncate">{activeClient.profession || activeClient.secteurActivite || "Non renseignée"}</span>
+          <div className="mt-4 space-y-2 border-t border-slate-100 pt-3 text-xs dark:border-slate-800">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400">Activité</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200">{activeClient.profession || activeClient.secteurActivite || "Non renseignée"}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400">Localisation</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200">{activeClient.ville || "Bamako"}, {activeClient.pays || "Mali"}</span>
             </div>
 
-            <div className="flex items-center gap-2.5">
-              <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
-              <span className="text-slate-500">Ville & Pays :</span>
-              <span className="font-semibold text-slate-800">{activeClient.ville || "Bamako"}, {activeClient.pays || "Mali"}</span>
-            </div>
-
-            {/* Divulgation progressive pour les données KYC secondaires */}
+            {/* Détails secondaires KYC repliables */}
             <div className="pt-1">
               <button
                 type="button"
                 onClick={() => setShowFullKyc(!showFullKyc)}
-                className="flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 transition cursor-pointer"
+                className="flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 transition cursor-pointer dark:text-indigo-400"
               >
                 {showFullKyc ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                <span>{showFullKyc ? "Masquer détails KYC" : "Voir pièces d'identité & contacts"}</span>
+                <span>{showFullKyc ? "Masquer détails KYC" : "Voir pièces & contacts"}</span>
               </button>
 
               {showFullKyc && (
-                <div className="mt-2 space-y-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 animate-in fade-in-50 duration-150">
-                  {activeClient.dateNaissance && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                      <span className="text-slate-500">Né(e) le :</span>
-                      <span className="font-semibold text-slate-800">
-                        {new Date(activeClient.dateNaissance).toLocaleDateString("fr-FR")}
-                      </span>
-                    </div>
-                  )}
-
+                <div className="mt-2 space-y-1.5 rounded-xl border border-slate-100 bg-slate-50 p-2.5 text-xs dark:border-slate-800 dark:bg-slate-800/50">
                   {activeClient.pieceIdentite && (
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                      <span className="text-slate-500">Pièce :</span>
-                      <span className="font-mono font-semibold text-slate-800">{activeClient.pieceIdentite}</span>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Pièce ID :</span>
+                      <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{activeClient.pieceIdentite}</span>
                     </div>
                   )}
-
                   {activeClient.telephone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                      <span className="text-slate-500">Tél :</span>
-                      <span className="font-mono font-semibold text-slate-800">{activeClient.telephone}</span>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Téléphone :</span>
+                      <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{activeClient.telephone}</span>
                     </div>
                   )}
                 </div>
@@ -598,25 +561,20 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
             </div>
           </div>
 
-          {/* Comptes bancaires réels du client */}
-          <div className="mt-4 border-t border-slate-100 pt-4">
+          {/* Comptes bancaires du sociétaire */}
+          <div className="mt-4 border-t border-slate-100 pt-3 dark:border-slate-800">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
                 Comptes bancaires ({clientAccounts.length})
               </p>
-              {clientAccounts.length >= 2 && (
-                <span className="text-xs font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
-                  Multi-comptes
-                </span>
-              )}
             </div>
 
             {clientAccounts.length === 0 ? (
-              <div className="p-3 bg-slate-50 rounded-lg text-center text-xs text-slate-400">
-                Aucun compte bancaire enregistré.
+              <div className="p-3 bg-slate-50 rounded-xl text-center text-xs text-slate-400 dark:bg-slate-800/50">
+                Aucun compte enregistré.
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {clientAccounts.map((acc: any, i: number) => {
                   const num = acc.numero_compte || acc.numeroCompte || "••••"
                   const type = acc.type_compte || acc.typeCompte || "Courant"
@@ -627,18 +585,18 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
                     <div
                       key={acc.id || i}
                       onClick={() => setSelectedAccount({ ...acc, num, type, solde, devise })}
-                      className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-50 p-2.5 hover:bg-indigo-50/50 hover:border-indigo-200 transition"
+                      className="flex cursor-pointer items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-2.5 transition hover:bg-indigo-50/50 hover:border-indigo-200 dark:border-slate-800 dark:bg-slate-800/40"
                     >
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white shadow-xs text-indigo-600">
-                        <CreditCard className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-slate-800">{type}</p>
-                        <p className="text-xs font-mono text-slate-400">{num}</p>
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4 text-indigo-600" />
+                        <div>
+                          <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">{type}</p>
+                          <p className="text-[10px] font-mono text-slate-400">{num}</p>
+                        </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs font-bold font-mono text-slate-900">
-                          {solde.toLocaleString("fr-FR")} <span className="text-xs font-normal text-slate-400">{devise}</span>
+                        <p className="text-xs font-bold font-mono text-slate-900 dark:text-slate-100">
+                          {solde.toLocaleString("fr-FR")} {devise}
                         </p>
                       </div>
                     </div>
@@ -649,445 +607,255 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
           </div>
         </div>
 
-        {/* Risk Score breakdown */}
-        <div className="rounded-xl border border-slate-200 bg-white p-5 xl:col-span-2 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-bold text-slate-900">Risk Score — Analyse réglementaire</h3>
-              <p className="text-xs text-slate-400">Moteur de calcul dynamique en temps réel</p>
+        {/* CARTE DROITE : Score de Risque & Explication */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900 xl:col-span-2 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Score de Risque AML</h3>
+                <p className="text-xs text-slate-400">Évaluation réglementaire selon les règles de conformité en vigueur</p>
+              </div>
+              <span className={cn(
+                "rounded-lg px-2.5 py-1 text-xs font-bold",
+                clientScore >= 70 ? "bg-rose-50 text-[#CD0D29] border border-rose-200" : clientScore >= 40 ? "bg-amber-50 text-amber-700 border border-amber-200" : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+              )}>
+                Risque {clientRiskLevel}
+              </span>
             </div>
-            <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700 font-semibold">
-              Score LAKANA
-            </Badge>
-          </div>
 
-          <div className="mt-4 flex items-center gap-5">
-            {/* Gauge circulaire */}
-            <div className="relative flex h-32 w-32 shrink-0 items-center justify-center">
-              <svg className="h-32 w-32 -rotate-90" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="50" fill="none" stroke="#F1F5F9" strokeWidth="12" />
-                <circle
-                  cx="60"
-                  cy="60"
-                  r="50"
-                  fill="none"
-                  stroke={clientScore >= 70 ? "#CD0D29" : clientScore >= 40 ? "#D97706" : "#059669"}
-                  strokeWidth="12"
-                  strokeLinecap="round"
-                  strokeDasharray={`${(clientScore / 100) * 314} 314`}
-                />
-              </svg>
-              <div className="absolute flex flex-col items-center">
-                <span className="text-3xl font-bold text-slate-900">{clientScore}</span>
-                <span className="text-xs font-medium text-slate-400">/ 100</span>
+            <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-6">
+              {/* Score numérique grand et direct */}
+              <div className="flex items-center gap-4 shrink-0">
+                <div className={cn(
+                  "flex h-24 w-24 flex-col items-center justify-center rounded-2xl border-2 font-mono shadow-xs",
+                  clientScore >= 70 ? "border-[#CD0D29] bg-rose-50/50 text-[#CD0D29]" : clientScore >= 40 ? "border-amber-500 bg-amber-50/50 text-amber-600" : "border-emerald-500 bg-emerald-50/50 text-emerald-600"
+                )}>
+                  <span className="text-3xl font-extrabold">{clientScore}</span>
+                  <span className="text-[10px] font-medium text-slate-400">/ 100</span>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                    {clientScore >= 70 ? "Vigilance renforcée requise" : clientScore >= 40 ? "Surveillance standard" : "Opérations régulières"}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500 max-w-md">
+                    Calculé en temps réel à partir des flux de transactions, des alertes détectées et du statut sociétaire.
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-slate-800">
-                  Niveau de risque : <span className={cn(clientRiskLevel === "Élevé" ? "text-rose-600" : clientRiskLevel === "Moyen" ? "text-amber-600" : "text-emerald-600")}>{clientRiskLevel}</span>
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Le score de conformité est calculé dynamiquement à partir des alertes réelles, des opérations atypiques et des statuts PPE de la base.
+            {/* Facteurs explicatifs concrets formulés simplement */}
+            <div className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-800">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">
+                Facteurs explicatifs du score :
               </p>
-              {scoreData?.facteurs && scoreData.facteurs.length > 0 && (
-                <div className="mt-2 space-y-1">
+              {scoreData?.facteurs && scoreData.facteurs.length > 0 ? (
+                <div className="space-y-2">
                   {scoreData.facteurs.map((fact: any, idx: number) => (
-                    <p key={idx} className="text-xs text-amber-800 bg-amber-50 p-1.5 rounded-lg flex items-start gap-1.5">
-                      <span className="text-amber-600 font-bold">•</span>
+                    <div key={idx} className="flex items-center gap-2 rounded-xl bg-slate-50 p-2.5 text-xs text-slate-700 dark:bg-slate-800/40 dark:text-slate-300">
+                      <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
                       <span>{formatFacteur(fact)}</span>
-                    </p>
+                    </div>
                   ))}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 rounded-xl bg-emerald-50 p-3 text-xs text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                  <span>Aucun facteur aggravant détecté. Les opérations du sociétaire sont conformes aux seuils habituels.</span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Barres de décomposition des facteurs */}
-          <div className="mt-4 space-y-2.5 border-t border-slate-100 pt-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Décomposition des règles de détection :</p>
-            {decompositionFactors.map((f) => (
-              <div key={f.label}>
-                <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="font-medium text-slate-700">{f.label}</span>
-                  <span className="text-slate-500 font-mono">
-                    <span className="font-bold text-slate-900">{f.points}</span> / {f.max} pts
-                  </span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all duration-500",
-                      f.points / f.max > 0.7 ? "bg-rose-500" : f.points / f.max > 0.4 ? "bg-amber-500" : "bg-emerald-500"
-                    )}
-                    style={{ width: `${Math.min(100, (f.points / f.max) * 100)}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Row IA: Diagnostic Prédictif & Machine Learning AML */}
-      <div className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 via-white to-slate-50 p-5 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-indigo-100/60 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200">
-              <Activity className="h-5 w-5" />
-            </div>
-            <div>
+          {/* Analyse comportementale automatisée sobre */}
+          <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/40 p-3.5 dark:border-indigo-900/40 dark:bg-indigo-950/20">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-slate-900">Diagnostic Prédictif Comportemental</h3>
-                <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 text-xs font-semibold">
-                  Isolation Forest + Random Forest
-                </Badge>
+                <span className={cn(
+                  "h-2.5 w-2.5 rounded-full",
+                  mlPrediction?.is_anomaly ? "bg-rose-500 animate-pulse" : "bg-emerald-500"
+                )} />
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  {mlPrediction?.is_anomaly ? "Comportement atypique détecté" : "Comportement conforme aux flux habituels"}
+                </span>
               </div>
-              <p className="text-xs text-slate-500">
-                Détection d&apos;anomalies non supervisée calibrée sur les flux SFD/UEMOA (14 features comportementales)
-              </p>
+              <button
+                onClick={() => {
+                  if (activeClient?.id) {
+                    setLoadingMl(true)
+                    aiService.predictClientRisk(activeClient.id).then((p) => {
+                      setMlPrediction(p)
+                      setLoadingMl(false)
+                    })
+                  }
+                }}
+                disabled={loadingMl}
+                className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 cursor-pointer dark:text-indigo-400"
+              >
+                {loadingMl ? "Actualisation..." : "Vérifier"}
+              </button>
             </div>
-          </div>
-          <button
-            onClick={() => {
-              if (activeClient?.id) {
-                setLoadingMl(true)
-                aiService.predictClientRisk(activeClient.id).then((p) => {
-                  setMlPrediction(p)
-                  setLoadingMl(false)
-                })
-              }
-            }}
-            disabled={loadingMl}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 transition shadow-2xs self-start sm:self-auto cursor-pointer"
-          >
-            <RefreshCw className={cn("h-3.5 w-3.5", loadingMl && "animate-spin")} />
-            {loadingMl ? "Analyse en cours..." : "Ré-analyser par IA"}
-          </button>
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Métrique 1: Score d'anomalie */}
-          <div className="rounded-lg bg-white border border-slate-200/80 p-3.5 shadow-2xs">
-            <p className="text-xs font-semibold text-slate-500">Score d&apos;atypisme (Isolation Forest)</p>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className={cn(
-                "text-2xl font-bold font-mono",
-                (mlPrediction?.anomaly_score || 0) >= 0.65 ? "text-rose-600" : (mlPrediction?.anomaly_score || 0) >= 0.40 ? "text-amber-600" : "text-emerald-600"
-              )}>
-                {mlPrediction ? `${Math.round(mlPrediction.anomaly_score * 100)}%` : "—"}
-              </span>
-              <span className="text-xs text-slate-400">d&apos;écart statistique</span>
-            </div>
-            <div className="mt-2 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className={cn(
-                  "h-full rounded-full transition-all",
-                  (mlPrediction?.anomaly_score || 0) >= 0.65 ? "bg-rose-500" : (mlPrediction?.anomaly_score || 0) >= 0.40 ? "bg-amber-500" : "bg-emerald-500"
-                )}
-                style={{ width: `${Math.min(100, (mlPrediction?.anomaly_score || 0) * 100)}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Métrique 2: Risque prédit supervisé */}
-          <div className="rounded-lg bg-white border border-slate-200/80 p-3.5 shadow-2xs">
-            <p className="text-xs font-semibold text-slate-500">Classification Risque (Random Forest)</p>
-            <div className="mt-2 flex items-center gap-2">
-              <span className={cn(
-                "px-2.5 py-1 text-xs font-bold rounded-md",
-                mlPrediction?.predicted_risk === "Élevé"
-                  ? "bg-rose-100 text-rose-800"
-                  : mlPrediction?.predicted_risk === "Moyen"
-                  ? "bg-amber-100 text-amber-800"
-                  : "bg-emerald-100 text-emerald-800"
-              )}>
-                {mlPrediction?.predicted_risk || "Faible"}
-              </span>
-              <span className="text-xs text-slate-500 font-mono">
-                Confiance: {mlPrediction ? `${Math.round(mlPrediction.confidence * 100)}%` : "95%"}
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 mt-2">
-              Modèle : {mlPrediction?.model_used || "isolation_forest+random_forest"}
-            </p>
-          </div>
-
-          {/* Métrique 3: Statut d'anomalie */}
-          <div className="rounded-lg bg-white border border-slate-200/80 p-3.5 shadow-2xs">
-            <p className="text-xs font-semibold text-slate-500">Verdict Algorithmique LAKANA</p>
-            <div className="mt-2 flex items-center gap-2">
-              <div className={cn(
-                "h-2.5 w-2.5 rounded-full",
-                mlPrediction?.is_anomaly ? "bg-rose-500 animate-pulse" : "bg-emerald-500"
-              )} />
-              <span className="text-xs font-bold text-slate-800">
-                {mlPrediction?.is_anomaly ? "Anomalie Comportementale Détectée" : "Comportement dans les seuils normaux"}
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 mt-2">
-              {mlPrediction?.is_anomaly
-                ? "Déviance statistique non expliquée par les seuils unitaires."
-                : "Flux financiers cohérents avec le profil du client."}
-            </p>
           </div>
         </div>
-
-        {/* Facteurs et signaux faibles détectés par l'IA */}
-        {mlPrediction?.facteurs_ia && mlPrediction.facteurs_ia.length > 0 && (
-          <div className="mt-4 p-3 rounded-lg bg-white border border-indigo-100">
-            <p className="text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-              <AlertCircle className="h-3.5 w-3.5 text-indigo-600" />
-              Signaux faibles identifiés par le modèle :
-            </p>
-            <div className="space-y-1">
-              {mlPrediction.facteurs_ia.map((fact, idx) => (
-                <div key={idx} className="text-xs text-slate-600 flex items-start gap-2">
-                  <span className="text-indigo-500 font-bold">•</span>
-                  <span>{formatFacteur(fact)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Row 2: Transactions chart + Relationship graph */}
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-        {/* Transaction history */}
-        <div className="rounded-xl border border-slate-200 bg-white p-5 xl:col-span-2 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-bold text-slate-900">
-                Évolution des flux de transactions
-              </h3>
-              <p className="text-xs text-slate-400">{transactions.length} transaction(s) enregistrée(s) en base</p>
-            </div>
-            <span className="inline-flex items-center text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
-              Flux consolidés
-            </span>
+      {/* ───────────────────────────────────────────────────────────────── */}
+      {/* 3. FLUX & ALERTES LIÉES                                           */}
+      {/* ───────────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        {/* Évolution des flux de transactions */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              Historique des flux de transactions ({transactions.length})
+            </h3>
+            <span className="text-xs text-slate-400">Flux consolidés</span>
           </div>
 
-          <div className="mt-4 h-[220px] w-full">
+          <div className="mt-4 h-[200px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -15, bottom: 0 }}>
                 <defs>
                   <linearGradient id="txGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#070347" stopOpacity={0.25} />
+                    <stop offset="0%" stopColor="#070347" stopOpacity={0.2} />
                     <stop offset="100%" stopColor="#070347" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#94A3B8" }} tickLine={false} axisLine={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#94A3B8" }} tickLine={false} axisLine={false} />
                 <YAxis
-                  tick={{ fontSize: 11, fill: "#94A3B8" }}
+                  tick={{ fontSize: 10, fill: "#94A3B8" }}
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={(v) => `${(v / 1000000).toFixed(1)}M`}
                 />
                 <Tooltip content={<TxTooltip />} />
-                <Area type="monotone" dataKey="montant" stroke="#070347" strokeWidth={2.5} fill="url(#txGrad)" isAnimationActive={false} />
+                <Area type="monotone" dataKey="montant" stroke="#070347" strokeWidth={2} fill="url(#txGrad)" isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Quick link Graphe de relations */}
-        <div className="rounded-xl border border-slate-200 bg-white p-5 xl:col-span-1 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-900">Cartographie relationnelle</h3>
-              <Share2 className="h-4 w-4 text-indigo-600" />
-            </div>
-            <p className="mt-1 text-xs text-slate-400">Liens et flux financiers interactifs</p>
-
-            <div className="mt-4 p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Client :</span>
-                <span className="font-semibold text-slate-800">{clientFullName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Comptes associés :</span>
-                <span className="font-mono font-bold text-slate-800">{clientAccounts.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Règle seuil 15M :</span>
-                <span className="text-rose-600 font-semibold">Active</span>
-              </div>
-            </div>
-          </div>
-
-          <button
-            onClick={() => navigateTo("Graphe de relations")}
-            className="w-full mt-4 flex items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 text-xs font-semibold text-white hover:bg-indigo-700 transition shadow-sm"
-          >
-            <Share2 className="h-3.5 w-3.5" />
-            Ouvrir dans le Graphe de relations
-          </button>
-        </div>
-      </div>
-
-      {/* Row 3: Alerts history */}
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-base font-bold text-slate-900">
-              Historique des alertes ({alerts.length})
+        {/* Historique des alertes du sociétaire */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              Alertes du sociétaire ({alerts.length})
             </h3>
-            <p className="text-xs text-slate-400">Alertes AML/CFT déclenchées pour ce client</p>
+            <button
+              onClick={() => navigateTo("Centre d'alertes")}
+              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400"
+            >
+              Centre d'alertes →
+            </button>
           </div>
-          <button onClick={() => navigateTo("Centre d'alertes")} className="cursor-pointer text-xs font-semibold text-indigo-600 hover:underline">
-            Voir le centre d'alertes
-          </button>
-        </div>
 
-        <div className="mt-4 space-y-2">
-          {alerts.length === 0 ? (
-            <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl text-xs text-emerald-800 flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-              <span>Aucune alerte active pour ce client. Le dossier est conforme aux seuils en vigueur.</span>
-            </div>
-          ) : (
-            alerts.map((a) => (
-              <div
-                key={a.id || a.ref}
-                onClick={() => navigateTo("Centre d'alertes")}
-                className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-100 p-3 transition hover:bg-slate-50"
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
-                  <AlertTriangle className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs md:text-sm font-semibold text-slate-800">{a.type}</p>
-                  <p className="text-xs font-mono text-slate-400">{a.ref} {a.module ? `• ${a.module}` : ""}</p>
-                </div>
-                <StatusBadge
-                  variant={
-                    a.level === "bloquante"
-                      ? "danger"
-                      : a.level === "analyser"
-                        ? "warning"
-                        : "success"
-                  }
-                  size="sm"
-                  dot
-                >
-                  {a.level}
-                </StatusBadge>
-                <ChevronRight className="h-4 w-4 text-slate-400" />
+          <div className="mt-4">
+            {alerts.length === 0 ? (
+              <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl text-xs text-emerald-800 flex items-center gap-2 dark:bg-emerald-950/30 dark:border-emerald-900/50 dark:text-emerald-300">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                <span>Aucune alerte active pour ce sociétaire.</span>
               </div>
-            ))
-          )}
+            ) : (
+              <div className="space-y-2">
+                {alerts.map((a) => (
+                  <div
+                    key={a.id || a.ref}
+                    onClick={() => navigateTo("Centre d'alertes")}
+                    className="flex cursor-pointer items-center justify-between rounded-xl border border-slate-100 p-3 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/40"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50 text-[#CD0D29] dark:bg-rose-950/50">
+                        <AlertTriangle className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">{a.type}</p>
+                        <p className="text-[10px] font-mono text-slate-400">{a.ref}</p>
+                      </div>
+                    </div>
+                    <StatusBadge
+                      variant={
+                        a.level === "bloquante"
+                          ? "danger"
+                          : a.level === "analyser"
+                            ? "warning"
+                            : "success"
+                      }
+                      size="sm"
+                      dot
+                    >
+                      {a.level}
+                    </StatusBadge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Account transactions modal */}
+      {/* Modale de détail du compte */}
       {selectedAccount && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in"
           onClick={() => setSelectedAccount(null)}
         >
           <div
-            className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl border border-slate-200"
+            className="w-full max-w-xl rounded-2xl bg-white p-5 shadow-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-900"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  Détail du compte — {selectedAccount.type}
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  Compte {selectedAccount.type}
                 </h3>
                 <p className="mt-0.5 text-xs font-mono text-slate-400">{selectedAccount.num}</p>
               </div>
               <button
                 onClick={() => setSelectedAccount(null)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            {/* Account summary */}
-            <div className="mt-4 grid grid-cols-3 gap-3 text-xs">
-              <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Type de compte</p>
-                <p className="mt-1 font-semibold text-slate-800">{selectedAccount.type}</p>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">N° de compte</p>
-                <p className="mt-1 font-mono font-bold text-slate-800">{selectedAccount.num}</p>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Solde actuel</p>
-                <p className="mt-1 font-mono font-bold text-indigo-600">
-                  {selectedAccount.solde.toLocaleString("fr-FR")} {selectedAccount.devise}
-                </p>
-              </div>
+            <div className="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-100 dark:border-slate-800 dark:bg-slate-800/50 flex justify-between items-center">
+              <span className="text-xs text-slate-500">Solde disponible</span>
+              <span className="text-base font-mono font-bold text-slate-900 dark:text-slate-100">
+                {selectedAccount.solde.toLocaleString("fr-FR")} {selectedAccount.devise}
+              </span>
             </div>
 
-            {/* Transactions table */}
-            <div className="mt-5">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Transactions associées</p>
+            <div className="mt-4">
+              <p className="text-xs font-bold text-slate-600 mb-2 dark:text-slate-400">Dernières écritures</p>
               {modalTxLoading ? (
-                <div className="p-6 bg-slate-50 rounded-xl text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                  Chargement des transactions...
-                </div>
+                <div className="p-4 text-center text-xs text-slate-400">Chargement...</div>
               ) : modalTransactions.length === 0 ? (
-                <div className="p-6 bg-slate-50 rounded-xl text-center text-xs text-slate-400">
-                  Aucune transaction enregistrée en base pour ce compte.
-                </div>
+                <div className="p-4 text-center text-xs text-slate-400">Aucune transaction enregistrée.</div>
               ) : (
-                <>
-                  <div className="overflow-hidden rounded-xl border border-slate-200 max-h-60 overflow-y-auto">
-                    <table className="w-full text-xs">
-                      <thead className="bg-slate-50 sticky top-0">
-                        <tr className="text-left text-slate-500 border-b border-slate-200">
-                          <th className="px-3 py-2 font-semibold">Date</th>
-                          <th className="px-3 py-2 font-semibold">Type</th>
-                          <th className="px-3 py-2 font-semibold">Bénéficiaire / Description</th>
-                          <th className="px-3 py-2 text-right font-semibold">Montant</th>
+                <div className="overflow-hidden rounded-xl border border-slate-100 dark:border-slate-800 max-h-52 overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-slate-50 dark:bg-slate-800/60 sticky top-0">
+                      <tr className="text-left text-slate-500 border-b border-slate-100 dark:border-slate-800">
+                        <th className="px-3 py-2 font-medium">Date</th>
+                        <th className="px-3 py-2 font-medium">Type</th>
+                        <th className="px-3 py-2 text-right font-medium">Montant</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {modalTransactions.map((tx) => (
+                        <tr key={tx.id}>
+                          <td className="px-3 py-2 text-slate-500">{new Date(tx.dateTransaction).toLocaleDateString("fr-FR")}</td>
+                          <td className="px-3 py-2 font-medium text-slate-800 dark:text-slate-200">{tx.typeOperation || "Virement"}</td>
+                          <td className="px-3 py-2 text-right font-mono font-bold text-slate-900 dark:text-slate-100">
+                            {Number(tx.montant).toLocaleString("fr-FR")} FCFA
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {modalTransactions.map((tx) => (
-                          <tr key={tx.id} className="hover:bg-slate-50">
-                            <td className="px-3 py-2 text-slate-600 whitespace-nowrap">
-                              {new Date(tx.dateTransaction).toLocaleDateString("fr-FR")}
-                            </td>
-                            <td className="px-3 py-2 font-medium text-slate-800">{tx.typeOperation}</td>
-                            <td className="px-3 py-2 text-slate-600">{tx.beneficiaireNom || tx.description || "—"}</td>
-                            <td className="px-3 py-2 text-right font-mono font-bold text-slate-900">
-                              {Number(tx.montant).toLocaleString("fr-FR")} {tx.devise}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  {modalTxTotal > 0 && (
-                    <DataPagination
-                      page={modalTxPage}
-                      totalPages={modalTxTotalPages}
-                      total={modalTxTotal}
-                      pageSize={10}
-                      onPageChange={setModalTxPage}
-                      itemLabel="transactions"
-                      className="mt-3"
-                    />
-                  )}
-                </>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
-            </div>
-
-            <div className="mt-5 flex items-center justify-end">
-              <button
-                onClick={() => setSelectedAccount(null)}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                Fermer
-              </button>
             </div>
           </div>
         </div>
