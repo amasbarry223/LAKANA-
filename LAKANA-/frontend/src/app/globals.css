@@ -1,0 +1,487 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Support complet et robuste du Dark Mode en Tailwind CSS v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  /* Identité Visuelle Officielle LAKANA */
+  --color-lakana-navy: #070347;
+  --color-lakana-slate: #98A3B9;
+  --color-lakana-red: #CD0D29;
+  --color-lakana-white: #FFFFFF;
+  --color-lakana-text: #29282B;
+
+  /* Aliasing Indigo */
+  --color-indigo-50: rgba(7, 3, 71, 0.05);
+  --color-indigo-100: rgba(7, 3, 71, 0.08);
+  --color-indigo-200: rgba(7, 3, 71, 0.18);
+  --color-indigo-300: rgba(7, 3, 71, 0.35);
+  --color-indigo-400: #98A3B9;
+  --color-indigo-500: #070347;
+  --color-indigo-600: #070347;
+  --color-indigo-700: #050236;
+  --color-indigo-800: #04022a;
+  --color-indigo-900: #03011e;
+  --color-indigo-950: #020114;
+
+  /* Aliasing Rose */
+  --color-rose-50: rgba(205, 13, 41, 0.08);
+  --color-rose-100: rgba(205, 13, 41, 0.12);
+  --color-rose-200: rgba(205, 13, 41, 0.25);
+  --color-rose-300: rgba(205, 13, 41, 0.4);
+  --color-rose-400: #CD0D29;
+  --color-rose-500: #CD0D29;
+  --color-rose-600: #CD0D29;
+  --color-rose-700: #b00b23;
+  --color-rose-800: #93091c;
+  --color-rose-900: #760716;
+
+  /* Aliasing Slate */
+  --color-slate-50: #F8FAFC;
+  --color-slate-100: rgba(152, 163, 185, 0.12);
+  --color-slate-200: rgba(152, 163, 185, 0.28);
+  --color-slate-300: rgba(152, 163, 185, 0.45);
+  --color-slate-400: #98A3B9;
+  --color-slate-500: #5A657A;
+  --color-slate-600: #5A657A;
+  --color-slate-700: #29282B;
+  --color-slate-800: #29282B;
+  --color-slate-900: #29282B;
+  --color-slate-950: #1b1a1c;
+
+  /* Tokens Sémantiques */
+  --color-primary: #070347;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #FFFFFF;
+  --color-secondary-foreground: #070347;
+  --color-accent: rgba(7, 3, 71, 0.05);
+  --color-accent-foreground: #070347;
+  --color-destructive: #CD0D29;
+  --color-destructive-foreground: #FFFFFF;
+  --color-muted: #F8FAFC;
+  --color-muted-foreground: #98A3B9;
+  --color-border: rgba(152, 163, 185, 0.28);
+  --color-input: rgba(152, 163, 185, 0.35);
+  --color-ring: #070347;
+
+  --color-sidebar: #FFFFFF;
+  --color-sidebar-foreground: #29282B;
+  --color-sidebar-primary: #070347;
+  --color-sidebar-primary-foreground: #FFFFFF;
+  --color-sidebar-accent: rgba(7, 3, 71, 0.05);
+  --color-sidebar-accent-foreground: #070347;
+  --color-sidebar-border: rgba(152, 163, 185, 0.22);
+  --color-sidebar-ring: #070347;
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: #FFFFFF;
+  --foreground: #29282B;
+  --card: #FFFFFF;
+  --card-foreground: #29282B;
+  --popover: #FFFFFF;
+  --popover-foreground: #29282B;
+
+  --primary: #070347;
+  --primary-foreground: #FFFFFF;
+  --secondary: #FFFFFF;
+  --secondary-foreground: #070347;
+
+  --muted: #F8FAFC;
+  --muted-foreground: #98A3B9;
+  --accent: rgba(7, 3, 71, 0.05);
+  --accent-foreground: #070347;
+
+  --destructive: #CD0D29;
+  --destructive-foreground: #FFFFFF;
+
+  --border: rgba(152, 163, 185, 0.28);
+  --input: rgba(152, 163, 185, 0.35);
+  --ring: #070347;
+
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #29282B;
+  --sidebar-primary: #070347;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: rgba(7, 3, 71, 0.05);
+  --sidebar-accent-foreground: #070347;
+  --sidebar-border: rgba(152, 163, 185, 0.22);
+  --sidebar-ring: #070347;
+}
+
+.dark {
+  --background: #080b14;
+  --foreground: #F8FAFC;
+  --card: #111827;
+  --card-foreground: #F8FAFC;
+  --popover: #111827;
+  --popover-foreground: #F8FAFC;
+  --primary: #818CF8;
+  --primary-foreground: #0B0F19;
+  --secondary: #1E293B;
+  --secondary-foreground: #F8FAFC;
+  --muted: #1E293B;
+  --muted-foreground: #94A3B8;
+  --accent: rgba(129, 140, 248, 0.15);
+  --accent-foreground: #A5B4FC;
+  --destructive: #FB7185;
+  --destructive-foreground: #FFFFFF;
+  --border: rgba(148, 163, 184, 0.18);
+  --input: rgba(148, 163, 184, 0.22);
+  --ring: #818CF8;
+  --sidebar: #060233;
+  --sidebar-foreground: #F8FAFC;
+  --sidebar-primary: #818CF8;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #818CF8;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────── */
+/* REGLES MODE CLAIR EXCLUSIF (:root:not(.dark))                    */
+/* ───────────────────────────────────────────────────────────────── */
+
+:root:not(.dark) {
+  /* Navy Principal (#070347) appliqué aux éléments d'action et d'autorité */
+  .bg-indigo-600, .bg-indigo-700, .bg-indigo-500 {
+    background-color: #070347 !important;
+  }
+  .text-indigo-600, .text-indigo-700, .text-indigo-500 {
+    color: #070347 !important;
+  }
+  .border-indigo-600, .border-indigo-500 {
+    border-color: #070347 !important;
+  }
+  .bg-indigo-50, .bg-indigo-100 {
+    background-color: rgba(7, 3, 71, 0.06) !important;
+  }
+  .text-indigo-700, .text-indigo-800, .text-indigo-900, .text-indigo-950 {
+    color: #070347 !important;
+  }
+  .border-indigo-100, .border-indigo-200, .border-indigo-300 {
+    border-color: rgba(7, 3, 71, 0.16) !important;
+  }
+  .hover\:bg-indigo-700:hover, .hover\:bg-indigo-600:hover {
+    background-color: #050236 !important;
+  }
+  .hover\:text-indigo-600:hover, .hover\:text-indigo-700:hover {
+    color: #070347 !important;
+  }
+
+  /* Rouge Accent (#CD0D29) appliqué aux alertes bloquantes et rejets */
+  .bg-rose-500, .bg-rose-600, .bg-rose-700 {
+    background-color: #CD0D29 !important;
+  }
+  .text-rose-500, .text-rose-600, .text-rose-700 {
+    color: #CD0D29 !important;
+  }
+  .bg-rose-50, .bg-rose-100 {
+    background-color: rgba(205, 13, 41, 0.08) !important;
+  }
+  .text-rose-800, .text-rose-900 {
+    color: #CD0D29 !important;
+  }
+  .border-rose-100, .border-rose-200, .border-rose-300 {
+    border-color: rgba(205, 13, 41, 0.25) !important;
+  }
+  .hover\:bg-rose-700:hover, .hover\:bg-rose-600:hover {
+    background-color: #b00b23 !important;
+  }
+
+  /* Typographie principale #29282B & Gris Bleu Secondaire #98A3B9 */
+  .text-slate-900, .text-slate-800, .text-slate-700 {
+    color: #29282B;
+  }
+  .text-slate-500, .text-slate-600 {
+    color: #5A657A;
+  }
+  .text-slate-400 {
+    color: #98A3B9;
+  }
+  .border-slate-200, .border-slate-100 {
+    border-color: rgba(152, 163, 185, 0.28);
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────── */
+/* HARMONISATION EXPERTE MODE SOMBRE (.dark)                         */
+/* Lisibilité 100 %, contrastes WCAG AAA, zéro texte sombre masqué   */
+/* ───────────────────────────────────────────────────────────────── */
+
+.dark {
+  color-scheme: dark;
+
+  /* Cartes, conteneurs et fonds */
+  .bg-white:not([data-keep-light]) {
+    background-color: #111827 !important;
+    border-color: rgba(148, 163, 184, 0.18) !important;
+  }
+  .bg-slate-50:not([data-keep-light]),
+  .bg-slate-100:not([data-keep-light]) {
+    background-color: #1a2234 !important;
+  }
+  .hover\:bg-slate-50:hover,
+  .hover\:bg-slate-100:hover,
+  .hover\:bg-white:hover {
+    background-color: #1f293d !important;
+  }
+
+  /* Typographie - Haute visibilité garantie */
+  .text-slate-900,
+  .text-slate-800 {
+    color: #F8FAFC !important;
+  }
+  .text-slate-700 {
+    color: #E2E8F0 !important;
+  }
+  .text-slate-600,
+  .text-slate-500 {
+    color: #CBD5E1 !important;
+  }
+  .text-slate-400 {
+    color: #94A3B8 !important;
+  }
+  .border-slate-200,
+  .border-slate-100 {
+    border-color: rgba(148, 163, 184, 0.18) !important;
+  }
+
+  /* Éléments Indigo / Autorité en mode sombre */
+  .text-indigo-500,
+  .text-indigo-600,
+  .text-indigo-700 {
+    color: #818CF8 !important;
+  }
+  .text-indigo-800,
+  .text-indigo-900,
+  .text-indigo-950 {
+    color: #C7D2FE !important;
+  }
+  .bg-indigo-50,
+  .bg-indigo-100 {
+    background-color: rgba(99, 102, 241, 0.16) !important;
+  }
+  .border-indigo-100,
+  .border-indigo-200,
+  .border-indigo-300 {
+    border-color: rgba(99, 102, 241, 0.3) !important;
+  }
+  .bg-indigo-600,
+  .bg-indigo-700 {
+    background-color: #4F46E5 !important;
+    color: #FFFFFF !important;
+  }
+
+  /* Éléments Rose / Alertes Bloquantes */
+  .text-rose-500,
+  .text-rose-600,
+  .text-rose-700,
+  .text-rose-800,
+  .text-rose-900 {
+    color: #FB7185 !important;
+  }
+  .bg-rose-50,
+  .bg-rose-100 {
+    background-color: rgba(244, 63, 94, 0.16) !important;
+  }
+  .border-rose-100,
+  .border-rose-200,
+  .border-rose-300 {
+    border-color: rgba(244, 63, 94, 0.35) !important;
+  }
+
+  /* Éléments Ambre / À Analyser */
+  .text-amber-600,
+  .text-amber-700,
+  .text-amber-800 {
+    color: #FBBF24 !important;
+  }
+  .bg-amber-50,
+  .bg-amber-100 {
+    background-color: rgba(245, 158, 11, 0.16) !important;
+  }
+  .border-amber-100,
+  .border-amber-200,
+  .border-amber-300 {
+    border-color: rgba(245, 158, 11, 0.35) !important;
+  }
+
+  /* Éléments Émeraude / Conforme */
+  .text-emerald-600,
+  .text-emerald-700,
+  .text-emerald-800 {
+    color: #34D399 !important;
+  }
+  .bg-emerald-50,
+  .bg-emerald-100 {
+    background-color: rgba(16, 185, 129, 0.16) !important;
+  }
+  .border-emerald-100,
+  .border-emerald-200,
+  .border-emerald-300 {
+    border-color: rgba(16, 185, 129, 0.35) !important;
+  }
+
+  /* Formulaires, sélecteurs et entrées */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
+  select,
+  textarea {
+    background-color: #1a2234 !important;
+    color: #F8FAFC !important;
+    border-color: rgba(148, 163, 184, 0.25) !important;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: #94A3B8 !important;
+  }
+  option {
+    background-color: #111827;
+    color: #F8FAFC;
+  }
+
+  /* Modales et Dialogues */
+  [role="dialog"] {
+    background-color: #111827 !important;
+    border-color: rgba(148, 163, 184, 0.2) !important;
+    color: #F8FAFC !important;
+  }
+
+  /* Tableaux */
+  table thead th {
+    background-color: #1a2234 !important;
+    color: #94A3B8 !important;
+    border-color: rgba(148, 163, 184, 0.18) !important;
+  }
+  table tbody tr {
+    border-color: rgba(148, 163, 184, 0.12) !important;
+  }
+  table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+  }
+  table td {
+    color: #E2E8F0;
+  }
+
+  /* Graphiques Recharts */
+  .recharts-cartesian-grid line {
+    stroke: rgba(148, 163, 184, 0.15) !important;
+  }
+  .recharts-text, .recharts-cartesian-axis-tick-value {
+    fill: #94A3B8 !important;
+  }
+  .recharts-default-tooltip {
+    background-color: #111827 !important;
+    border: 1px solid rgba(148, 163, 184, 0.25) !important;
+    color: #F8FAFC !important;
+    border-radius: 10px !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+  }
+  .recharts-tooltip-item {
+    color: #F8FAFC !important;
+  }
+
+  /* Badges & Pills */
+  .badge-neutral {
+    background-color: #1E293B !important;
+    color: #CBD5E1 !important;
+    border-color: rgba(148, 163, 184, 0.2) !important;
+  }
+}
+
+/* Barre de défilement institutionnelle */
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(152, 163, 185, 0.4) transparent;
+}
+.sidebar-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(152, 163, 185, 0.4);
+  border-radius: 9999px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #98A3B9;
+}
+
+/* Typographie institutionnelle LAKANA */
+.lakana-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #070347;
+  line-height: 1.25;
+}
+.dark .lakana-title {
+  color: #FFFFFF !important;
+}
+
+.lakana-subtitle {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #29282B;
+  line-height: 1.35;
+}
+.dark .lakana-subtitle {
+  color: #F8FAFC !important;
+}
+
+.lakana-body {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #29282B;
+  line-height: 1.45;
+}
+.dark .lakana-body {
+  color: #CBD5E1 !important;
+}
+
+.lakana-secondary {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: #5A657A;
+  line-height: 1.4;
+}
+.dark .lakana-secondary {
+  color: #94A3B8 !important;
+}
+
+.lakana-caption {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #98A3B9;
+  line-height: 1.35;
+}
+.dark .lakana-caption {
+  color: #94A3B8 !important;
+}
+
+/* Micro-transitions */
+.row-actions-hover {
+  opacity: 0.8;
+  transition: opacity 0.15s ease-in-out;
+}
+tr:hover .row-actions-hover {
+  opacity: 1;
+}

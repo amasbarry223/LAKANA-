@@ -1,0 +1,40 @@
+import uuid
+from datetime import datetime
+from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Index
+from sqlalchemy.orm import relationship
+from app.db.base import Base
+
+
+class Transaction(Base):
+    __tablename__ = "transactions"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    reference = Column(String, unique=True, index=True, nullable=False)
+    client_id = Column(String, ForeignKey("clients.id", ondelete="CASCADE"), nullable=False)
+    compte_source_id = Column(String, nullable=True)
+    numero_compte_expediteur = Column(String, index=True, nullable=True)  # Numéro de compte de l'expéditeur
+    compte_destination_id = Column(String, nullable=True)
+    numero_compte_beneficiaire = Column(String, index=True, nullable=True)  # Numéro de compte du bénéficiaire
+    beneficiaire_nom = Column(String, index=True, nullable=True)
+    
+    montant = Column(Float, nullable=False)
+    devise = Column(String, default="XOF")
+    type_operation = Column(String, default="Dépôt")  # Dépôt, Retrait, Virement, Crédit, Mobile Money
+    canal = Column(String, default="Guichet")          # Guichet, Agent, Mobile
+    description = Column(String, nullable=True)
+    
+    # Champs réglementaires obligatoires SFD (Canevas CENTIF / BCEAO / Hackathon)
+    numero_depot = Column(String, nullable=True, index=True)         # N° Dépôt (ex: DEP-2026-0841)
+    agence = Column(String, default="Agence Centrale Bamako", index=True) # Agence d'exécution
+    cause_operation = Column(String, nullable=True)                  # Cause / Motif ou libellé économique
+    caractere = Column(String, default="Habituel")                   # Habituel ou Inhabituel
+    operateur = Column(String, default="Guichetier 01", nullable=True) # Opérateur de guichet / agent
+    
+    date_transaction = Column(DateTime, default=datetime.utcnow, index=True)
+
+    # Relations
+    client = relationship("Client", back_populates="transactions")
+
+    __table_args__ = (
+        Index("ix_transactions_client_date", "client_id", "date_transaction"),
+    )
