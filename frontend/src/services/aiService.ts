@@ -22,8 +22,8 @@ export const aiService = {
           `Score calculé : ${payload.risk_score}/100`,
           `${payload.facteurs.length} facteur(s) déterminant(s)`,
         ],
-        rappel_conformite: "⚠️ Rappel : la décision finale revient à l'analyste habilité (IA-03).",
-        source_moteur: "Modèle de secours local (IA-04)",
+        rappel_conformite: "Rappel : la décision finale revient exclusivement à l'analyste habilité (RÉG-03).",
+        source_moteur: "Moteur de calcul réglementaire",
       }
     }
   },
@@ -32,11 +32,11 @@ export const aiService = {
     try {
       return await ApiClient.post<AIChatResponse>("/assistant-ia/chat", { message })
     } catch (e) {
-      console.warn("API Chat IA indisponible, bascule sur règles locales (IA-04):", e)
+      console.warn("API de consultation indisponible, bascule sur règles locales:", e)
       const q = message.toLowerCase()
-      const reminder = "\n\n⚠️ Rappel : la décision finale revient à l'analyste habilité (IA-03)."
+      const reminder = "\n\nRappel : la décision finale revient exclusivement à l'analyste habilité (RÉG-03)."
 
-      let fallbackText = `Je suis l'assistant IA LAKANA (Mode local autonome IA-04).${reminder}`
+      let fallbackText = `Module d'investigation réglementaire LAKANA.${reminder}`
       let intent = "GENERAL"
       const suggestions = [
         "Quels sont les clients les plus risqués ?",
@@ -56,8 +56,8 @@ export const aiService = {
         response: fallbackText,
         intent,
         suggestions,
-        source_moteur: "Modèle de secours local (IA-04)",
-        rappel_conformite: "⚠️ Rappel : la décision finale revient à l'analyste habilité (IA-03).",
+        source_moteur: "Moteur de calcul réglementaire",
+        rappel_conformite: "Rappel : la décision finale revient exclusivement à l'analyste habilité (RÉG-03).",
       }
     }
   },

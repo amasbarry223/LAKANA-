@@ -189,7 +189,7 @@ def get_funnel_analytics(db: Session = Depends(get_db)):
     if ppe_alert:
         c_nom = ppe_alert.client.nom if ppe_alert.client else "Inconnu"
         insights.append({
-            "icon": "Sparkles",
+            "icon": "ShieldAlert",
             "iconBg": "bg-cyan-50",
             "iconColor": "text-cyan-500",
             "title": "Correspondance PPE détectée",
@@ -202,7 +202,7 @@ def get_funnel_analytics(db: Session = Depends(get_db)):
     closed_inv = db.query(Investigation).filter(Investigation.decision.isnot(None)).first()
     if closed_inv:
         insights.append({
-            "icon": "Trophy",
+            "icon": "CheckCircle2",
             "iconBg": "bg-emerald-50",
             "iconColor": "text-emerald-500",
             "title": "Investigation documentée",
