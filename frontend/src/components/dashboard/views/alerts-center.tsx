@@ -15,7 +15,6 @@ import {
   Archive,
   ChevronRight,
   ChevronDown,
-  Sparkles,
   ExternalLink,
 } from "lucide-react"
 import { toast } from "sonner"

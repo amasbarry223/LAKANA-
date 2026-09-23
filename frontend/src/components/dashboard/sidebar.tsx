@@ -7,7 +7,7 @@ import {
   UserRound,
   Share2,
   FolderSearch,
-  Sparkles,
+  MessageSquare,
   ShieldAlert,
   ShieldCheck,
   Users,
@@ -69,7 +69,7 @@ const standardSections: NavSection[] = [
       { label: "Clients & Enrôlement", icon: UserPlus },
       { label: "Client 360°", icon: UserRound },
       { label: "Graphe de relations", icon: Share2 },
-      { label: "Assistant IA", icon: Sparkles, badgeType: "ai" },
+      { label: "Consultation Réglementaire", icon: MessageSquare },
     ],
   },
   {
@@ -314,14 +314,8 @@ function SidebarContent({
                           </span>
                         )}
 
-                        {item.badgeType === "ai" && (
-                          <span className="rounded-md border border-indigo-200/80 bg-gradient-to-r from-violet-500/10 to-indigo-500/10 px-1.5 py-0.5 text-[9px] font-bold text-indigo-600 tracking-wide">
-                            IA
-                          </span>
-                        )}
-
                         {/* Chevron subtil sur item actif */}
-                        {isActive && !item.badgeType && (
+                        {isActive && item.badgeType !== "alerts" && (
                           <ChevronRight className="h-3.5 w-3.5 text-indigo-400 animate-in fade-in" />
                         )}
                       </button>

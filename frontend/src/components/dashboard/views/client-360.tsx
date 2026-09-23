@@ -18,9 +18,8 @@ import {
   X,
   RefreshCw,
   CheckCircle2,
-  Sparkles,
-  Cpu,
-  Bot,
+  Activity,
+  AlertCircle,
   Search,
   ChevronDown,
   ChevronUp,
@@ -705,11 +704,11 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-indigo-100/60 pb-4">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200">
-              <Sparkles className="h-5 w-5" />
+              <Activity className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-slate-900">Diagnostic Prédictif IA & Machine Learning</h3>
+                <h3 className="text-base font-bold text-slate-900">Diagnostic Prédictif Comportemental</h3>
                 <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 text-xs font-semibold">
                   Isolation Forest + Random Forest
                 </Badge>
@@ -808,7 +807,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
         {mlPrediction?.facteurs_ia && mlPrediction.facteurs_ia.length > 0 && (
           <div className="mt-4 p-3 rounded-lg bg-white border border-indigo-100">
             <p className="text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-              <Bot className="h-3.5 w-3.5 text-indigo-600" />
+              <AlertCircle className="h-3.5 w-3.5 text-indigo-600" />
               Signaux faibles identifiés par le modèle :
             </p>
             <div className="space-y-1">

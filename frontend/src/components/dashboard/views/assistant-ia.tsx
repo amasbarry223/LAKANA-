@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Sparkles, Send, User, ShieldAlert, Bot, RefreshCw, AlertCircle, Database, CheckCircle2 } from "lucide-react"
+import { Send, User, ShieldAlert, RefreshCw, AlertCircle, Database, MessageSquare, HelpCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn, formatFacteur } from "@/lib/utils"
 import { aiService } from "@/services/aiService"
@@ -34,7 +34,7 @@ export function AssistantIAView() {
     {
       role: "assistant",
       content:
-        "Bonjour, je suis l'assistant IA de LAKANA. Je suis directement relié à la base de données et aux moteurs réglementaires de votre institution (BCEAO & CENTIF-Mali).\n\nPosez-moi une question sur le score d'un client, la détection de fractionnement ou les alertes en cours.",
+        "Module de consultation réglementaire et d'analyse de conformité LAKANA. Relié en temps réel à la base de données et aux barèmes prudentiels (BCEAO & CENTIF-Mali).\n\nConsultez l'historique d'un sociétaire, les règles de fractionnement ou les alertes en cours.",
     },
   ])
   const [input, setInput] = useState("")
@@ -159,10 +159,10 @@ export function AssistantIAView() {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            Assistant IA LAKANA
+            Consultation Réglementaire
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Aide à l'analyse en temps réel — Explication factuelle et déterministe (Conformité IA-01 à IA-04).
+            Assistance à l'analyse et recherche documentaire conforme aux instructions BCEAO & CENTIF-Mali.
           </p>
         </div>
 
@@ -172,7 +172,7 @@ export function AssistantIAView() {
             className="flex items-center gap-1.5 border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
           >
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            {context?.models_ready ? "Moteur IA & ML Opérationnel" : "Connecté à la BDD"}
+            {context?.models_ready ? "Moteur Réglementaire Opérationnel" : "Connecté à la BDD"}
           </Badge>
 
           <button
@@ -196,11 +196,11 @@ export function AssistantIAView() {
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5 dark:border-slate-800">
             <div className="flex items-center gap-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-indigo-800 shadow-xs">
-                <Sparkles className="h-4 w-4 text-white" />
+                <MessageSquare className="h-4 w-4 text-white" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  Assistant Déterministe LAKANA
+                  Consultation Réglementaire LAKANA
                 </p>
                 <p className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -227,7 +227,7 @@ export function AssistantIAView() {
                       : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
                   )}
                 >
-                  {m.role === "assistant" ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                  {m.role === "assistant" ? <ShieldAlert className="h-4 w-4" /> : <User className="h-4 w-4" />}
                 </div>
 
                 <div
@@ -268,7 +268,7 @@ export function AssistantIAView() {
             {isTyping && (
               <div className="flex gap-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 text-white">
-                  <Sparkles className="h-4 w-4 animate-spin" />
+                  <RefreshCw className="h-4 w-4 animate-spin" />
                 </div>
                 <div className="rounded-2xl rounded-tl-xs bg-slate-50 border border-slate-100 px-4 py-3 text-sm text-slate-500 dark:bg-slate-800/80 dark:border-slate-700">
                   <div className="flex items-center gap-2">
@@ -311,10 +311,10 @@ export function AssistantIAView() {
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Questions suggérées</h3>
-              <Sparkles className="h-4 w-4 text-indigo-500" />
+              <HelpCircle className="h-4 w-4 text-slate-400" />
             </div>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Questions générées dynamiquement selon les signaux en base :
+              Questions suggérées selon les signaux en base :
             </p>
             <div className="mt-3 space-y-2">
               {suggestions.map((q, idx) => (
@@ -324,7 +324,7 @@ export function AssistantIAView() {
                   disabled={isTyping}
                   className="block w-full rounded-lg border border-slate-200/80 bg-slate-50/50 px-3 py-2 text-left text-xs font-medium text-slate-700 transition hover:border-indigo-300 hover:bg-indigo-50/60 hover:text-indigo-800 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-indigo-600 dark:hover:bg-indigo-950/40"
                 >
-                  💬 {q}
+                  {q}
                 </button>
               ))}
             </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ShieldAlert, Search, Check, X, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, Sparkles, CheckCircle2, UserCheck } from "lucide-react"
+import { ShieldAlert, Search, Check, X, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, UserCheck } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -201,7 +201,7 @@ export function SanctionsView() {
       <div className="rounded-xl border border-indigo-200/80 bg-gradient-to-r from-indigo-50/70 to-white p-4 shadow-xs">
         <form onSubmit={handleTestFuzzy} className="flex flex-col sm:flex-row items-center gap-3">
           <div className="flex items-center gap-2 text-indigo-900 shrink-0">
-            <Sparkles className="h-4 w-4 text-indigo-600" />
+            <Search className="h-4 w-4 text-indigo-600" />
             <span className="text-xs font-bold uppercase tracking-wide">Testeur Rapide RapidFuzz :</span>
           </div>
           <div className="relative flex-1 w-full">
