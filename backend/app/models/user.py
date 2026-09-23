@@ -10,6 +10,7 @@ class User(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     nom_complet = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
+    telephone = Column(String, nullable=True)  # Numéro de téléphone pour alertes WhatsApp
     role = Column(String, default="Analyste de conformité")  # Analyste de conformité, Agent guichet
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)

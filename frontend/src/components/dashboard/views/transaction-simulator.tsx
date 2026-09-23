@@ -986,8 +986,8 @@ export function TransactionSimulatorView() {
                                 Notifications transmises en temps réel :
                               </p>
                               <div className="text-[11px] text-slate-600 space-y-0.5 pl-4">
-                                <p>• <strong>WhatsApp (+223 64663918)</strong> : Notification envoyée à l'Agent Guichet & à l'Analyste Conformité.</p>
-                                <p>• <strong>Email (fombadaouda72@gmail.com)</strong> : Fiche de contrôle et demande de visa transmises.</p>
+                                <p>• <strong>WhatsApp (+223 64663918)</strong> : Notification envoyée aux téléphones des analystes de conformité et au guichetier.</p>
+                                <p>• <strong>Email (fombadaouda72@gmail.com)</strong> : Fiche officielle et demande de visa transmises aux analystes enregistrés.</p>
                               </div>
                             </div>
                           </div>

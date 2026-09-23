@@ -6,14 +6,26 @@ from pydantic import BaseModel, EmailStr, ConfigDict
 class UserBase(BaseModel):
     nom_complet: str
     email: EmailStr
-    role: str = "Analyste conformité"
+    telephone: Optional[str] = None
+    role: str = "Analyste de conformité"
     institution: str = "SFD Bamako"
     mfa_enabled: bool = False
     is_active: bool = True
 
 
 class UserCreate(UserBase):
-    password: str
+    password: Optional[str] = "password123"
+
+
+class UserUpdate(BaseModel):
+    nom_complet: Optional[str] = None
+    email: Optional[EmailStr] = None
+    telephone: Optional[str] = None
+    role: Optional[str] = None
+    institution: Optional[str] = None
+    mfa_enabled: Optional[bool] = None
+    is_active: Optional[bool] = None
+    password: Optional[str] = None
 
 
 class UserLogin(BaseModel):

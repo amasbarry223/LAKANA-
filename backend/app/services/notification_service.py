@@ -317,5 +317,81 @@ class NotificationService:
             "timestamp": datetime.utcnow().isoformat()
         }
 
+    def dispatch_to_compliance_officers(
+        self,
+        db: Any,
+        alerte_ref: str,
+        type_alerte: str,
+        niveau: str,
+        client_nom: str,
+        montant_fcfa: float,
+        facteurs: List[str],
+        agence: str = "Agence Centrale Bamako",
+    ) -> List[Dict[str, Any]]:
+        """
+        Transmet l'alerte à TOUS les agents et analystes de conformité actifs
+        enregistrés dans la base de données (avec leurs numéros de téléphone et emails individuels).
+        """
+        from app.models.user import User
+
+        results: List[Dict[str, Any]] = []
+
+        try:
+            # Récupération des analystes et responsables de conformité actifs
+            officers = (
+                db.query(User)
+                .filter(
+                    User.is_active == True,
+                    (User.role.ilike("%conformité%") | User.role.ilike("%analyste%"))
+                )
+                .all()
+            )
+        except Exception as e:
+            logger.warning(f"Impossible de requêter les utilisateurs pour notification: {e}")
+            officers = []
+
+        if not officers:
+            # Repli sur le destinataire de conformité par défaut
+            logger.info("Aucun agent de conformité spécifique trouvé en base. Utilisation des canaux par défaut.")
+            res = self.dispatch_aml_alert(
+                alerte_ref=alerte_ref,
+                type_alerte=type_alerte,
+                niveau=niveau,
+                client_nom=client_nom,
+                montant_fcfa=montant_fcfa,
+                facteurs=facteurs,
+                agence=agence,
+            )
+            results.append(res)
+            return results
+
+        # Envoi individuel à chaque agent de conformité enregistré
+        for officer in officers:
+            phone_target = officer.telephone or self.default_whatsapp_phone
+            email_target = officer.email or self.default_compliance_email
+
+            logger.info(
+                f"Expédition alerte conformité à {officer.nom_complet} "
+                f"({officer.role}) -> WhatsApp: {phone_target}, Email: {email_target}"
+            )
+
+            res = self.dispatch_aml_alert(
+                alerte_ref=alerte_ref,
+                type_alerte=type_alerte,
+                niveau=niveau,
+                client_nom=client_nom,
+                montant_fcfa=montant_fcfa,
+                facteurs=facteurs,
+                agence=agence,
+                whatsapp_phone=phone_target,
+                email=email_target,
+            )
+            res["officer_id"] = officer.id
+            res["officer_nom"] = officer.nom_complet
+            res["officer_role"] = officer.role
+            results.append(res)
+
+        return results
+
 
 notification_service = NotificationService()

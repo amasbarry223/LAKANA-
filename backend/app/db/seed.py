@@ -27,15 +27,17 @@ def seed_demo_data(db: Session):
     users = [
         User(
             nom_complet="Aminata Touré",
-            email="aminata.toure@sfd-bamako.ml",
+            email="fombadaouda72@gmail.com",
+            telephone="+22364663918",
             role="Analyste de conformité",
             hashed_password=get_password_hash("password123"),
-            institution="SFD Bamako",
+            institution="SFD Bamako (Siège)",
             mfa_enabled=False,
         ),
         User(
             nom_complet="Bakary Diarra",
             email="bakary.diarra@sfd-bamako.ml",
+            telephone="+22370000001",
             role="Agent guichet",
             hashed_password=get_password_hash("password123"),
             institution="Agence Centrale - Guichet 1",
@@ -44,6 +46,7 @@ def seed_demo_data(db: Session):
         User(
             nom_complet="Oumar Cissé",
             email="oumar.cisse@sfd-bamako.ml",
+            telephone="+22364663918",
             role="Analyste de conformité",
             hashed_password=get_password_hash("password123"),
             institution="Cellule d'Investigation LBC",
@@ -52,6 +55,7 @@ def seed_demo_data(db: Session):
         User(
             nom_complet="Fatoumata Koné",
             email="fatoumata.kone@sfd-bamako.ml",
+            telephone="+22370000002",
             role="Agent guichet",
             hashed_password=get_password_hash("password123"),
             institution="Agence Fleuve - Guichet 2",

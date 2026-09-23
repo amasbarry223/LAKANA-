@@ -11,11 +11,13 @@ from app.api.v1.endpoints import (
     audit,
     stats,
     sync,
+    users,
 )
 
 api_router = APIRouter()
 
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentification & RBAC"])
+api_router.include_router(users.router, prefix="/users", tags=["Gestion Utilisateurs & Conformité"])
 api_router.include_router(clients.router, prefix="/clients", tags=["Clients & Client 360°"])
 api_router.include_router(transactions.router, prefix="/transactions", tags=["Transactions & Ingestion"])
 api_router.include_router(alerts.router, prefix="/alerts", tags=["Centre d'alertes"])

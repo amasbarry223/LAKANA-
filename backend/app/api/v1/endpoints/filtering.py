@@ -572,13 +572,6 @@ def register_pending_operation(data: PendingOperationRegister, db: Session = Dep
     }
 
     # 1. Notification à l'Agent Guichet (WhatsApp + Email)
-    msg_guichet = (
-        f"📋 [LAKANA GUICHET - MISE EN ATTENTE]\n"
-        f"Sociétaire : {data.client_nom} (PPE : {data.fonction_ppe or 'Oui'})\n"
-        f"Opération : {data.type_operation} de {data.montant:,.0f} FCFA\n"
-        f"Statut : Mise en attente de l'avis Conformité (Réf: {ref}).\n"
-        f"Consigne : Ne pas remettre les fonds sans accord préalable."
-    )
     notification_service.dispatch_aml_alert(
         alerte_ref=f"GUICHET-{ref}",
         type_alerte="Opération PPE — En attente validation",
@@ -593,33 +586,29 @@ def register_pending_operation(data: PendingOperationRegister, db: Session = Dep
         agence=data.agence or "Agence Centrale Bamako",
     )
 
-    # 2. Notification à l'Analyste de Conformité
-    msg_analyste = (
-        f"🚨 [LAKANA CONFORMITÉ - AVIS REQUIS IMMÉDIAT]\n"
-        f"Opération PPE soumise par le Guichet ({data.guichetier})\n"
-        f"Sociétaire : {data.client_nom} ({data.fonction_ppe or 'Mandat public'})\n"
-        f"Montant : {data.montant:,.0f} FCFA ({data.type_operation})\n"
-        f"Réf Dossier : {ref}\n"
-        f"Action : Veuillez vous connecter pour valider la dérogation ou refuser l'opération."
-    )
-    notification_service.dispatch_aml_alert(
+    # 2. Notification réelle à TOUS les agents et analystes de conformité enregistrés
+    officer_results = notification_service.dispatch_to_compliance_officers(
+        db=db,
         alerte_ref=f"AVIS-{ref}",
         type_alerte="Demande d'autorisation Conformité (PPE)",
         niveau="bloquante",
         client_nom=data.client_nom,
         montant_fcfa=data.montant,
         facteurs=[
+            f"Opération soumise par {data.guichetier or 'le guichet'}.",
             f"Avis formel exigé sous 15 minutes pour libération guichet.",
-            f"Origine des fonds à justifier selon Directive BCEAO n°003.",
+            f"Origine des fonds à justifier selon Directive BCEAO / UEMOA.",
         ],
         agence=data.agence or "Agence Centrale Bamako",
     )
 
+    nb_notifies = len(officer_results)
     return {
         "success": True,
         "reference": ref,
         "statut": "en_attente_conformite",
-        "message": "Opération mise en attente. Notifications WhatsApp et Email transmises au guichet et à l'analyste.",
+        "agents_notifies": nb_notifies,
+        "message": f"Opération mise en attente. Notifications WhatsApp et Email transmises à {nb_notifies} analyste(s) de conformité et au guichetier.",
     }
 
 

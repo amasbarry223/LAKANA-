@@ -1,30 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Users, ShieldCheck, Search, KeyRound, Plus, Pencil, Power, X, Check } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
+import { Users, ShieldCheck, Search, KeyRound, Plus, Pencil, Power, X, Check, Phone, MessageSquare, Mail, RefreshCw } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
-
-type Role = "Analyste de conformité" | "Agent guichet"
-
-type DemoUser = {
-  id: string
-  name: string
-  email: string
-  role: Role
-  mfa: boolean
-  status: "Actif" | "Désactivé"
-  lastLogin: string
-  institution: string
-}
-
-const initialDemoUsers: DemoUser[] = [
-  { id: "USR-01", name: "Aminata Touré", email: "a.toure@sfd.ml", role: "Analyste de conformité", mfa: true, status: "Actif", lastLogin: "Aujourd'hui 14:32", institution: "SFD Bamako (Siège)" },
-  { id: "USR-02", name: "Moussa Diallo", email: "m.diallo@sfd.ml", role: "Analyste de conformité", mfa: true, status: "Actif", lastLogin: "Aujourd'hui 11:08", institution: "SFD Bamako (Siège)" },
-  { id: "USR-03", name: "Bakary Diarra", email: "b.diarra@sfd.ml", role: "Agent guichet", mfa: true, status: "Actif", lastLogin: "Aujourd'hui 09:15", institution: "SFD Bamako (Guichet Central)" },
-  { id: "USR-04", name: "Oumar Sangaré", email: "o.sangare@sfd.ml", role: "Agent guichet", mfa: false, status: "Actif", lastLogin: "Hier 16:40", institution: "SFD Sikasso (Guichet 2)" },
-]
+import { userService, type UserItem, type Role } from "@/services/userService"
 
 const roleBadgeColor: Record<Role, string> = {
   "Analyste de conformité": "bg-indigo-50 text-indigo-700 border-indigo-200",
@@ -43,135 +24,131 @@ const rbacMatrix = [
 ]
 
 export function UsersView() {
-  const [users, setUsers] = useState<DemoUser[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("lakana_users")
-      if (saved) {
-        try {
-          return JSON.parse(saved)
-        } catch {
-          // fallback
-        }
-      }
-    }
-    return initialDemoUsers
-  })
-
+  const [users, setUsers] = useState<UserItem[]>([])
+  const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingUser, setEditingUser] = useState<DemoUser | null>(null)
+  const [editingUser, setEditingUser] = useState<UserItem | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   // Formulaire d'édition / création
   const [formData, setFormData] = useState<{
     name: string
     email: string
+    telephone: string
     role: Role
     institution: string
   }>({
     name: "",
     email: "",
-    role: "Agent guichet",
-    institution: "SFD Bamako (Guichet)",
+    telephone: "",
+    role: "Analyste de conformité",
+    institution: "SFD Bamako (Siège)",
   })
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("lakana_users", JSON.stringify(users))
+  // Chargement des utilisateurs réels depuis l'API / base de données
+  const loadUsers = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await userService.getUsers()
+      setUsers(data)
+    } catch {
+      toast.error("Impossible de charger les utilisateurs.")
+    } finally {
+      setLoading(false)
     }
-  }, [users])
+  }, [])
+
+  useEffect(() => {
+    loadUsers()
+  }, [loadUsers])
 
   const openCreateModal = () => {
     setEditingUser(null)
     setFormData({
       name: "",
       email: "",
-      role: "Agent guichet",
-      institution: "SFD Bamako (Guichet Central)",
+      telephone: "+223 ",
+      role: "Analyste de conformité",
+      institution: "SFD Bamako (Siège)",
     })
     setIsModalOpen(true)
   }
 
-  const openEditModal = (u: DemoUser) => {
+  const openEditModal = (u: UserItem) => {
     setEditingUser(u)
     setFormData({
-      name: u.name,
+      name: u.nomComplet,
       email: u.email,
+      telephone: u.telephone || "+223 ",
       role: u.role,
       institution: u.institution,
     })
     setIsModalOpen(true)
   }
 
-  const handleSaveUser = (e: React.FormEvent) => {
+  const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.name.trim() || !formData.email.trim()) {
       toast.error("Veuillez renseigner le nom et l'adresse email.")
       return
     }
 
-    if (editingUser) {
-      // Modification
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === editingUser.id
-            ? {
-                ...u,
-                name: formData.name.trim(),
-                email: formData.email.trim(),
-                role: formData.role,
-                institution: formData.institution.trim(),
-              }
-            : u
-        )
-      )
-      toast.success(`Compte de ${formData.name} mis à jour avec succès.`)
-    } else {
-      // Création
-      const newId = `USR-0${users.length + 1}`
-      const newUser: DemoUser = {
-        id: newId,
-        name: formData.name.trim(),
-        email: formData.email.trim(),
-        role: formData.role,
-        mfa: formData.role === "Analyste de conformité",
-        status: "Actif",
-        lastLogin: "Jamais connecté",
-        institution: formData.institution.trim() || "SFD Bamako",
+    setSubmitting(true)
+    try {
+      if (editingUser) {
+        // Modification
+        await userService.updateUser(editingUser.id, {
+          nom_complet: formData.name.trim(),
+          email: formData.email.trim(),
+          telephone: formData.telephone.trim() || undefined,
+          role: formData.role,
+          institution: formData.institution.trim(),
+        })
+        toast.success(`Compte de ${formData.name} mis à jour avec son numéro d'alerte.`)
+      } else {
+        // Création
+        await userService.createUser({
+          nom_complet: formData.name.trim(),
+          email: formData.email.trim(),
+          telephone: formData.telephone.trim() || undefined,
+          role: formData.role,
+          institution: formData.institution.trim() || "SFD Bamako",
+          mfa_enabled: formData.role === "Analyste de conformité",
+        })
+        toast.success(`Utilisateur ${formData.name} créé avec le rôle ${formData.role}.`)
       }
-      setUsers((prev) => [...prev, newUser])
-      toast.success(`Utilisateur ${formData.name} créé avec le rôle ${formData.role}.`)
+      setIsModalOpen(false)
+      loadUsers()
+    } catch (err: any) {
+      toast.error(err?.message || "Erreur lors de l'enregistrement de l'utilisateur.")
+    } finally {
+      setSubmitting(false)
     }
-    setIsModalOpen(false)
   }
 
-  const toggleUserStatus = (userId: string) => {
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id === userId) {
-          const nextStatus = u.status === "Actif" ? "Désactivé" : "Actif"
-          if (nextStatus === "Désactivé") {
-            toast.warning(`Accès suspendu pour ${u.name}.`)
-          } else {
-            toast.success(`Accès réactivé pour ${u.name}.`)
-          }
-          return { ...u, status: nextStatus }
-        }
-        return u
-      })
-    )
+  const toggleUserStatus = async (userId: string) => {
+    try {
+      const res = await userService.toggleUserActive(userId)
+      toast.success(res.message)
+      loadUsers()
+    } catch {
+      toast.error("Erreur lors du changement de statut de l'utilisateur.")
+    }
   }
 
   const filteredUsers = users.filter(
     (u) =>
-      u.name.toLowerCase().includes(query.toLowerCase()) ||
+      u.nomComplet.toLowerCase().includes(query.toLowerCase()) ||
       u.email.toLowerCase().includes(query.toLowerCase()) ||
+      (u.telephone && u.telephone.toLowerCase().includes(query.toLowerCase())) ||
       u.role.toLowerCase().includes(query.toLowerCase()) ||
       u.institution.toLowerCase().includes(query.toLowerCase())
   )
 
-  const activeCount = users.filter((u) => u.status === "Actif").length
-  const analystCount = users.filter((u) => u.role === "Analyste de conformité" && u.status === "Actif").length
-  const guichetCount = users.filter((u) => u.role === "Agent guichet" && u.status === "Actif").length
+  const activeCount = users.filter((u) => u.isActive).length
+  const analystCount = users.filter((u) => u.role === "Analyste de conformité" && u.isActive).length
+  const guichetCount = users.filter((u) => u.role === "Agent guichet" && u.isActive).length
 
   return (
     <div className="space-y-6">
@@ -180,13 +157,22 @@ export function UsersView() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2.5">
             <Users className="h-6 w-6 text-indigo-600" />
-            Gestion des Utilisateurs & Habilitations
+            Gestion des Utilisateurs & Canaux d'Alerte
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Création, modification et suspension des comptes : Analyste de conformité et Agent guichet.
+            Gestion des comptes (Analyste de conformité et Agent guichet) et configuration des numéros WhatsApp et emails pour l'expédition des alertes.
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={loadUsers}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 transition cursor-pointer"
+            title="Rafraîchir la liste"
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin text-indigo-600")} />
+            <span>Actualiser</span>
+          </button>
           <button
             onClick={openCreateModal}
             className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 transition cursor-pointer"
@@ -200,21 +186,21 @@ export function UsersView() {
       {/* Indicateurs de gouvernance */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-          <p className="text-xs font-semibold text-slate-500">Comptes configurés</p>
+          <p className="text-xs font-semibold text-slate-500">Comptes configurés en BDD</p>
           <p className="mt-1 text-2xl font-bold text-slate-900">{users.length}</p>
           <p className="mt-1 text-xs text-slate-400">
             {activeCount} actif{activeCount > 1 ? "s" : ""} · {users.length - activeCount} désactivé{users.length - activeCount > 1 ? "s" : ""}
           </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-          <p className="text-xs font-semibold text-slate-500">Répartition des effectifs</p>
+          <p className="text-xs font-semibold text-slate-500">Répartition des habilitations</p>
           <p className="mt-1 text-2xl font-bold text-indigo-600">{analystCount} Analyste{analystCount > 1 ? "s" : ""}</p>
           <p className="mt-1 text-xs text-slate-400">{guichetCount} Agent{guichetCount > 1 ? "s" : ""} guichet</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-          <p className="text-xs font-semibold text-slate-500">Contrôle d'accès</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-600">Conforme BCEAO</p>
-          <p className="mt-1 text-xs text-slate-400">Séparation stricte des tâches et des privilèges</p>
+          <p className="text-xs font-semibold text-slate-500">Canaux WhatsApp & Email</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-600">Connectés en Direct</p>
+          <p className="mt-1 text-xs text-slate-400">Alertes expédiées aux numéros et emails configurés</p>
         </div>
       </div>
 
@@ -222,8 +208,8 @@ export function UsersView() {
       <div className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden">
         <div className="border-b border-slate-100 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/60">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Utilisateurs habilités</h3>
-            <p className="text-xs text-slate-500">Gestion des profils et suspension des accès en temps réel.</p>
+            <h3 className="text-sm font-bold text-slate-900">Utilisateurs & Numéros d'Alertes</h3>
+            <p className="text-xs text-slate-500">Les analystes de conformité reçoivent les alertes WhatsApp et emails à ces coordonnées.</p>
           </div>
           <div className="relative w-full sm:w-64">
             <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -231,7 +217,7 @@ export function UsersView() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher par nom, email, rôle..."
+              placeholder="Rechercher par nom, email, téléphone..."
               className="h-8 w-full rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-xs outline-none focus:border-indigo-400"
             />
           </div>
@@ -240,11 +226,11 @@ export function UsersView() {
         <div className="divide-y divide-slate-100">
           {filteredUsers.length === 0 ? (
             <div className="p-8 text-center text-xs text-slate-400">
-              Aucun utilisateur trouvé pour cette recherche.
+              {loading ? "Chargement des utilisateurs en cours..." : "Aucun utilisateur trouvé pour cette recherche."}
             </div>
           ) : (
             filteredUsers.map((u) => {
-              const isDeactivated = u.status === "Désactivé"
+              const isDeactivated = !u.isActive
               return (
                 <div
                   key={u.id}
@@ -264,7 +250,7 @@ export function UsersView() {
                           : "bg-amber-100 text-amber-700"
                       )}
                     >
-                      {u.name
+                      {u.nomComplet
                         .split(" ")
                         .map((n) => n[0])
                         .join("")}
@@ -272,12 +258,12 @@ export function UsersView() {
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className={cn("text-sm font-bold", isDeactivated ? "text-slate-500 line-through" : "text-slate-900")}>
-                          {u.name}
+                          {u.nomComplet}
                         </p>
                         <Badge variant="outline" className={cn("border text-2xs", roleBadgeColor[u.role])}>
                           {u.role}
                         </Badge>
-                        {u.mfa && (
+                        {u.mfaEnabled && (
                           <span className="inline-flex items-center gap-0.5 text-2xs font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
                             <KeyRound className="h-2.5 w-2.5" />
                             MFA
@@ -289,9 +275,28 @@ export function UsersView() {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {u.email} &nbsp;·&nbsp; {u.institution} &nbsp;·&nbsp; Accès : {u.lastLogin}
-                      </p>
+
+                      {/* Coordonnées Email et WhatsApp */}
+                      <div className="flex items-center gap-3 flex-wrap mt-1 text-xs">
+                        <span className="inline-flex items-center gap-1 text-slate-600">
+                          <Mail className="h-3 w-3 text-slate-400" />
+                          {u.email}
+                        </span>
+                        <span className="text-slate-300">·</span>
+                        {u.telephone ? (
+                          <span className="inline-flex items-center gap-1 font-mono font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-[11px]">
+                            <Phone className="h-3 w-3 text-emerald-600" />
+                            WhatsApp: {u.telephone}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-[11px]">
+                            <Phone className="h-3 w-3 text-amber-500" />
+                            Numéro WhatsApp non configuré
+                          </span>
+                        )}
+                        <span className="text-slate-300">·</span>
+                        <span className="text-slate-400 text-[11px]">{u.institution}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -300,7 +305,7 @@ export function UsersView() {
                     <button
                       onClick={() => openEditModal(u)}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-                      title="Modifier les informations"
+                      title="Modifier les informations et le numéro WhatsApp"
                     >
                       <Pencil className="h-3 w-3 text-slate-400" />
                       Modifier
@@ -381,7 +386,7 @@ export function UsersView() {
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-slate-200 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900">
-                {editingUser ? "Modifier l'utilisateur" : "Créer un nouvel utilisateur"}
+                {editingUser ? "Modifier l'utilisateur & ses canaux" : "Créer un nouvel utilisateur"}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -399,7 +404,7 @@ export function UsersView() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Ex: Aïssata Koné"
+                  placeholder="Ex: Aminata Touré"
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-indigo-500"
                 />
               </div>
@@ -411,9 +416,29 @@ export function UsersView() {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="Ex: a.kone@sfd.ml"
+                  placeholder="Ex: a.toure@sfd.ml"
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-indigo-500"
                 />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-emerald-800 font-bold">
+                    <Phone className="h-3.5 w-3.5 text-emerald-600" />
+                    Numéro de téléphone / WhatsApp pour les alertes
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-normal">Format international</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.telephone}
+                  onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+                  placeholder="+223 64663918"
+                  className="w-full rounded-lg border border-emerald-300 bg-emerald-50/30 px-3 py-2 text-xs outline-none focus:border-emerald-500 font-mono font-medium text-slate-900"
+                />
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Les alertes d'interception PPE et demandes de visa seront expédiées directement à ce numéro via WhatsApp.
+                </p>
               </div>
 
               <div>
@@ -423,8 +448,8 @@ export function UsersView() {
                   onChange={(e) => setFormData({ ...formData, role: e.target.value as Role })}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-indigo-500 bg-white"
                 >
-                  <option value="Agent guichet">Agent guichet (Vérifications & Contrôle opérations)</option>
                   <option value="Analyste de conformité">Analyste de conformité (Instruction, Alertes & CENTIF)</option>
+                  <option value="Agent guichet">Agent guichet (Vérifications & Contrôle opérations)</option>
                 </select>
                 <p className="mt-1 text-2xs text-slate-400">
                   Seuls les rôles Analyste de conformité et Agent guichet sont autorisés sur LAKANA.
@@ -438,7 +463,7 @@ export function UsersView() {
                   required
                   value={formData.institution}
                   onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
-                  placeholder="Ex: SFD Bamako (Guichet 2)"
+                  placeholder="Ex: SFD Bamako (Siège)"
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-indigo-500"
                 />
               </div>
@@ -453,9 +478,10 @@ export function UsersView() {
                 </button>
                 <button
                   type="submit"
-                  className="rounded-lg bg-indigo-600 px-3.5 py-1.5 font-semibold text-white hover:bg-indigo-700 shadow-xs cursor-pointer"
+                  disabled={submitting}
+                  className="rounded-lg bg-indigo-600 px-3.5 py-1.5 font-semibold text-white hover:bg-indigo-700 shadow-xs cursor-pointer disabled:opacity-50"
                 >
-                  {editingUser ? "Enregistrer" : "Créer le compte"}
+                  {submitting ? "Enregistrement..." : editingUser ? "Enregistrer les modifications" : "Créer le compte"}
                 </button>
               </div>
             </form>
