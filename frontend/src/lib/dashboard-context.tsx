@@ -98,6 +98,8 @@ const DEFAULT_SETTINGS: SettingsState = {
 }
 
 type DashboardContextValue = {
+  sidebarCollapsed: boolean
+  setSidebarCollapsed: (v: boolean) => void
   online: boolean
   setOnline: (v: boolean) => void
   dateRange: string
@@ -162,6 +164,17 @@ export function DashboardProvider({
   userName: string
   userRole: string
 }) {
+  // État initial toujours "déplié" pour un rendu SSR cohérent ; la préférence
+  // persistée est appliquée après le montage pour éviter un mismatch d'hydratation.
+  const [sidebarCollapsed, setSidebarCollapsedState] = useState(false)
+  const setSidebarCollapsed = useCallback((v: boolean) => {
+    setSidebarCollapsedState(v)
+    try {
+      localStorage.setItem("lakana-sidebar-collapsed", v ? "1" : "0")
+    } catch {
+      /* ignore */
+    }
+  }, [])
   const [online, setOnline] = useState(true)
   const [dateRange, setDateRange] = useState("7 derniers jours")
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS)
@@ -177,6 +190,13 @@ export function DashboardProvider({
   const [newInvestigationPrefill, setNewInvestigationPrefill] = useState<NewInvestigationPrefill | null>(null)
 
   useEffect(() => {
+    try {
+      if (localStorage.getItem("lakana-sidebar-collapsed") === "1") {
+        setSidebarCollapsedState(true)
+      }
+    } catch {
+      /* ignore */
+    }
     setSettings(loadSettings())
     const refreshInv = () => {
       investigationService
@@ -247,6 +267,8 @@ export function DashboardProvider({
 
   const value = useMemo(
     () => ({
+      sidebarCollapsed,
+      setSidebarCollapsed,
       online,
       setOnline,
       dateRange,
@@ -281,6 +303,8 @@ export function DashboardProvider({
       closeNewInvestigation,
     }),
     [
+      sidebarCollapsed,
+      setSidebarCollapsed,
       online,
       dateRange,
       filters,

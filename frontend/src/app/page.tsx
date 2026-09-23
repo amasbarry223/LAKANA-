@@ -24,6 +24,7 @@ import { TransactionSimulatorView } from "@/components/dashboard/views/transacti
 import { DashboardProvider, useDashboard } from "@/lib/dashboard-context"
 import type { NavigateDetail } from "@/lib/navigate"
 import { NewInvestigationModal } from "@/components/dashboard/new-investigation-modal"
+import { cn } from "@/lib/utils"
 
 function DashboardListeners() {
   const { openNewInvestigation, setSelectedClientId, setSelectedInvestigationRef, investigations } = useDashboard()
@@ -107,6 +108,7 @@ function DashboardContent({
     selectedClientId,
     setSelectedClientId,
     setSelectedInvestigationRef,
+    sidebarCollapsed,
   } = useDashboard()
   const userName = roleToUserName(role)
 
@@ -219,7 +221,12 @@ function DashboardContent({
           }}
         />
 
-        <main className="lg:pl-[260px] pt-16 min-h-screen bg-[#F4F6F9] dark:bg-slate-950">
+        <main
+          className={cn(
+            "pt-16 min-h-screen bg-[#F4F6F9] dark:bg-slate-950 transition-[padding-left] duration-300 ease-in-out",
+            sidebarCollapsed ? "lg:pl-[76px]" : "lg:pl-[260px]"
+          )}
+        >
           <div className="p-4 md:p-6">
             <View
               onLogout={active === "Mon profil" ? onLogout : undefined}

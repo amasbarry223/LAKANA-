@@ -37,7 +37,7 @@ export function DashboardHeader({
   onNavigate: (view: string, options?: { clientId?: string; alertRef?: string }) => void
   onNewInvestigation?: () => void
 }) {
-  const { dateRange, setDateRange, dateRangeLabel } = useDashboard()
+  const { dateRange, setDateRange, dateRangeLabel, sidebarCollapsed } = useDashboard()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [showNotifs, setShowNotifs] = useState(false)
@@ -106,7 +106,12 @@ export function DashboardHeader({
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/80 px-4 backdrop-blur-md md:px-6 lg:left-[260px] dark:border-slate-800 dark:bg-slate-950/80">
+      <header
+        className={cn(
+          "fixed inset-x-0 top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/80 px-4 backdrop-blur-md md:px-6 transition-[left] duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-950/80",
+          sidebarCollapsed ? "lg:left-[76px]" : "lg:left-[260px]"
+        )}
+      >
         {onMenuClick && (
           <button
             onClick={onMenuClick}

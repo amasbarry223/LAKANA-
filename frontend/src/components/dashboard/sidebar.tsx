@@ -22,12 +22,13 @@ import {
   Wifi,
   CloudOff,
   ChevronDown,
-  ChevronRight,
+  ChevronLeft,
 } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { useDashboard } from "@/lib/dashboard-context"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { alertService } from "@/services/alertService"
 import { toast } from "sonner"
 
@@ -116,6 +117,8 @@ export type SidebarProps = {
   userName?: string
   userRole?: string
   onLogout?: () => void
+  /** Rail mode : icônes seules avec tooltips. N'a de sens que sur le sidebar fixe desktop. */
+  collapsed?: boolean
 }
 
 function SidebarContent({
@@ -124,6 +127,7 @@ function SidebarContent({
   userName = "Aminata Touré",
   userRole = "Analyste conformité",
   onLogout,
+  collapsed = false,
 }: SidebarProps) {
   const initials = userName
     .split(" ")
@@ -197,14 +201,19 @@ function SidebarContent({
   return (
     <div className="flex h-full flex-col bg-[#070347] text-white select-none">
       {/* 1. Brand & Institution Header */}
-      <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-5">
+      <div
+        className={cn(
+          "flex h-16 shrink-0 items-center border-b border-white/10",
+          collapsed ? "justify-center px-2" : "justify-between px-5"
+        )}
+      >
         <div
           onClick={() => onSelect("Tableau de bord")}
-          className="flex items-center gap-3 cursor-pointer group"
+          className="flex min-w-0 items-center gap-3 cursor-pointer group"
           title="Tableau de bord LAKANA"
         >
           {/* Logo Badge */}
-          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white p-1 shadow-md">
+          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white p-1 shadow-md transition-transform duration-150 group-hover:scale-105">
             <img
               src="/logo.png"
               alt="LAKANA Logo"
@@ -212,33 +221,37 @@ function SidebarContent({
             />
           </div>
 
-          <span className="text-xl font-black tracking-wider text-white">
-            LAKANA
-          </span>
+          {!collapsed && (
+            <span className="text-xl font-black tracking-wider text-white whitespace-nowrap">
+              LAKANA
+            </span>
+          )}
         </div>
       </div>
 
       {/* 2. Navigation List */}
-      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4 sidebar-scroll">
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3 space-y-4 sidebar-scroll">
         {sectionsToRender.map((section) => {
           const isCollapsible = section.collapsible
-          const isOpen = !isCollapsible || !!expandedSections[section.id]
+          const isOpen = collapsed || !isCollapsible || !!expandedSections[section.id]
 
           return (
             <div key={section.id} className="space-y-1">
               {/* Section Header */}
-              {section.title && (
-                <div
+              {section.title && !collapsed && (
+                <button
+                  type="button"
                   onClick={() => isCollapsible && toggleSection(section.id)}
+                  aria-expanded={isCollapsible ? isOpen : undefined}
                   className={cn(
-                    "flex items-center justify-between px-3 pb-1 pt-2 text-[10px] font-bold tracking-wider text-[#98A3B9]/80 select-none uppercase",
+                    "flex w-full items-center justify-between px-3 pb-1 pt-2 text-[10px] font-bold tracking-wider text-[#98A3B9]/80 select-none uppercase",
                     isCollapsible &&
                     "cursor-pointer rounded-md transition-colors hover:text-white"
                   )}
                 >
                   <span>{section.title}</span>
                   {isCollapsible && (
-                    <div className="flex items-center gap-1 text-[10px] font-normal lowercase tracking-normal text-[#98A3B9]">
+                    <span className="flex items-center gap-1 text-[10px] font-normal lowercase tracking-normal text-[#98A3B9]">
                       <span>{isOpen ? "masquer" : `${section.items.length}`}</span>
                       <ChevronDown
                         className={cn(
@@ -246,49 +259,104 @@ function SidebarContent({
                           isOpen && "rotate-180"
                         )}
                       />
-                    </div>
+                    </span>
                   )}
-                </div>
+                </button>
+              )}
+              {section.title && collapsed && (
+                <div className="mx-2 my-2 h-px bg-white/10" aria-hidden />
               )}
 
               {/* Items */}
-              {isOpen && (
-                <div className="space-y-1">
-                  {section.items.map((item) => {
-                    const isActive = active === item.label
-                    const Icon = item.icon
+              <AnimatePresence initial={false}>
+                {isOpen && (
+                  <motion.div
+                    initial={collapsed ? false : { height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={collapsed ? undefined : { height: 0, opacity: 0 }}
+                    transition={{ duration: 0.22, ease: "easeInOut" }}
+                    className="space-y-1 overflow-hidden"
+                  >
+                    {section.items.map((item) => {
+                      const isActive = active === item.label
+                      const Icon = item.icon
+                      const badgeCount =
+                        item.badgeType === "alerts"
+                          ? activeAlertsCount !== null && activeAlertsCount > 0
+                            ? activeAlertsCount
+                            : 3
+                          : null
 
-                    return (
-                      <button
-                        key={item.label}
-                        onClick={() => onSelect(item.label)}
-                        className={cn(
-                          "group relative flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all duration-150 cursor-pointer",
-                          isActive
-                            ? "bg-[#181466] text-white font-semibold shadow-xs"
-                            : "text-[#98A3B9] hover:bg-white/5 hover:text-white"
-                        )}
-                      >
-                        <Icon
+                      const button = (
+                        <button
+                          key={item.label}
+                          onClick={() => onSelect(item.label)}
+                          aria-current={isActive ? "page" : undefined}
                           className={cn(
-                            "h-4 w-4 shrink-0 transition-transform duration-150",
-                            isActive ? "text-white" : "text-[#98A3B9] group-hover:text-white"
+                            "group relative flex w-full items-center gap-3 rounded-xl py-2.5 text-xs font-medium transition-colors duration-150 cursor-pointer active:scale-[0.98]",
+                            collapsed ? "justify-center px-0" : "px-3.5",
+                            isActive
+                              ? "text-white font-semibold"
+                              : "text-[#98A3B9] hover:bg-white/5 hover:text-white"
                           )}
-                        />
+                        >
+                          {isActive && (
+                            <motion.span
+                              layoutId="sidebar-active-pill"
+                              transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                              className="absolute inset-0 rounded-xl bg-[#181466] shadow-xs"
+                            />
+                          )}
+                          {isActive && (
+                            <motion.span
+                              layoutId="sidebar-active-bar"
+                              transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                              className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[#CD0D29]"
+                            />
+                          )}
 
-                        <span className="truncate flex-1 text-left">{item.label}</span>
-
-                        {/* Badges interactifs (Rouge #CD0D29) */}
-                        {item.badgeType === "alerts" && (
-                          <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[#CD0D29] px-1 text-[10px] font-bold text-white shadow-xs">
-                            {activeAlertsCount !== null && activeAlertsCount > 0 ? activeAlertsCount : 3}
+                          <span className="relative shrink-0">
+                            <Icon
+                              className={cn(
+                                "h-4 w-4 shrink-0 transition-transform duration-150 group-hover:scale-110",
+                                isActive ? "text-white" : "text-[#98A3B9] group-hover:text-white"
+                              )}
+                            />
+                            {badgeCount !== null && collapsed && (
+                              <span className="absolute -right-1.5 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#CD0D29] px-0.5 text-[9px] font-bold text-white ring-2 ring-[#070347]">
+                                {badgeCount}
+                              </span>
+                            )}
                           </span>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
+
+                          {!collapsed && (
+                            <span className="relative z-10 truncate flex-1 text-left">
+                              {item.label}
+                            </span>
+                          )}
+
+                          {!collapsed && badgeCount !== null && (
+                            <span className="relative z-10 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#CD0D29] px-1 text-[10px] font-bold text-white shadow-xs">
+                              {badgeCount}
+                            </span>
+                          )}
+                        </button>
+                      )
+
+                      if (!collapsed) return button
+
+                      return (
+                        <Tooltip key={item.label}>
+                          <TooltipTrigger asChild>{button}</TooltipTrigger>
+                          <TooltipContent side="right" sideOffset={10}>
+                            {item.label}
+                          </TooltipContent>
+                        </Tooltip>
+                      )
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )
         })}
@@ -300,37 +368,47 @@ function SidebarContent({
           onClick={() => setMenuOpen(!menuOpen)}
           className={cn(
             "flex items-center gap-3 rounded-xl p-2 transition-all duration-150 cursor-pointer",
+            collapsed && "justify-center",
             menuOpen ? "bg-white/10" : "hover:bg-white/5"
           )}
         >
           {/* Avatar with Status Indicator Ring */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#070347] text-white text-xs font-bold ring-2 ring-emerald-500 shadow-xs">
               {initials}
             </div>
           </div>
 
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-bold text-white leading-tight">
-              {userName}
-            </p>
-            <p className="truncate text-[10px] font-medium text-[#98A3B9] mt-0.5">
-              {userRole === "Analyste conformité" ? "Analyste SFD Mali" : userRole}
-            </p>
-          </div>
+          {!collapsed && (
+            <>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-bold text-white leading-tight">
+                  {userName}
+                </p>
+                <p className="truncate text-[10px] font-medium text-[#98A3B9] mt-0.5">
+                  {userRole === "Analyste conformité" ? "Analyste SFD Mali" : userRole}
+                </p>
+              </div>
 
-          <button
-            type="button"
-            className="rounded-lg p-1 text-slate-400 hover:text-white transition-colors"
-            aria-label="Menu utilisateur"
-          >
-            <MoreVertical className="h-4 w-4" />
-          </button>
+              <button
+                type="button"
+                className="rounded-lg p-1 text-slate-400 hover:text-white transition-colors"
+                aria-label="Menu utilisateur"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </button>
+            </>
+          )}
         </div>
 
         {/* Popover Menu */}
         {menuOpen && (
-          <div className="absolute bottom-16 left-3 right-3 z-50 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl ring-1 ring-black/5 animate-in fade-in-50 zoom-in-95 duration-150">
+          <div
+            className={cn(
+              "absolute bottom-16 z-50 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl ring-1 ring-black/5 animate-in fade-in-50 zoom-in-95 duration-150",
+              collapsed ? "left-2 w-64" : "left-3 right-3"
+            )}
+          >
             <div className="px-2.5 py-2 border-b border-slate-100">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -447,9 +525,32 @@ function SidebarContent({
 }
 
 export function DashboardSidebar(props: SidebarProps) {
+  const { sidebarCollapsed, setSidebarCollapsed } = useDashboard()
+
   return (
-    <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-[260px] shrink-0 flex-col border-r border-slate-200/80 bg-white shadow-[1px_0_12px_rgba(0,0,0,0.02)]">
-      <SidebarContent {...props} />
+    <aside
+      className={cn(
+        "hidden lg:flex fixed inset-y-0 left-0 z-40 shrink-0 flex-col border-r border-slate-200/80 bg-white shadow-[1px_0_12px_rgba(0,0,0,0.02)] transition-[width] duration-300 ease-in-out",
+        sidebarCollapsed ? "w-[76px]" : "w-[260px]"
+      )}
+    >
+      <SidebarContent {...props} collapsed={sidebarCollapsed} />
+
+      {/* Poignée de repli/dépliage, ancrée sur le bord du sidebar */}
+      <button
+        type="button"
+        onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+        aria-label={sidebarCollapsed ? "Déployer la barre latérale" : "Réduire la barre latérale"}
+        aria-pressed={sidebarCollapsed}
+        className="absolute -right-3 top-[68px] z-50 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-md transition-all duration-200 hover:scale-110 hover:text-indigo-600 hover:border-indigo-200 cursor-pointer"
+      >
+        <ChevronLeft
+          className={cn(
+            "h-3.5 w-3.5 transition-transform duration-300",
+            sidebarCollapsed && "rotate-180"
+          )}
+        />
+      </button>
     </aside>
   )
 }
@@ -481,6 +582,7 @@ export function MobileSidebar({
         </button>
         <SidebarContent
           {...props}
+          collapsed={false}
           onSelect={(label) => {
             props.onSelect(label)
             onClose()
