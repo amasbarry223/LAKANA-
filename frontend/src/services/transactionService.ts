@@ -47,6 +47,11 @@ function mapToBackend(payload: TransactionCreatePayload): any {
   }
 }
 
+export interface TransactionsPageResult {
+  data: Transaction[]
+  total: number
+}
+
 export const transactionService = {
   async getTransactions(limit = 100): Promise<Transaction[]> {
     try {
@@ -58,6 +63,16 @@ export const transactionService = {
     }
   },
 
+  async getTransactionsPage(page: { skip: number; limit: number }): Promise<TransactionsPageResult> {
+    try {
+      const { data, total } = await ApiClient.getPaginated<any>("/transactions", page)
+      return { data: data.map(mapFromBackend), total }
+    } catch (e) {
+      console.error("Erreur récupération transactions:", e)
+      return { data: [], total: 0 }
+    }
+  },
+
   async getClientTransactions(clientId: string): Promise<Transaction[]> {
     try {
       const raw = await ApiClient.get<any[]>(`/transactions/client/${clientId}`)
@@ -65,6 +80,16 @@ export const transactionService = {
     } catch (e) {
       console.error("Erreur transactions client:", e)
       return []
+    }
+  },
+
+  async getClientTransactionsPage(clientId: string, page: { skip: number; limit: number }): Promise<TransactionsPageResult> {
+    try {
+      const { data, total } = await ApiClient.getPaginated<any>(`/transactions/client/${clientId}`, page)
+      return { data: data.map(mapFromBackend), total }
+    } catch (e) {
+      console.error("Erreur transactions client:", e)
+      return { data: [], total: 0 }
     }
   },
 

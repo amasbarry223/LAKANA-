@@ -15,7 +15,7 @@ const levelLabel: Record<AlertItem["level"], string> = {
 const levelColor: Record<AlertItem["level"], string> = {
   bloquante: "bg-rose-50 text-rose-700 border-rose-200",
   analyser: "bg-amber-50 text-amber-700 border-amber-200",
-  informative: "bg-cyan-50 text-cyan-700 border-cyan-200",
+  informative: "bg-emerald-50 text-emerald-700 border-emerald-200",
 }
 
 type AlertDetailModalProps = {

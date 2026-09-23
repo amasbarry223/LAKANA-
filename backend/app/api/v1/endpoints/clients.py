@@ -1,6 +1,6 @@
 import uuid
 from typing import List, Optional, Any
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.client import Client
@@ -18,14 +18,22 @@ router = APIRouter()
 
 @router.get("", response_model=List[ClientOut])
 def list_clients(
-    q: Optional[str] = Query(None, description="Recherche par nom, prénom ou code client"),
+    response: Response,
+    q: Optional[str] = Query(None, description="Recherche par nom, prénom, code client, RCCM, NIF ou ville"),
+    type_client: Optional[str] = Query(None, description="Particulier ou Entreprise"),
+    est_ppe: Optional[bool] = Query(None),
+    niveau_risque: Optional[str] = Query(None, description="Faible, Moyen ou Élevé"),
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    if q:
-        return client_repository.search_by_name(db, q, limit)
-    return client_repository.get_multi(db, skip, limit)
+    total = client_repository.count_search_and_filter(
+        db, q=q, type_client=type_client, est_ppe=est_ppe, niveau_risque=niveau_risque
+    )
+    response.headers["X-Total-Count"] = str(total)
+    return client_repository.search_and_filter(
+        db, q=q, type_client=type_client, est_ppe=est_ppe, niveau_risque=niveau_risque, skip=skip, limit=limit
+    )
 
 
 @router.get("/{id}", response_model=ClientOut)

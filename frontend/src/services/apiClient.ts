@@ -1,5 +1,10 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
 
+export interface PaginatedResult<T> {
+  data: T[]
+  total: number
+}
+
 export class ApiClient {
   private static baseUrl = API_BASE_URL
 
@@ -25,6 +30,38 @@ export class ApiClient {
       throw new Error(`API GET Error [${res.status}]: ${res.statusText} on ${path}`)
     }
     return res.json()
+  }
+
+  /**
+   * Comme `get`, mais lit aussi l'en-tête `X-Total-Count` pour la pagination.
+   * Si l'en-tête est absent (endpoint pas encore migré), `total` retombe sur `data.length`.
+   */
+  static async getPaginated<T>(path: string, params?: Record<string, any>): Promise<PaginatedResult<T>> {
+    const url = new URL(`${this.baseUrl}${path.startsWith("/") ? path : `/${path}`}`)
+    if (params) {
+      Object.keys(params).forEach((key) => {
+        if (params[key] !== undefined && params[key] !== null) {
+          url.searchParams.append(key, String(params[key]))
+        }
+      })
+    }
+
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    })
+
+    if (!res.ok) {
+      throw new Error(`API GET Error [${res.status}]: ${res.statusText} on ${path}`)
+    }
+
+    const data: T[] = await res.json()
+    const totalHeader = res.headers.get("X-Total-Count")
+    const total = totalHeader !== null ? Number(totalHeader) : data.length
+    return { data, total: Number.isFinite(total) ? total : data.length }
   }
 
   static async post<T>(path: string, body: any): Promise<T> {

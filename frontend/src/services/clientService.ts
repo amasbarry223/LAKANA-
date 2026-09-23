@@ -1,6 +1,20 @@
 import { ApiClient } from "./apiClient"
 import type { Client } from "@/models/client"
 
+export interface ClientsPageParams {
+  q?: string
+  typeClient?: "Particulier" | "Entreprise"
+  estPpe?: boolean
+  niveauRisque?: "Faible" | "Moyen" | "Élevé"
+  skip?: number
+  limit?: number
+}
+
+export interface ClientsPageResult {
+  data: Client[]
+  total: number
+}
+
 function mapFromBackend(raw: any): Client {
   return {
     id: raw.id,
@@ -69,6 +83,23 @@ export const clientService = {
     } catch (e) {
       console.error("Erreur lors de la récupération des clients:", e)
       return []
+    }
+  },
+
+  async getClientsPage(params: ClientsPageParams = {}): Promise<ClientsPageResult> {
+    try {
+      const { data, total } = await ApiClient.getPaginated<any>("/clients", {
+        q: params.q,
+        type_client: params.typeClient,
+        est_ppe: params.estPpe,
+        niveau_risque: params.niveauRisque,
+        skip: params.skip ?? 0,
+        limit: params.limit ?? 20,
+      })
+      return { data: data.map(mapFromBackend), total }
+    } catch (e) {
+      console.error("Erreur lors de la récupération des clients:", e)
+      return { data: [], total: 0 }
     }
   },
 

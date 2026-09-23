@@ -17,6 +17,9 @@ class BaseRepository(Generic[ModelType]):
     def get_multi(self, db: Session, skip: int = 0, limit: int = 100) -> List[ModelType]:
         return db.query(self.model).offset(skip).limit(limit).all()
 
+    def count(self, db: Session) -> int:
+        return db.query(self.model).count()
+
     def create(self, db: Session, obj_in: Any) -> ModelType:
         if isinstance(obj_in, dict):
             db_obj = self.model(**obj_in)

@@ -32,7 +32,7 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
 
   const selectedRole = roles.find((r) => r.value === role)!
 
-  // Lockout countdown timer (AUTH-04)
+  // Lockout countdown timer
   useEffect(() => {
     if (!locked) return
     const timer = setInterval(() => {
@@ -59,21 +59,21 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
       return
     }
     if (password.length < 8) {
-      setError("Le mot de passe doit comporter au moins 8 caractères (AUTH-03).")
+      setError("Le mot de passe doit comporter au moins 8 caractères.")
       return
     }
 
-    // Simulated auth: password "wrongpass" or "incorrect" triggers a failed attempt (AUTH-04 demo)
+    // Simulated auth: password "wrongpass" or "incorrect" triggers a failed attempt
     if (password.toLowerCase() === "wrongpass" || password.toLowerCase() === "incorrect") {
       const newAttempts = attempts + 1
       setAttempts(newAttempts)
       if (newAttempts >= MAX_ATTEMPTS) {
         setLocked(true)
         setLockoutRemaining(LOCKOUT_SECONDS)
-        setError(`Compte verrouillé après ${MAX_ATTEMPTS} tentatives échouées (AUTH-04). Réessayez dans ${LOCKOUT_SECONDS}s.`)
-        toast.error("Compte verrouillé", { description: `Verrouillage temporaire ${LOCKOUT_SECONDS}s (AUTH-04).` })
+        setError(`Compte verrouillé après ${MAX_ATTEMPTS} tentatives échouées. Réessayez dans ${LOCKOUT_SECONDS}s.`)
+        toast.error("Compte verrouillé", { description: `Verrouillage temporaire ${LOCKOUT_SECONDS}s.` })
       } else {
-        setError(`Identifiants incorrects. ${MAX_ATTEMPTS - newAttempts} tentative(s) restante(s) avant verrouillage (AUTH-04).`)
+        setError(`Identifiants incorrects. ${MAX_ATTEMPTS - newAttempts} tentative(s) restante(s) avant verrouillage.`)
       }
       return
     }
@@ -81,7 +81,7 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
     // Success — proceed to MFA or login
     if (selectedRole.mfa) {
       setStep("mfa")
-      toast.info("Code MFA requis", { description: `Un code a été envoyé pour ${selectedRole.label} (AUTH-05).` })
+      toast.info("Code MFA requis", { description: `Un code a été envoyé pour ${selectedRole.label}.` })
     } else {
       onLogin(selectedRole.label)
     }
@@ -90,7 +90,7 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
   const handleMfa = (e: React.FormEvent) => {
     e.preventDefault()
     if (mfaCode.length !== 6) {
-      setError("Le code MFA doit comporter 6 chiffres (AUTH-05).")
+      setError("Le code MFA doit comporter 6 chiffres.")
       return
     }
     // Any 6-digit code works for demo, except 000000 which fails
@@ -108,19 +108,19 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
       return
     }
     setResetSent(true)
-    toast.success("Demande envoyée", { description: "Si ce compte existe, un email de réinitialisation a été envoyé (AUTH-09)." })
+    toast.success("Demande envoyée", { description: "Si ce compte existe, un email de réinitialisation a été envoyé." })
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 via-indigo-50 to-violet-50 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 via-indigo-50 to-indigo-100 p-4">
       <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
         {/* Logo header (compact) */}
         <div className="flex flex-col items-center border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white px-6 py-5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-md">
             <ShieldAlert className="h-5 w-5 text-white" />
           </div>
           <h1 className="mt-2 text-xl font-bold tracking-tight text-slate-900">LAKANA</h1>
-          <p className="text-[11px] font-medium text-slate-400">le bouclier — conformité LBC/FT/FP</p>
+          <p className="text-xs font-medium text-slate-400">le bouclier — conformité LBC/FT/FP</p>
         </div>
 
         {/* Form body (compact) */}
@@ -129,8 +129,8 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
             <>
               <div className="mb-3">
                 <h2 className="text-base font-semibold text-slate-900">Connexion</h2>
-                <p className="mt-0.5 text-[11px] text-slate-500">
-                  Authentification requise avant tout accès (AUTH-01).
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Authentification requise avant tout accès.
                 </p>
               </div>
 
@@ -138,14 +138,14 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
               {locked && (
                 <div className="mb-3 flex items-center gap-2 rounded-lg bg-rose-50 border border-rose-200 px-3 py-2 text-xs text-rose-700">
                   <Clock className="h-3.5 w-3.5 shrink-0 animate-pulse" />
-                  <span>Verrouillé. Réessayez dans <strong>{lockoutRemaining}s</strong> (AUTH-04).</span>
+                  <span>Verrouillé. Réessayez dans <strong>{lockoutRemaining}s</strong>.</span>
                 </div>
               )}
 
               <form onSubmit={handleLogin} className="space-y-3">
                 {/* Username */}
                 <div>
-                  <label className="text-[11px] font-medium text-slate-600">Identifiant</label>
+                  <label className="text-xs font-medium text-slate-600">Identifiant</label>
                   <div className="relative mt-1">
                     <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <input
@@ -160,7 +160,7 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
 
                 {/* Password */}
                 <div>
-                  <label className="text-[11px] font-medium text-slate-600">Mot de passe</label>
+                  <label className="text-xs font-medium text-slate-600">Mot de passe</label>
                   <div className="relative mt-1">
                     <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <input
@@ -183,7 +183,7 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
 
                 {/* Role selector */}
                 <div>
-                  <label className="text-[11px] font-medium text-slate-600">Rôle</label>
+                  <label className="text-xs font-medium text-slate-600">Rôle</label>
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
@@ -237,26 +237,26 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
                 >
                   Mot de passe oublié ?
                 </button>
-                <span className="text-slate-400">JWT · bcrypt · AUTH-08</span>
+                <span className="text-slate-400">JWT · bcrypt</span>
               </div>
 
               {/* Demo hint (compact) */}
-              <div className="mt-3 rounded-lg bg-indigo-50/50 px-3 py-1.5 text-[10px] text-indigo-600">
-                <strong>Démo :</strong> <code className="rounded bg-white px-1 font-mono">password123</code> = succès · <code className="rounded bg-white px-1 font-mono">wrongpass</code> = échec (AUTH-04)
+              <div className="mt-3 rounded-lg bg-indigo-50/50 px-3 py-1.5 text-xs text-indigo-600">
+                <strong>Démo :</strong> <code className="rounded bg-white px-1 font-mono">password123</code> = succès · <code className="rounded bg-white px-1 font-mono">wrongpass</code> = échec
               </div>
             </>
           ) : (
             <>
               <div className="mb-3">
                 <h2 className="text-base font-semibold text-slate-900">Authentification à deux facteurs</h2>
-                <p className="mt-0.5 text-[11px] text-slate-500">
-                  Code à 6 chiffres de votre application (AUTH-05).
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Code à 6 chiffres de votre application.
                 </p>
               </div>
 
               <form onSubmit={handleMfa} className="space-y-3">
                 <div>
-                  <label className="text-[11px] font-medium text-slate-600">Code MFA</label>
+                  <label className="text-xs font-medium text-slate-600">Code MFA</label>
                   <div className="relative mt-1">
                     <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <input
@@ -293,7 +293,7 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
                 </button>
               </form>
 
-              <div className="mt-3 rounded-lg bg-indigo-50/50 px-3 py-1.5 text-[10px] text-indigo-600">
+              <div className="mt-3 rounded-lg bg-indigo-50/50 px-3 py-1.5 text-xs text-indigo-600">
                 <strong>Démo :</strong> tout code à 6 chiffres fonctionne, sauf <code className="rounded bg-white px-1 font-mono">000000</code>.
               </div>
             </>
@@ -302,13 +302,13 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
 
         {/* Footer (compact) */}
         <div className="border-t border-slate-100 bg-slate-50 px-6 py-2 text-center">
-          <p className="text-[10px] text-slate-400">
-            Déconnexion après inactivité (AUTH-07) · © Digi.Dev — Hackathon CIF 2026
+          <p className="text-xs text-slate-400">
+            Déconnexion après inactivité · © Digi.Dev — Hackathon CIF 2026
           </p>
         </div>
       </div>
 
-      {/* Password reset modal (AUTH-09) */}
+      {/* Password reset modal */}
       {resetOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4" onClick={() => setResetOpen(false)}>
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
@@ -332,7 +332,7 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
                   </div>
                   <p className="mt-3 text-sm font-medium text-slate-700">Demande envoyée</p>
                   <p className="mt-1 text-xs text-slate-500">
-                    Si un compte existe pour <strong>{resetEmail}</strong>, un email de réinitialisation a été envoyé. Aucune information sur l'existence du compte n'est divulguée (AUTH-09).
+                    Si un compte existe pour <strong>{resetEmail}</strong>, un email de réinitialisation a été envoyé. Aucune information sur l'existence du compte n'est divulguée.
                   </p>
                 </div>
                 <button
@@ -345,7 +345,7 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
             ) : (
               <form onSubmit={handleReset} className="mt-5 space-y-4">
                 <p className="text-xs text-slate-500">
-                  Saisissez votre adresse email. Un lien sécurisé de réinitialisation sera envoyé sans divulguer d'information sur l'existence du compte (AUTH-09).
+                  Saisissez votre adresse email. Un lien sécurisé de réinitialisation sera envoyé sans divulguer d'information sur l'existence du compte.
                 </p>
                 <div>
                   <label className="text-xs font-medium text-slate-600">Email</label>

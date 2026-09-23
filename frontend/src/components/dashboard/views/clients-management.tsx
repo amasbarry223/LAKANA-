@@ -26,8 +26,12 @@ import {
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { DataPagination } from "@/components/ui/data-pagination"
+import { usePaginatedFetch } from "@/hooks/use-pagination"
 import { clientService } from "@/services/clientService"
 import { navigateTo } from "@/lib/navigate"
+import { RowActionDropdown } from "@/components/ui/row-action-dropdown"
+import { StatusBadge } from "@/components/ui/status-badge"
 import type { Client } from "@/models/client"
 import { cn } from "@/lib/utils"
 
@@ -38,9 +42,8 @@ interface ClientsManagementProps {
 }
 
 export function ClientsManagementView({ onSelectClient }: ClientsManagementProps) {
-  const [clients, setClients] = useState<Client[]>([])
-  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
   const [filter, setFilter] = useState<FilterType>("Tous")
   const [modalOpen, setModalOpen] = useState(false)
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null)
@@ -125,54 +128,74 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
     paysMandat: "Mali",
   })
 
-  // Fetch clients from API
-  const fetchClients = async () => {
-    setLoading(true)
-    try {
-      const data = await clientService.getClients()
-      setClients(data)
-    } catch (err) {
-      toast.error("Impossible de charger les clients")
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  // Recherche différée (300ms) pour éviter un appel réseau à chaque frappe
   useEffect(() => {
-    fetchClients()
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300)
+    return () => clearTimeout(t)
+  }, [search])
+
+  const filterParams = useMemo(() => {
+    switch (filter) {
+      case "Particuliers":
+        return { typeClient: "Particulier" as const }
+      case "Entreprises":
+        return { typeClient: "Entreprise" as const }
+      case "PPE":
+        return { estPpe: true }
+      case "Risque Élevé":
+        return { niveauRisque: "Élevé" as const }
+      default:
+        return {}
+    }
+  }, [filter])
+
+  const {
+    data: clients,
+    total: totalFiltered,
+    page,
+    setPage,
+    totalPages,
+    loading,
+    refetch: refetchClients,
+  } = usePaginatedFetch(
+    ({ skip, limit }) =>
+      clientService.getClientsPage({ q: debouncedSearch || undefined, ...filterParams, skip, limit }),
+    [debouncedSearch, filter],
+    { pageSize: 20 }
+  )
+  const filteredClients = clients
+
+  const fetchClients = refetchClients
+
+  // KPIs globaux (indépendants du filtre/recherche en cours) — rechargés au montage
+  // et explicitement après chaque création/modification/suppression de client.
+  const [stats, setStats] = useState({ total: 0, particuliers: 0, entreprises: 0, ppe: 0, risqueEleve: 0 })
+  const loadStats = () => {
+    Promise.all([
+      clientService.getClientsPage({ limit: 1 }),
+      clientService.getClientsPage({ typeClient: "Particulier", limit: 1 }),
+      clientService.getClientsPage({ typeClient: "Entreprise", limit: 1 }),
+      clientService.getClientsPage({ estPpe: true, limit: 1 }),
+      clientService.getClientsPage({ niveauRisque: "Élevé", limit: 1 }),
+    ]).then(([all, particuliers, entreprises, ppe, risqueEleve]) => {
+      setStats({
+        total: all.total,
+        particuliers: particuliers.total,
+        entreprises: entreprises.total,
+        ppe: ppe.total,
+        risqueEleve: risqueEleve.total,
+      })
+    })
+  }
+  useEffect(() => {
+    loadStats()
   }, [])
 
-  // Filtering
-  const filteredClients = useMemo(() => {
-    return clients.filter((c) => {
-      // Type Filter
-      if (filter === "Particuliers" && c.typeClient === "Entreprise") return false
-      if (filter === "Entreprises" && c.typeClient !== "Entreprise") return false
-      if (filter === "PPE" && !c.estPpe) return false
-      if (filter === "Risque Élevé" && c.niveauRisque !== "Élevé") return false
-
-      // Search
-      if (search.trim()) {
-        const q = search.toLowerCase()
-        const matchNom = c.nom.toLowerCase().includes(q)
-        const matchPrenom = c.prenom?.toLowerCase().includes(q)
-        const matchCode = c.codeClient.toLowerCase().includes(q)
-        const matchRaison = c.raisonSociale?.toLowerCase().includes(q)
-        const matchRccm = c.rccm?.toLowerCase().includes(q)
-        const matchNif = c.nif?.toLowerCase().includes(q)
-        const matchVille = c.ville?.toLowerCase().includes(q)
-        return matchNom || matchPrenom || matchCode || matchRaison || matchRccm || matchNif || matchVille
-      }
-      return true
-    })
-  }, [clients, filter, search])
-
-  // KPIs
-  const totalCount = clients.length
-  const particuliersCount = clients.filter((c) => c.typeClient !== "Entreprise").length
-  const entreprisesCount = clients.filter((c) => c.typeClient === "Entreprise").length
-  const ppeCount = clients.filter((c) => c.estPpe).length
-  const highRiskCount = clients.filter((c) => c.niveauRisque === "Élevé").length
+  const totalCount = stats.total
+  const particuliersCount = stats.particuliers
+  const entreprisesCount = stats.entreprises
+  const ppeCount = stats.ppe
+  const highRiskCount = stats.risqueEleve
 
   // Create Client Submit
   const handleCreateSubmit = async (e: React.FormEvent) => {
@@ -215,7 +238,8 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
       }
 
       const created = await clientService.createClient(payload)
-      setClients((prev) => [created, ...prev])
+      fetchClients()
+      loadStats()
       toast.success(
         clientType === "Entreprise" ? "Entreprise enrôlée avec succès" : "Particulier enrôlé avec succès",
         {
@@ -321,7 +345,8 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
       }
 
       const updated = await clientService.updateClient(clientToEdit.id, payload)
-      setClients((prev) => prev.map((c) => (c.id === updated.id ? updated : c)))
+      fetchClients()
+      loadStats()
       toast.success("Client mis à jour", {
         description: `Le dossier ${updated.codeClient} a été modifié avec succès.`,
       })
@@ -341,7 +366,8 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
     if (!clientToDelete) return
     try {
       await clientService.deleteClient(clientToDelete.id)
-      setClients((prev) => prev.filter((c) => c.id !== clientToDelete.id))
+      fetchClients()
+      loadStats()
       toast.success("Client supprimé", {
         description: `Le dossier ${clientToDelete.codeClient} a été supprimé de la base de données.`,
       })
@@ -402,7 +428,8 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
         })
       }
 
-      await fetchClients()
+      fetchClients()
+      loadStats()
     } catch (err: any) {
       const detail = err?.response?.data?.detail || err?.message || "Erreur lors de la création du compte"
       toast.error(detail)
@@ -431,7 +458,10 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
 
         <div className="flex items-center gap-3">
           <button
-            onClick={fetchClients}
+            onClick={() => {
+              fetchClients()
+              loadStats()
+            }}
             disabled={loading}
             className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition shadow-sm"
           >
@@ -462,7 +492,7 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
 
         <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
           <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+            <span className="p-1.5 rounded-lg bg-slate-50 text-slate-600">
               <UserCheck className="h-4 w-4" />
             </span>
             <span className="text-xs font-medium text-slate-500">Particuliers</span>
@@ -472,7 +502,7 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
 
         <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
           <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-violet-50 text-violet-600">
+            <span className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600">
               <Building2 className="h-4 w-4" />
             </span>
             <span className="text-xs font-medium text-slate-500">Entreprises</span>
@@ -532,33 +562,30 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
         </div>
       </div>
 
-      {/* Table des Clients */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+      {/* Table des Clients Épurée */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
+            <thead className="bg-slate-50/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
               <tr>
-                <th className="px-5 py-3.5 font-semibold">Code Client</th>
-                <th className="px-5 py-3.5 font-semibold">Client / Raison Sociale</th>
-                <th className="px-5 py-3.5 font-semibold">Type & Secteur</th>
-                <th className="px-5 py-3.5 font-semibold">Comptes bancaires</th>
-                <th className="px-5 py-3.5 font-semibold">Statut PPE / Registre</th>
-                <th className="px-5 py-3.5 font-semibold">Localisation</th>
-                <th className="px-5 py-3.5 font-semibold">Score de Risque</th>
+                <th className="px-5 py-3.5 font-semibold">Client & Dossier</th>
+                <th className="px-4 py-3.5 font-semibold">Statut & Profil</th>
+                <th className="px-4 py-3.5 font-semibold">Comptes bancaires</th>
+                <th className="px-4 py-3.5 font-semibold">Score de Risque</th>
                 <th className="px-5 py-3.5 font-semibold text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-12 text-center text-slate-400">
+                  <td colSpan={5} className="px-5 py-12 text-center text-slate-400">
                     <RefreshCw className="h-6 w-6 animate-spin mx-auto text-indigo-500 mb-2" />
                     Chargement des clients depuis PostgreSQL...
                   </td>
                 </tr>
               ) : filteredClients.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-12 text-center text-slate-400">
+                  <td colSpan={5} className="px-5 py-12 text-center text-slate-400">
                     Aucun client trouvé pour cette sélection.
                   </td>
                 </tr>
@@ -568,193 +595,142 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                   const displayName = isEntreprise
                     ? client.raisonSociale || client.nom
                     : `${client.nom} ${client.prenom || ""}`.trim()
+                  const statusKey =
+                    client.niveauRisque === "Élevé"
+                      ? "error"
+                      : client.niveauRisque === "Moyen"
+                      ? "warning"
+                      : "active"
 
                   return (
                     <tr
                       key={client.id}
-                      className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition"
+                      className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition group"
                     >
-                      {/* Code */}
-                      <td className="px-5 py-4 font-mono text-xs font-semibold text-indigo-600 dark:text-indigo-400">
-                        {client.codeClient}
-                      </td>
-
-                      {/* Nom / Raison Sociale */}
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2.5">
+                      {/* Col 1: Client & Dossier (combiné avec sous-titre) */}
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
                           <div
                             className={cn(
-                              "h-9 w-9 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold",
+                              "h-9 w-9 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold shadow-2xs",
                               isEntreprise
-                                ? "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300"
-                                : "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
+                                ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300"
+                                : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
                             )}
                           >
                             {isEntreprise ? <Building2 className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                           </div>
-                          <div>
-                            <p className="font-semibold text-slate-900 dark:text-white leading-tight">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-slate-900 dark:text-white leading-tight truncate max-w-[220px]">
                               {displayName}
                             </p>
-                            <p className="text-xs text-slate-500 mt-0.5">
-                              {isEntreprise
-                                ? `Forme : ${client.formeJuridique || "SARL"}`
-                                : client.profession || "Particulier"}
+                            <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5 font-mono">
+                              <span className="text-indigo-600 dark:text-indigo-400 font-semibold">{client.codeClient}</span>
+                              <span>•</span>
+                              <span className="truncate max-w-[130px] font-sans">
+                                {client.ville || "Bamako"}, {client.pays || "Mali"}
+                              </span>
                             </p>
                           </div>
                         </div>
                       </td>
 
-                      {/* Type & Secteur */}
-                      <td className="px-5 py-4">
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-[11px]",
-                            isEntreprise
-                              ? "bg-violet-50 text-violet-700 border-violet-200"
-                              : "bg-blue-50 text-blue-700 border-blue-200"
-                          )}
-                        >
-                          {isEntreprise ? "Personne Morale" : "Personne Physique"}
-                        </Badge>
-                        <p className="text-xs text-slate-500 mt-1">
-                          {isEntreprise ? client.secteurActivite || "Négoce" : client.pieceIdentite || "CNI vérifiée"}
-                        </p>
+                      {/* Col 2: Statut & Profil (Type + PPE) */}
+                      <td className="px-4 py-3.5">
+                        <div className="space-y-1">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-2xs font-medium",
+                              isEntreprise
+                                ? "bg-indigo-50/80 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300"
+                                : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                            )}
+                          >
+                            {isEntreprise ? "Personne Morale" : "Personne Physique"}
+                          </Badge>
+                          {client.estPpe ? (
+                            <div>
+                              <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-100 border-rose-300 gap-1 text-2xs py-0">
+                                <ShieldAlert className="h-3 w-3" />
+                                PPE Détecté
+                              </Badge>
+                            </div>
+                          ) : isEntreprise && client.rccm ? (
+                            <p className="text-2xs text-slate-500 font-mono">RCCM: {client.rccm}</p>
+                          ) : null}
+                        </div>
                       </td>
 
-                      {/* Comptes bancaires */}
-                      <td className="px-5 py-4">
-                        <div className="space-y-1">
+                      {/* Col 3: Comptes bancaires */}
+                      <td className="px-4 py-3.5">
+                        <div className="space-y-0.5">
                           <div className="flex items-center gap-1.5">
-                            <span className="font-mono text-xs font-semibold text-slate-700 dark:text-slate-200">
+                            <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200">
                               {(client.comptes?.length || 0)} cpt{(client.comptes?.length || 0) > 1 ? "s" : "e"}
                             </span>
                             {(client.comptes?.length || 0) >= 2 && (
-                              <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200 text-[10px] px-1.5 py-0">
+                              <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200 text-2xs px-1.5 py-0">
                                 Multi-comptes
                               </Badge>
                             )}
                           </div>
                           {client.comptes && client.comptes.length > 0 ? (
-                            <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 space-y-0.5 max-w-[150px]">
-                              {client.comptes.slice(0, 2).map((a: any, idx: number) => (
-                                <div key={idx} className="truncate" title={a.numeroCompte || a.numero_compte}>
-                                  • {a.numeroCompte || a.numero_compte}
-                                </div>
-                              ))}
-                              {client.comptes.length > 2 && (
-                                <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">
-                                  +{client.comptes.length - 2} autre(s)
-                                </p>
-                              )}
-                            </div>
+                            <p className="text-2xs font-mono text-slate-500 dark:text-slate-400 truncate max-w-[140px]">
+                              {client.comptes[0].numeroCompte || (client.comptes[0] as any).numero_compte}
+                              {client.comptes.length > 1 ? ` (+${client.comptes.length - 1})` : ""}
+                            </p>
                           ) : (
-                            <span className="text-[11px] text-slate-400 italic">Aucun compte</span>
+                            <span className="text-2xs text-slate-400 italic">Aucun compte</span>
                           )}
                         </div>
                       </td>
 
-                      {/* PPE / Identifiants légaux */}
-                      <td className="px-5 py-4">
-                        {isEntreprise ? (
-                          <div className="text-xs text-slate-600 dark:text-slate-300 space-y-0.5">
-                            <p>
-                              <span className="font-medium text-slate-400">RCCM:</span> {client.rccm || "—"}
-                            </p>
-                            <p>
-                              <span className="font-medium text-slate-400">NIF:</span> {client.nif || "—"}
-                            </p>
-                          </div>
-                        ) : client.estPpe ? (
-                          <div>
-                            <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-100 border-rose-300 gap-1 text-[11px]">
-                              <ShieldAlert className="h-3 w-3" />
-                              PPE Détecté
-                            </Badge>
-                            <p className="text-[11px] font-medium text-rose-600 mt-0.5">
-                              {client.fonctionPpe || client.typePpe || "Fonction officielle"}
-                            </p>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400 flex items-center gap-1">
-                            <BadgeCheck className="h-3.5 w-3.5 text-emerald-500" />
-                            Non-PPE (Standard)
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Localisation */}
-                      <td className="px-5 py-4 text-xs text-slate-600 dark:text-slate-300">
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3 text-slate-400" />
-                          <span>
-                            {client.ville || "Bamako"}, {client.pays || "Mali"}
-                          </span>
-                        </div>
-                        {client.telephone && (
-                          <div className="flex items-center gap-1 mt-0.5 text-slate-400 text-[11px]">
-                            <Phone className="h-2.5 w-2.5" />
-                            <span>{client.telephone}</span>
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Score de Risque */}
-                      <td className="px-5 py-4">
+                      {/* Col 4: Score de Risque */}
+                      <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2">
-                          <span
-                            className={cn(
-                              "px-2 py-0.5 rounded text-xs font-bold",
-                              client.niveauRisque === "Élevé"
-                                ? "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400"
-                                : client.niveauRisque === "Moyen"
-                                ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400"
-                                : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400"
-                            )}
-                          >
+                          <StatusBadge
+                            status={statusKey}
+                            label={`Risque ${client.niveauRisque}`}
+                          />
+                          <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
                             {client.riskScore}/100
                           </span>
-                          <span className="text-xs text-slate-500 font-medium">
-                            {client.niveauRisque}
-                          </span>
                         </div>
                       </td>
 
-                      {/* Actions */}
-                      <td className="px-5 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {onSelectClient && (
-                            <button
-                              onClick={() => onSelectClient(client)}
-                              title="Voir Client 360°"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition"
-                            >
-                              <ChevronRight className="h-4 w-4" />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => openAddAccountModal(client)}
-                            title="Ouvrir / Ajouter un compte bancaire (Alerte AML si multi-comptes)"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition"
-                          >
-                            <CreditCard className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => openEditModal(client)}
-                            title="Modifier les informations client"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => setClientToDelete(client)}
-                            title="Supprimer le dossier client"
-                            className="p-1.5 rounded-lg text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
+                      {/* Col 5: Actions unifiées */}
+                      <td className="px-5 py-3.5 text-right">
+                        <RowActionDropdown
+                          primaryAction={
+                            onSelectClient
+                              ? {
+                                  label: "360°",
+                                  icon: <ChevronRight className="h-3.5 w-3.5" />,
+                                  onClick: () => onSelectClient(client),
+                                  variant: "primary",
+                                }
+                              : undefined
+                          }
+                          actions={[
+                            {
+                              label: "Modifier le dossier",
+                              icon: <Pencil className="h-3.5 w-3.5" />,
+                              onClick: () => openEditModal(client),
+                            },
+                            {
+                              label: "Ouvrir un compte bancaire",
+                              icon: <CreditCard className="h-3.5 w-3.5" />,
+                              onClick: () => openAddAccountModal(client),
+                            },
+                            {
+                              label: "Supprimer le dossier",
+                              icon: <Trash2 className="h-3.5 w-3.5" />,
+                              onClick: () => setClientToDelete(client),
+                              danger: true,
+                            },
+                          ]}
+                        />
                       </td>
                     </tr>
                   )
@@ -764,6 +740,17 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
           </table>
         </div>
       </div>
+
+      {!loading && totalFiltered > 0 && (
+        <DataPagination
+          page={page}
+          totalPages={totalPages}
+          total={totalFiltered}
+          pageSize={20}
+          onPageChange={setPage}
+          itemLabel="clients"
+        />
+      )}
 
       {/* Modal d'enrôlement client */}
       {modalOpen && (
@@ -822,11 +809,11 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                     className={cn(
                       "flex items-center gap-3 p-3 rounded-xl border text-left transition",
                       clientType === "Entreprise"
-                        ? "border-violet-600 bg-violet-50/50 dark:bg-violet-950/40 text-violet-900 dark:text-violet-200 ring-2 ring-violet-500/20"
+                        ? "border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200 ring-2 ring-indigo-500/20"
                         : "border-slate-200 hover:bg-slate-50 text-slate-700"
                     )}
                   >
-                    <Building2 className="h-5 w-5 text-violet-600 shrink-0" />
+                    <Building2 className="h-5 w-5 text-indigo-600 shrink-0" />
                     <div>
                       <p className="font-semibold text-sm">Entreprise</p>
                       <p className="text-xs text-slate-500">Personne morale (SARL, SA, GIE, SFD)</p>
@@ -849,7 +836,7 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                         placeholder="Ex: Sahel Transit SARL"
                         value={form.raisonSociale}
                         onChange={(e) => setForm({ ...form, raisonSociale: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-500"
+                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
                     <div>
@@ -859,7 +846,7 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                       <select
                         value={form.formeJuridique}
                         onChange={(e) => setForm({ ...form, formeJuridique: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-500"
+                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
                       >
                         <option value="SARL">SARL (Société à Responsabilité Limitée)</option>
                         <option value="SA">SA (Société Anonyme)</option>
@@ -881,7 +868,7 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                         placeholder="Ex: MA.BKO.2024.B.1298"
                         value={form.rccm}
                         onChange={(e) => setForm({ ...form, rccm: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-500"
+                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
                     <div>
@@ -893,7 +880,7 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                         placeholder="Ex: 084512984X"
                         value={form.nif}
                         onChange={(e) => setForm({ ...form, nif: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-500"
+                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
                   </div>
@@ -908,7 +895,7 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                         placeholder="Ex: Import-Export céréales, BTP, Transit..."
                         value={form.secteurActivite}
                         onChange={(e) => setForm({ ...form, secteurActivite: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-500"
+                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
                     <div>
@@ -920,7 +907,7 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                         placeholder="Ex: Ousmane Diallo (60%), Awa Keita (40%)"
                         value={form.beneficiaireEffectif}
                         onChange={(e) => setForm({ ...form, beneficiaireEffectif: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-500"
+                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
                   </div>
@@ -1069,7 +1056,7 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                           </div>
                         </div>
 
-                        <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                        <p className="text-xs text-amber-700 dark:text-amber-400">
                           ⚠️ <strong>Mesure réglementaire :</strong> L'enrôlement en tant que PPE déclenche automatiquement une vigilance renforcée (EDD) et un niveau de risque élevé sous surveillance CENTIF.
                         </p>
                       </div>
@@ -1204,9 +1191,9 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
               {/* Type de client (lecture seule, on affiche mais on ne change pas le type) */}
               <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
                 {editClientType === "Entreprise" ? (
-                  <Building2 className="h-5 w-5 text-violet-600" />
+                  <Building2 className="h-5 w-5 text-indigo-600" />
                 ) : (
-                  <UserCheck className="h-5 w-5 text-blue-600" />
+                  <UserCheck className="h-5 w-5 text-slate-600" />
                 )}
                 <div>
                   <p className="text-sm font-semibold text-slate-800 dark:text-white">
@@ -1605,7 +1592,7 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                 <ul className="space-y-1.5">
                   {alertFeedbackModal.alerte.facteurs.map((f, i) => (
                     <li key={i} className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300">
-                      <span className="mt-0.5 h-4 w-4 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-[10px] shrink-0">!</span>{f}
+                      <span className="mt-0.5 h-4 w-4 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-xs shrink-0">!</span>{f}
                     </li>
                   ))}
                 </ul>

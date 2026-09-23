@@ -20,8 +20,8 @@ const scoringRules = [
 ]
 
 const thresholds = [
-  { label: "Seuil de déclaration (FCFA)", value: 1000000, unit: "FCFA", desc: "Seuil réglementaire de déclaration de soupçon", code: "BO-04" },
-  { label: "Seuil de fractionnement unitaire", value: 950000, unit: "FCFA", desc: "Transactions individuelles sous ce seuil surveillées", code: "FRC-03" },
+  { label: "Seuil de déclaration (FCFA)", value: 5000000, unit: "FCFA", desc: "Seuil réglementaire BCEAO / UEMOA opérations espèces", code: "BO-04" },
+  { label: "Seuil de fractionnement unitaire", value: 4500000, unit: "FCFA", desc: "Transactions individuelles sous ce seuil surveillées (smurfing)", code: "FRC-03" },
   { label: "Fenêtre de fractionnement", value: 48, unit: "heures", desc: "Période de regroupement des séquences", code: "FRC-03" },
   { label: "Seuil d'alerteancienneté (hors ligne)", value: 24, unit: "heures", desc: "Alerte si base locale plus ancienne", code: "OFF-03" },
   { label: "Verrouillage après tentatives", value: 5, unit: "essais", desc: "Verrouillage compte après échecs", code: "AUTH-04" },
@@ -100,7 +100,7 @@ export function SettingsView() {
       },
     ])
     toast.success("Institution créée", {
-      description: `${instForm.name.trim()} (${instForm.type}, ${instForm.city}) ajoutée. Isolation des données ${instForm.isolated ? "activée" : "désactivée"} (BO-08).`,
+      description: `${instForm.name.trim()} (${instForm.type}, ${instForm.city}) ajoutée. Isolation des données ${instForm.isolated ? "activée" : "désactivée"}.`,
     })
     setInstForm({ name: "", type: "SFD", city: "Bamako", isolated: true })
     setCreateInstOpen(false)
@@ -110,8 +110,8 @@ export function SettingsView() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px]">Paramètres</h1>
-          <p className="mt-1 text-sm text-slate-500">Configuration du moteur d'analyse et des seuils réglementaires (BO-03/04).</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Paramètres</h1>
+          <p className="mt-1 text-sm text-slate-500">Configuration du moteur d'analyse et des seuils réglementaires.</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -125,7 +125,7 @@ export function SettingsView() {
                 mfa: true,
                 autoLock: true,
               })
-              toast.info("Paramètres restaurés", { description: "Restauration aux valeurs par défaut (BO-03)." })
+              toast.info("Paramètres restaurés", { description: "Restauration aux valeurs par défaut." })
             }}
             className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"
           >
@@ -136,7 +136,7 @@ export function SettingsView() {
             onClick={() => {
               saveSettings()
               toast.success("Paramètres enregistrés", {
-                description: `Institution : ${general.institution} · Devise : ${general.devise} · Langue : ${general.langue}. Modifications tracées (BO-03).`,
+                description: `Institution : ${general.institution} · Devise : ${general.devise} · Langue : ${general.langue}. Modifications tracées.`,
               })
             }}
             className="flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700"
@@ -215,7 +215,7 @@ export function SettingsView() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sliders className="h-4 w-4 text-slate-400" />
-                <h3 className="text-base font-semibold text-slate-900">Pondération des règles (BO-03)</h3>
+                <h3 className="text-base font-semibold text-slate-900">Pondération des règles</h3>
               </div>
               <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">
                 Total : {weights.reduce((a, b) => a + b, 0)} pts
@@ -226,7 +226,7 @@ export function SettingsView() {
                 <div key={r.id}>
                   <div className="mb-1.5 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-slate-500">{r.id}</span>
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs font-semibold text-slate-500">{r.id}</span>
                       <span className="text-sm font-medium text-slate-700">{r.label}</span>
                     </div>
                     <span className="text-sm font-bold text-indigo-600">{weights[i]} pts</span>
@@ -252,7 +252,7 @@ export function SettingsView() {
           <div className="rounded-xl border border-slate-200 bg-white p-5">
             <div className="flex items-center gap-2">
               <History className="h-4 w-4 text-slate-400" />
-              <h3 className="text-base font-semibold text-slate-900">Historique des versions (BO-03)</h3>
+              <h3 className="text-base font-semibold text-slate-900">Historique des versions</h3>
             </div>
             <div className="mt-4 space-y-2">
               {versions.map((v) => (
@@ -260,7 +260,7 @@ export function SettingsView() {
                   <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">{v.v}</span>
                   <div className="flex-1">
                     <p className="text-sm text-slate-700">{v.changes}</p>
-                    <p className="mt-0.5 text-[11px] text-slate-400">{v.author} • {v.date}</p>
+                    <p className="mt-0.5 text-xs text-slate-400">{v.author} • {v.date}</p>
                   </div>
                 </div>
               ))}
@@ -273,7 +273,7 @@ export function SettingsView() {
       {tab === "Seuils réglementaires" && (
         <div className="rounded-xl border border-slate-200 bg-white p-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold text-slate-900">Seuils et fenêtres (BO-04)</h3>
+            <h3 className="text-base font-semibold text-slate-900">Seuils et fenêtres</h3>
             <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
               Modifications tracées
             </Badge>
@@ -283,7 +283,7 @@ export function SettingsView() {
               <div key={t.label} className="rounded-lg border border-slate-200 p-4">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-slate-700">{t.label}</label>
-                  <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">{t.code}</span>
+                  <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-semibold text-slate-500">{t.code}</span>
                 </div>
                 <div className="mt-2 flex items-center gap-2">
                   <input
@@ -298,7 +298,7 @@ export function SettingsView() {
                   />
                   <span className="shrink-0 text-xs font-medium text-slate-500">{t.unit}</span>
                 </div>
-                <p className="mt-1.5 text-[11px] text-slate-400">{t.desc}</p>
+                <p className="mt-1.5 text-xs text-slate-400">{t.desc}</p>
               </div>
             ))}
           </div>
@@ -325,7 +325,7 @@ export function SettingsView() {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-slate-800">{inst.name}</p>
-                  <p className="text-[11px] text-slate-400">{inst.clients.toLocaleString("fr-FR")} clients</p>
+                  <p className="text-xs text-slate-400">{inst.clients.toLocaleString("fr-FR")} clients</p>
                 </div>
                 {inst.isolated && (
                   <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
@@ -350,14 +350,14 @@ export function SettingsView() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-700">MFA obligatoire (rôles sensibles)</p>
-                  <p className="text-[11px] text-slate-400">Responsable, Admin, Super admin (AUTH-05)</p>
+                  <p className="text-xs text-slate-400">Responsable, Admin, Super admin</p>
                 </div>
                 <Switch checked={mfa} onCheckedChange={setMfa} />
               </div>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-700">Verrouillage automatique</p>
-                  <p className="text-[11px] text-slate-400">Après 5 tentatives échouées (AUTH-04)</p>
+                  <p className="text-xs text-slate-400">Après 5 tentatives échouées</p>
                 </div>
                 <Switch checked={autoLock} onCheckedChange={setAutoLock} />
               </div>
@@ -386,7 +386,7 @@ export function SettingsView() {
                   <div className="h-2 w-2 rounded-full bg-emerald-500" />
                   <div className="flex-1">
                     <p className="text-sm font-medium text-slate-800">{s.user}</p>
-                    <p className="text-[11px] text-slate-400">{s.ip} • depuis {s.since}</p>
+                    <p className="text-xs text-slate-400">{s.ip} • depuis {s.since}</p>
                   </div>
                   {s.current ? (
                     <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">Vous</Badge>
@@ -413,7 +413,7 @@ export function SettingsView() {
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Nouvelle institution</h3>
-                <p className="mt-0.5 text-xs text-slate-400">Multi-SFD avec isolation des données (BO-08)</p>
+                <p className="mt-0.5 text-xs text-slate-400">Multi-SFD avec isolation des données</p>
               </div>
               <button
                 onClick={() => setCreateInstOpen(false)}
@@ -465,7 +465,7 @@ export function SettingsView() {
               <div className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
                 <div>
                   <p className="text-sm font-medium text-slate-700">Isolation des données</p>
-                  <p className="text-[11px] text-slate-400">BO-08 — données cloisonnées par institution</p>
+                  <p className="text-xs text-slate-400">BO-08 — données cloisonnées par institution</p>
                 </div>
                 <Switch
                   checked={instForm.isolated}

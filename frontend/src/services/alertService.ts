@@ -1,62 +1,98 @@
 import { ApiClient } from "./apiClient"
 import type { Alert, AlertFilter } from "@/models/alert"
 
+export interface AlertsPageResult {
+  data: Alert[]
+  total: number
+}
+
+function buildAlertParams(filters?: AlertFilter): Record<string, any> {
+  const params: Record<string, any> = {}
+  if (!filters) return params
+
+  if (filters.status && filters.status !== "Tous statuts") {
+    let st = filters.status.toLowerCase().trim()
+    if (st === "en cours") st = "en_cours"
+    else if (st === "clôturée" || st === "cloturee") st = "cloturee"
+    else if (st === "classée" || st === "classee") st = "classee"
+    else if (st === "nouvelle") st = "nouvelle"
+    params.statut = st
+  }
+
+  if (filters.level && filters.level !== "Tous niveaux") {
+    let lvl = filters.level.toLowerCase().trim()
+    if (lvl.includes("analyser")) lvl = "analyser"
+    else if (lvl.includes("bloquante")) lvl = "bloquante"
+    else if (lvl.includes("informative")) lvl = "informative"
+    params.niveau = lvl
+  }
+
+  if (filters.module && filters.module !== "Tous modules") {
+    params.module = filters.module
+  }
+
+  if (filters.analyste && filters.analyste !== "Tous analystes") {
+    params.analyste = filters.analyste
+  }
+
+  return params
+}
+
+function mapAlertFromBackend(a: any): Alert {
+  return {
+    id: a.id,
+    ref: a.reference,
+    clientId: a.client_id || a.clientId || "",
+    client: a.client_nom || a.client || "Client Inconnu",
+    score: typeof a.score === "number" ? a.score : 0,
+    type: a.type_alerte || a.type || "Alerte de conformité",
+    level: (a.niveau || a.level || "analyser") as any,
+    module: a.module || "Conformité",
+    facteurs: Array.isArray(a.facteurs) ? a.facteurs : [],
+    status: a.statut || a.status || "nouvelle",
+    analyste: a.analyste || "Non assigné",
+    createdAt: a.created_at || a.createdAt,
+  }
+}
+
 export const alertService = {
   /**
    * Récupère la liste dynamique des alertes depuis le backend FastAPI.
    * Aucune donnée mockée : renvoie les données réelles ou un tableau vide en cas d'erreur.
    */
   async getAlerts(filters?: AlertFilter): Promise<Alert[]> {
-    const params: Record<string, any> = {}
-
-    if (filters) {
-      if (filters.status && filters.status !== "Tous statuts") {
-        let st = filters.status.toLowerCase().trim()
-        if (st === "en cours") st = "en_cours"
-        else if (st === "clôturée" || st === "cloturee") st = "cloturee"
-        else if (st === "classée" || st === "classee") st = "classee"
-        else if (st === "nouvelle") st = "nouvelle"
-        params.statut = st
-      }
-
-      if (filters.level && filters.level !== "Tous niveaux") {
-        let lvl = filters.level.toLowerCase().trim()
-        if (lvl.includes("analyser")) lvl = "analyser"
-        else if (lvl.includes("bloquante")) lvl = "bloquante"
-        else if (lvl.includes("informative")) lvl = "informative"
-        params.niveau = lvl
-      }
-
-      if (filters.module && filters.module !== "Tous modules") {
-        params.module = filters.module
-      }
-
-      if (filters.analyste && filters.analyste !== "Tous analystes") {
-        params.analyste = filters.analyste
-      }
-    }
-
     try {
-      const data = await ApiClient.get<any[]>("/alerts", params)
+      const data = await ApiClient.get<any[]>("/alerts", buildAlertParams(filters))
       if (!Array.isArray(data)) return []
-
-      return data.map((a) => ({
-        id: a.id,
-        ref: a.reference,
-        clientId: a.client_id || a.clientId || "",
-        client: a.client_nom || a.client || "Client Inconnu",
-        score: typeof a.score === "number" ? a.score : 0,
-        type: a.type_alerte || a.type || "Alerte de conformité",
-        level: (a.niveau || a.level || "analyser") as any,
-        module: a.module || "Conformité",
-        facteurs: Array.isArray(a.facteurs) ? a.facteurs : [],
-        status: a.statut || a.status || "nouvelle",
-        analyste: a.analyste || "Non assigné",
-        createdAt: a.created_at || a.createdAt,
-      }))
+      return data.map(mapAlertFromBackend)
     } catch (e) {
       console.error("Erreur API lors de la récupération des alertes :", e)
       return []
+    }
+  },
+
+  /**
+   * Variante paginée (skip/limit + total réel via X-Total-Count) pour les
+   * tableaux d'alertes qui doivent naviguer page par page.
+   */
+  async getAlertsPage(
+    filters: AlertFilter | undefined,
+    page: { skip: number; limit: number },
+    extra?: { q?: string; niveau?: string; statut?: string }
+  ): Promise<AlertsPageResult> {
+    try {
+      const { data, total } = await ApiClient.getPaginated<any>("/alerts", {
+        ...buildAlertParams(filters),
+        ...(extra?.niveau ? { niveau: extra.niveau } : {}),
+        ...(extra?.statut ? { statut: extra.statut } : {}),
+        q: extra?.q || undefined,
+        skip: page.skip,
+        limit: page.limit,
+      })
+      return { data: data.map(mapAlertFromBackend), total }
+    } catch (e) {
+      console.error("Erreur API lors de la récupération des alertes :", e)
+      return { data: [], total: 0 }
     }
   },
 
@@ -101,11 +137,15 @@ export const alertService = {
   },
 
   /**
-   * Met à jour le statut d'une alerte en base de données réelle
+   * Met à jour le statut ou les champs d'une alerte en base de données réelle
    */
-  async updateAlertStatus(id: string, statut: string): Promise<Alert | null> {
+  async updateAlertStatus(
+    id: string,
+    update: string | { statut?: string; analyste?: string; niveau?: string }
+  ): Promise<Alert | null> {
     try {
-      const res = await ApiClient.put<any>(`/alerts/${id}`, { statut })
+      const payload = typeof update === "string" ? { statut: update } : update
+      const res = await ApiClient.put<any>(`/alerts/${id}`, payload)
       return {
         id: res.id,
         ref: res.reference,
@@ -116,8 +156,8 @@ export const alertService = {
         level: (res.niveau || res.level || "analyser") as any,
         module: res.module || "Conformité",
         facteurs: Array.isArray(res.facteurs) ? res.facteurs : [],
-        status: res.statut || res.status || statut,
-        analyste: res.analyste || "Non assigné",
+        status: res.statut || res.status || (typeof update === "string" ? update : update.statut || "nouvelle"),
+        analyste: res.analyste || (typeof update === "object" ? update.analyste : undefined) || "Non assigné",
         createdAt: res.created_at || res.createdAt,
       }
     } catch (e) {

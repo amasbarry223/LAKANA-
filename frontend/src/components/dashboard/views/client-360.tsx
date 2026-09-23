@@ -17,11 +17,13 @@ import {
   FileText,
   X,
   RefreshCw,
-  ArrowUpRight,
   CheckCircle2,
   Sparkles,
   Cpu,
   Bot,
+  Search,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react"
 import {
   Area,
@@ -33,11 +35,14 @@ import {
   YAxis,
 } from "recharts"
 import { Badge } from "@/components/ui/badge"
+import { StatusBadge } from "@/components/ui/status-badge"
 import { cn } from "@/lib/utils"
 import { navigateTo } from "@/lib/navigate"
 import { useDashboard } from "@/lib/dashboard-context"
 import { clientService } from "@/services/clientService"
 import { transactionService } from "@/services/transactionService"
+import { DataPagination } from "@/components/ui/data-pagination"
+import { usePaginatedFetch } from "@/hooks/use-pagination"
 import { alertService } from "@/services/alertService"
 import { aiService } from "@/services/aiService"
 import type { Client } from "@/models/client"
@@ -48,7 +53,7 @@ import type { MLPredictResponse } from "@/models/ai"
 const levelColor: Record<string, string> = {
   bloquante: "bg-rose-50 text-rose-700 border-rose-200",
   analyser: "bg-amber-50 text-amber-700 border-amber-200",
-  informative: "bg-cyan-50 text-cyan-700 border-cyan-200",
+  informative: "bg-emerald-50 text-emerald-700 border-emerald-200",
 }
 
 function TxTooltip({ active, payload, label }: any) {
@@ -73,6 +78,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
   const [clients, setClients] = useState<Client[]>([])
   const [loadingClients, setLoadingClients] = useState(true)
   const [activeClientId, setActiveClientId] = useState<string | null>(null)
+  const [clientSearchTerm, setClientSearchTerm] = useState("")
 
   // Données dynamiques spécifiques au client actif
   const [scoreData, setScoreData] = useState<any | null>(null)
@@ -88,6 +94,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
   const [loadingMl, setLoadingMl] = useState(false)
 
   const [selectedAccount, setSelectedAccount] = useState<any | null>(null)
+  const [showFullKyc, setShowFullKyc] = useState(false)
 
   // 1. Détection de l'ID cible (recherche par prop, context, sessionStorage ou événement)
   const checkPendingTargetId = useCallback((): string | null => {
@@ -192,6 +199,43 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
       ) || clients[0]
     )
   }, [activeClientId, clients])
+
+  // Bandeau de sélection : recherche + rendu borné à 20 résultats (pas de barre de
+  // pages ici — c'est une recherche bornée, pas un tableau paginé, cf. graph.tsx).
+  const CLIENT_BAR_LIMIT = 20
+  const matchingClients = useMemo(() => {
+    const q = clientSearchTerm.trim().toLowerCase()
+    if (!q) return clients
+    return clients.filter((c) => {
+      const name = c.typeClient === "Entreprise" ? c.raisonSociale || c.nom : `${c.prenom || ""} ${c.nom}`.trim()
+      return (
+        name.toLowerCase().includes(q) ||
+        c.codeClient?.toLowerCase().includes(q) ||
+        c.nom?.toLowerCase().includes(q) ||
+        c.prenom?.toLowerCase().includes(q)
+      )
+    })
+  }, [clients, clientSearchTerm])
+  const visibleClients = matchingClients.slice(0, CLIENT_BAR_LIMIT)
+  const hiddenClientsCount = Math.max(0, matchingClients.length - CLIENT_BAR_LIMIT)
+
+  // Historique paginé des transactions affiché dans la modale de détail de compte
+  // (découplé du chart d'évolution, qui garde son propre appel borné à ~50 tx)
+  const {
+    data: modalTransactions,
+    total: modalTxTotal,
+    page: modalTxPage,
+    setPage: setModalTxPage,
+    totalPages: modalTxTotalPages,
+    loading: modalTxLoading,
+  } = usePaginatedFetch<Transaction>(
+    ({ skip, limit }) => {
+      if (!selectedAccount || !activeClient?.id) return Promise.resolve({ data: [], total: 0 })
+      return transactionService.getClientTransactionsPage(activeClient.id, { skip, limit })
+    },
+    [selectedAccount, activeClient?.id],
+    { pageSize: 10 }
+  )
 
   // 3. Chargement dynamique des données associées au client actif
   useEffect(() => {
@@ -377,7 +421,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px]">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
             Client 360°
           </h1>
           <p className="mt-1 text-sm text-slate-500">
@@ -385,31 +429,48 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
           </p>
         </div>
 
-        {/* Sélecteur de clients horizontal dynamique */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
-          {clients.map((c) => {
-            const isSelected = c.id === activeClient.id
-            const name = c.typeClient === "Entreprise" ? c.raisonSociale || c.nom : `${c.prenom || ""} ${c.nom}`.trim()
-            const score = c.riskScore ?? 0
-            const dotColor = score >= 70 ? "bg-rose-500" : score >= 40 ? "bg-amber-500" : "bg-emerald-500"
+        {/* Sélecteur de clients : recherche + bandeau horizontal borné */}
+        <div className="flex flex-col items-end gap-1.5 max-w-full">
+          <div className="relative w-full sm:w-56">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={clientSearchTerm}
+              onChange={(e) => setClientSearchTerm(e.target.value)}
+              placeholder="Filtrer les clients..."
+              className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-8 pr-2.5 text-xs outline-none focus:border-indigo-400"
+            />
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
+            {visibleClients.map((c) => {
+              const isSelected = c.id === activeClient.id
+              const name = c.typeClient === "Entreprise" ? c.raisonSociale || c.nom : `${c.prenom || ""} ${c.nom}`.trim()
+              const score = c.riskScore ?? 0
+              const dotColor = score >= 70 ? "bg-rose-500" : score >= 40 ? "bg-amber-500" : "bg-emerald-500"
 
-            return (
-              <button
-                key={c.id}
-                onClick={() => setActiveClientId(c.id)}
-                className={cn(
-                  "flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs md:text-sm font-medium transition shadow-sm",
-                  isSelected
-                    ? "border-indigo-500 bg-indigo-50 text-indigo-700 font-semibold ring-1 ring-indigo-500"
-                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                )}
-              >
-                <span className={cn("h-2 w-2 rounded-full shrink-0", dotColor)} />
-                <span className="truncate max-w-[140px]">{name}</span>
-                <span className="text-[11px] text-slate-400 font-mono">({c.codeClient})</span>
-              </button>
-            )
-          })}
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setActiveClientId(c.id)}
+                  className={cn(
+                    "flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs md:text-sm font-medium transition shadow-sm",
+                    isSelected
+                      ? "border-indigo-500 bg-indigo-50 text-indigo-700 font-semibold ring-1 ring-indigo-500"
+                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  )}
+                >
+                  <span className={cn("h-2 w-2 rounded-full shrink-0", dotColor)} />
+                  <span className="truncate max-w-[140px]">{name}</span>
+                  <span className="text-xs text-slate-400 font-mono">({c.codeClient})</span>
+                </button>
+              )
+            })}
+            {hiddenClientsCount > 0 && (
+              <span className="shrink-0 whitespace-nowrap text-xs text-slate-400">
+                +{hiddenClientsCount} autres résultats, affinez votre recherche
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -418,7 +479,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
         {/* Profile card */}
         <div className="rounded-xl border border-slate-200 bg-white p-5 xl:col-span-1 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-lg font-bold text-white shadow-md">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-lg font-bold text-white shadow-md">
               {clientInitials}
             </div>
             <div className="min-w-0 flex-1">
@@ -428,44 +489,34 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <Badge
-              variant="outline"
-              className={cn(
-                "border font-semibold",
+            <StatusBadge
+              variant={
                 clientRiskLevel === "Élevé"
-                  ? "border-rose-200 bg-rose-50 text-rose-700"
+                  ? "danger"
                   : clientRiskLevel === "Moyen"
-                    ? "border-amber-200 bg-amber-50 text-amber-700"
-                    : "border-emerald-200 bg-emerald-50 text-emerald-700"
-              )}
+                    ? "warning"
+                    : "success"
+              }
+              size="sm"
+              dot
             >
               Risque {clientRiskLevel}
-            </Badge>
+            </StatusBadge>
 
             {activeClient.estPpe && (
-              <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-700 gap-1 font-semibold">
-                <ShieldAlert className="h-3 w-3" />
+              <StatusBadge variant="danger" size="sm">
+                <ShieldAlert className="h-3 w-3 inline mr-1" />
                 PPE {activeClient.fonctionPpe ? `(${activeClient.fonctionPpe})` : ""}
-              </Badge>
+              </StatusBadge>
             )}
           </div>
 
-          <div className="mt-4 space-y-2.5 border-t border-slate-100 pt-4 text-xs">
+          <div className="mt-4 space-y-2 border-t border-slate-100 pt-3 text-xs">
             <div className="flex items-center gap-2.5">
               <Briefcase className="h-4 w-4 text-slate-400 shrink-0" />
-              <span className="text-slate-500">Profession / Activité :</span>
+              <span className="text-slate-500">Activité :</span>
               <span className="font-semibold text-slate-800 truncate">{activeClient.profession || activeClient.secteurActivite || "Non renseignée"}</span>
             </div>
-
-            {activeClient.dateNaissance && (
-              <div className="flex items-center gap-2.5">
-                <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
-                <span className="text-slate-500">Né(e) le :</span>
-                <span className="font-semibold text-slate-800">
-                  {new Date(activeClient.dateNaissance).toLocaleDateString("fr-FR")}
-                </span>
-              </div>
-            )}
 
             <div className="flex items-center gap-2.5">
               <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
@@ -473,21 +524,47 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
               <span className="font-semibold text-slate-800">{activeClient.ville || "Bamako"}, {activeClient.pays || "Mali"}</span>
             </div>
 
-            {activeClient.pieceIdentite && (
-              <div className="flex items-center gap-2.5">
-                <FileText className="h-4 w-4 text-slate-400 shrink-0" />
-                <span className="text-slate-500">Pièce d'identité :</span>
-                <span className="font-mono font-semibold text-slate-800">{activeClient.pieceIdentite}</span>
-              </div>
-            )}
+            {/* Divulgation progressive pour les données KYC secondaires */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => setShowFullKyc(!showFullKyc)}
+                className="flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 transition cursor-pointer"
+              >
+                {showFullKyc ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                <span>{showFullKyc ? "Masquer détails KYC" : "Voir pièces d'identité & contacts"}</span>
+              </button>
 
-            {activeClient.telephone && (
-              <div className="flex items-center gap-2.5">
-                <Phone className="h-4 w-4 text-slate-400 shrink-0" />
-                <span className="text-slate-500">Téléphone :</span>
-                <span className="font-mono font-semibold text-slate-800">{activeClient.telephone}</span>
-              </div>
-            )}
+              {showFullKyc && (
+                <div className="mt-2 space-y-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 animate-in fade-in-50 duration-150">
+                  {activeClient.dateNaissance && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <span className="text-slate-500">Né(e) le :</span>
+                      <span className="font-semibold text-slate-800">
+                        {new Date(activeClient.dateNaissance).toLocaleDateString("fr-FR")}
+                      </span>
+                    </div>
+                  )}
+
+                  {activeClient.pieceIdentite && (
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <span className="text-slate-500">Pièce :</span>
+                      <span className="font-mono font-semibold text-slate-800">{activeClient.pieceIdentite}</span>
+                    </div>
+                  )}
+
+                  {activeClient.telephone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <span className="text-slate-500">Tél :</span>
+                      <span className="font-mono font-semibold text-slate-800">{activeClient.telephone}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Comptes bancaires réels du client */}
@@ -497,7 +574,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
                 Comptes bancaires ({clientAccounts.length})
               </p>
               {clientAccounts.length >= 2 && (
-                <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
+                <span className="text-xs font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
                   Multi-comptes
                 </span>
               )}
@@ -526,11 +603,11 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-semibold text-slate-800">{type}</p>
-                        <p className="text-[11px] font-mono text-slate-400">{num}</p>
+                        <p className="text-xs font-mono text-slate-400">{num}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-xs font-bold font-mono text-slate-900">
-                          {solde.toLocaleString("fr-FR")} <span className="text-[10px] font-normal text-slate-400">{devise}</span>
+                          {solde.toLocaleString("fr-FR")} <span className="text-xs font-normal text-slate-400">{devise}</span>
                         </p>
                       </div>
                     </div>
@@ -571,7 +648,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
               </svg>
               <div className="absolute flex flex-col items-center">
                 <span className="text-3xl font-bold text-slate-900">{clientScore}</span>
-                <span className="text-[10px] font-medium text-slate-400">/ 100</span>
+                <span className="text-xs font-medium text-slate-400">/ 100</span>
               </div>
             </div>
 
@@ -587,7 +664,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
               {scoreData?.facteurs && scoreData.facteurs.length > 0 && (
                 <div className="mt-2 space-y-1">
                   {scoreData.facteurs.map((fact: string, idx: number) => (
-                    <p key={idx} className="text-[11px] text-amber-800 bg-amber-50 p-1.5 rounded-lg flex items-start gap-1.5">
+                    <p key={idx} className="text-xs text-amber-800 bg-amber-50 p-1.5 rounded-lg flex items-start gap-1.5">
                       <span className="text-amber-600 font-bold">•</span>
                       <span>{fact}</span>
                     </p>
@@ -633,7 +710,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-slate-900">Diagnostic Prédictif IA & Machine Learning</h3>
-                <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 text-[11px] font-semibold">
+                <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 text-xs font-semibold">
                   Isolation Forest + Random Forest
                 </Badge>
               </div>
@@ -671,7 +748,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
               )}>
                 {mlPrediction ? `${Math.round(mlPrediction.anomaly_score * 100)}%` : "—"}
               </span>
-              <span className="text-[11px] text-slate-400">d&apos;écart statistique</span>
+              <span className="text-xs text-slate-400">d&apos;écart statistique</span>
             </div>
             <div className="mt-2 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
               <div
@@ -702,7 +779,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
                 Confiance: {mlPrediction ? `${Math.round(mlPrediction.confidence * 100)}%` : "95%"}
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 mt-2">
+            <p className="text-xs text-slate-400 mt-2">
               Modèle : {mlPrediction?.model_used || "isolation_forest+random_forest"}
             </p>
           </div>
@@ -719,7 +796,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
                 {mlPrediction?.is_anomaly ? "Anomalie Comportementale Détectée" : "Comportement dans les seuils normaux"}
               </span>
             </div>
-            <p className="text-[11px] text-slate-500 mt-2">
+            <p className="text-xs text-slate-500 mt-2">
               {mlPrediction?.is_anomaly
                 ? "Déviance statistique non expliquée par les seuils unitaires."
                 : "Flux financiers cohérents avec le profil du client."}
@@ -757,12 +834,9 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
               </h3>
               <p className="text-xs text-slate-400">{transactions.length} transaction(s) enregistrée(s) en base</p>
             </div>
-            <button
-              onClick={() => navigateTo("Transactions")}
-              className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:underline"
-            >
-              Simulateur <ArrowUpRight className="h-3.5 w-3.5" />
-            </button>
+            <span className="inline-flex items-center text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
+              Flux consolidés
+            </span>
           </div>
 
           <div className="mt-4 h-[220px] w-full">
@@ -856,11 +930,21 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs md:text-sm font-semibold text-slate-800">{a.type}</p>
-                  <p className="text-[11px] font-mono text-slate-400">{a.ref} {a.module ? `• ${a.module}` : ""}</p>
+                  <p className="text-xs font-mono text-slate-400">{a.ref} {a.module ? `• ${a.module}` : ""}</p>
                 </div>
-                <Badge variant="outline" className={cn("border capitalize font-semibold text-xs", levelColor[a.level || "analyser"])}>
+                <StatusBadge
+                  variant={
+                    a.level === "bloquante"
+                      ? "danger"
+                      : a.level === "analyser"
+                        ? "warning"
+                        : "success"
+                  }
+                  size="sm"
+                  dot
+                >
                   {a.level}
-                </Badge>
+                </StatusBadge>
                 <ChevronRight className="h-4 w-4 text-slate-400" />
               </div>
             ))
@@ -896,15 +980,15 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
             {/* Account summary */}
             <div className="mt-4 grid grid-cols-3 gap-3 text-xs">
               <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Type de compte</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Type de compte</p>
                 <p className="mt-1 font-semibold text-slate-800">{selectedAccount.type}</p>
               </div>
               <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">N° de compte</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">N° de compte</p>
                 <p className="mt-1 font-mono font-bold text-slate-800">{selectedAccount.num}</p>
               </div>
               <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Solde actuel</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Solde actuel</p>
                 <p className="mt-1 font-mono font-bold text-indigo-600">
                   {selectedAccount.solde.toLocaleString("fr-FR")} {selectedAccount.devise}
                 </p>
@@ -914,37 +998,55 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
             {/* Transactions table */}
             <div className="mt-5">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Transactions associées</p>
-              {transactions.length === 0 ? (
+              {modalTxLoading ? (
+                <div className="p-6 bg-slate-50 rounded-xl text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                  Chargement des transactions...
+                </div>
+              ) : modalTransactions.length === 0 ? (
                 <div className="p-6 bg-slate-50 rounded-xl text-center text-xs text-slate-400">
                   Aucune transaction enregistrée en base pour ce compte.
                 </div>
               ) : (
-                <div className="overflow-hidden rounded-xl border border-slate-200 max-h-60 overflow-y-auto">
-                  <table className="w-full text-xs">
-                    <thead className="bg-slate-50 sticky top-0">
-                      <tr className="text-left text-slate-500 border-b border-slate-200">
-                        <th className="px-3 py-2 font-semibold">Date</th>
-                        <th className="px-3 py-2 font-semibold">Type</th>
-                        <th className="px-3 py-2 font-semibold">Bénéficiaire / Description</th>
-                        <th className="px-3 py-2 text-right font-semibold">Montant</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {transactions.map((tx) => (
-                        <tr key={tx.id} className="hover:bg-slate-50">
-                          <td className="px-3 py-2 text-slate-600 whitespace-nowrap">
-                            {new Date(tx.dateTransaction).toLocaleDateString("fr-FR")}
-                          </td>
-                          <td className="px-3 py-2 font-medium text-slate-800">{tx.typeOperation}</td>
-                          <td className="px-3 py-2 text-slate-600">{tx.beneficiaireNom || tx.description || "—"}</td>
-                          <td className="px-3 py-2 text-right font-mono font-bold text-slate-900">
-                            {Number(tx.montant).toLocaleString("fr-FR")} {tx.devise}
-                          </td>
+                <>
+                  <div className="overflow-hidden rounded-xl border border-slate-200 max-h-60 overflow-y-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-slate-50 sticky top-0">
+                        <tr className="text-left text-slate-500 border-b border-slate-200">
+                          <th className="px-3 py-2 font-semibold">Date</th>
+                          <th className="px-3 py-2 font-semibold">Type</th>
+                          <th className="px-3 py-2 font-semibold">Bénéficiaire / Description</th>
+                          <th className="px-3 py-2 text-right font-semibold">Montant</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {modalTransactions.map((tx) => (
+                          <tr key={tx.id} className="hover:bg-slate-50">
+                            <td className="px-3 py-2 text-slate-600 whitespace-nowrap">
+                              {new Date(tx.dateTransaction).toLocaleDateString("fr-FR")}
+                            </td>
+                            <td className="px-3 py-2 font-medium text-slate-800">{tx.typeOperation}</td>
+                            <td className="px-3 py-2 text-slate-600">{tx.beneficiaireNom || tx.description || "—"}</td>
+                            <td className="px-3 py-2 text-right font-mono font-bold text-slate-900">
+                              {Number(tx.montant).toLocaleString("fr-FR")} {tx.devise}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {modalTxTotal > 0 && (
+                    <DataPagination
+                      page={modalTxPage}
+                      totalPages={modalTxTotalPages}
+                      total={modalTxTotal}
+                      pageSize={10}
+                      onPageChange={setModalTxPage}
+                      itemLabel="transactions"
+                      className="mt-3"
+                    />
+                  )}
+                </>
               )}
             </div>
 

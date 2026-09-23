@@ -12,13 +12,31 @@ export interface ApiAuditLog {
   timestamp: string
 }
 
+export interface AuditLogsPageResult {
+  data: ApiAuditLog[]
+  total: number
+}
+
 export const auditService = {
-  async getAuditLogs(params?: { module?: string; action?: string; limit?: number }): Promise<ApiAuditLog[]> {
+  async getAuditLogs(params?: { module?: string; action?: string; skip?: number; limit?: number }): Promise<ApiAuditLog[]> {
     try {
       return await ApiClient.get<ApiAuditLog[]>("/audit", params)
     } catch (e) {
       console.warn("API audit indisponible, fallback local:", e)
       return []
+    }
+  },
+
+  async getAuditLogsPage(
+    filters: { module?: string; action?: string; q?: string } | undefined,
+    page: { skip: number; limit: number }
+  ): Promise<AuditLogsPageResult> {
+    try {
+      const { data, total } = await ApiClient.getPaginated<ApiAuditLog>("/audit", { ...filters, ...page })
+      return { data, total }
+    } catch (e) {
+      console.warn("API audit indisponible, fallback local:", e)
+      return { data: [], total: 0 }
     }
   },
 }

@@ -1,12 +1,15 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ScrollText, Search, Download, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, X, RefreshCw } from "lucide-react"
+import { Search, Download, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, X, RefreshCw } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
+import { StatusBadge } from "@/components/ui/status-badge"
 import { cn } from "@/lib/utils"
 import { auditService } from "@/services/auditService"
+import { DataPagination } from "@/components/ui/data-pagination"
+import { usePageSlice } from "@/hooks/use-pagination"
 
 type LogEntry = {
   id: string
@@ -19,20 +22,7 @@ type LogEntry = {
   ip: string
 }
 
-const logs: LogEntry[] = [
-  { id: "LOG-1042", date: "25/08/2026 14:32:08", user: "Aminata Touré", role: "Analyste", module: "Centre d'alertes", action: "Consultation alerte ALR-241", result: "Succès", ip: "10.0.1.42" },
-  { id: "LOG-1041", date: "25/08/2026 14:28:51", user: "Aminata Touré", role: "Analyste", module: "Client 360°", action: "Consultation fiche CLI-1042 (Traoré M.)", result: "Succès", ip: "10.0.1.42" },
-  { id: "LOG-1040", date: "25/08/2026 14:15:33", user: "Moussa Diallo", role: "Analyste", module: "Investigations", action: "Ouverture dossier INV-235", result: "Succès", ip: "10.0.1.55" },
-  { id: "LOG-1039", date: "25/08/2026 13:58:12", user: "Fatoumata Koné", role: "Responsable", module: "Risk Score", action: "Modification pondération R-FRC-01 (30→32 pts)", result: "Succès", ip: "10.0.1.12" },
-  { id: "LOG-1038", date: "25/08/2026 13:42:00", user: "Awa Diarra", role: "Analyste", module: "Authentification", action: "Tentative de connexion échouée (3e essai)", result: "Échec", ip: "10.0.2.88" },
-  { id: "LOG-1037", date: "25/08/2026 13:41:55", user: "Awa Diarra", role: "Analyste", module: "Authentification", action: "Tentative de connexion échouée (2e essai)", result: "Échec", ip: "10.0.2.88" },
-  { id: "LOG-1036", date: "25/08/2026 13:41:48", user: "Awa Diarra", role: "Analyste", module: "Authentification", action: "Tentative de connexion échouée — compte verrouillé", result: "Échec", ip: "10.0.2.88" },
-  { id: "LOG-1035", date: "25/08/2026 12:30:14", user: "Fatoumata Koné", role: "Responsable", module: "Filtrage sanctions", action: "Import nouvelle version Liste PPE Mali (v2.4)", result: "Succès", ip: "10.0.1.12" },
-  { id: "LOG-1034", date: "25/08/2026 11:08:22", user: "Moussa Diallo", role: "Analyste", module: "Centre d'alertes", action: "Clôture investigation INV-229 — Classée sans suite", result: "Succès", ip: "10.0.1.55" },
-  { id: "LOG-1033", date: "25/08/2026 09:15:40", user: "Fatoumata Koné", role: "Responsable", module: "Authentification", action: "Connexion réussie (MFA validé)", result: "Succès", ip: "10.0.1.12" },
-  { id: "LOG-1032", date: "24/08/2026 18:40:09", user: "Seydou Traoré", role: "Admin", module: "Utilisateurs", action: "Désactivation compte USR-06 (O. Sangaré)", result: "Succès", ip: "10.0.3.10" },
-  { id: "LOG-1031", date: "24/08/2026 16:22:33", user: "Mariam Coulibaly", role: "Auditeur", module: "Journal d'audit", action: "Export journal période 01-24/08/2026", result: "Succès", ip: "10.0.4.22" },
-]
+
 
 const modules = ["Tous modules", "Authentification", "Centre d'alertes", "Client 360°", "Investigations", "Risk Score", "Filtrage sanctions", "Utilisateurs", "Journal d'audit", "Surveillance Flux"]
 
@@ -58,7 +48,7 @@ function SortIcon({ column, sortBy, sortDir }: { column: SortColumn; sortBy: Sor
 }
 
 export function AuditLogView() {
-  const [items, setItems] = useState<LogEntry[]>(logs)
+  const [items, setItems] = useState<LogEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState("")
   const [module, setModule] = useState("Tous modules")
@@ -70,7 +60,7 @@ export function AuditLogView() {
   const fetchLogs = async () => {
     setLoading(true)
     try {
-      const data = await auditService.getAuditLogs({ limit: 50 })
+      const { data } = await auditService.getAuditLogsPage(undefined, { skip: 0, limit: 100 })
       if (data && data.length > 0) {
         const dynamicLogs: LogEntry[] = data.map((d, i) => ({
           id: d.id ? `LOG-${d.id.slice(0, 6)}` : `LOG-${1100 + i}`,
@@ -82,10 +72,13 @@ export function AuditLogView() {
           result: (d.details || "").toLowerCase().includes("échec") || (d.action || "").toLowerCase().includes("échouée") ? "Échec" : "Succès",
           ip: d.ip_address || "127.0.0.1",
         }))
-        setItems([...dynamicLogs, ...logs])
+        setItems(dynamicLogs)
+      } else {
+        setItems([])
       }
     } catch (e) {
-      console.warn("Erreur chargement logs audit:", e)
+      console.warn("Erreur chargement logs audit :", e)
+      setItems([])
     } finally {
       setLoading(false)
     }
@@ -128,6 +121,14 @@ export function AuditLogView() {
     return a.date.localeCompare(b.date) * dir
   })
 
+  const {
+    data: pagedLogs,
+    page: logsPage,
+    setPage: setLogsPage,
+    totalPages: logsTotalPages,
+    total: logsTotal,
+  } = usePageSlice(sorted, 20)
+
   const exportLogsCsv = () => {
     const headers = ["date", "user", "role", "module", "action", "result", "ip"]
     const escape = (val: string) => {
@@ -150,15 +151,15 @@ export function AuditLogView() {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-    toast.success("Journal exporté", { description: "Export CSV téléchargé (BO-05/06)." })
+    toast.success("Journal exporté", { description: "Export CSV téléchargé." })
   }
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px]">Journal d'audit</h1>
-          <p className="mt-1 text-sm text-slate-500">Traçabilité complète des connexions, actions et décisions (BO-05).</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Journal d'audit</h1>
+          <p className="mt-1 text-sm text-slate-500">Traçabilité complète des connexions, actions et décisions.</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -174,7 +175,7 @@ export function AuditLogView() {
             className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
           >
             <Download className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Exporter (BO-06)</span>
+            <span className="hidden sm:inline">Exporter</span>
           </button>
         </div>
       </div>
@@ -190,7 +191,7 @@ export function AuditLogView() {
           <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full" style={{ background: s.color }} />
-              <p className="text-[13px] font-medium text-slate-500">{s.label}</p>
+              <p className="text-sm font-medium text-slate-500">{s.label}</p>
             </div>
             <p className="mt-1.5 text-2xl font-bold text-slate-900">{s.value}</p>
           </div>
@@ -231,7 +232,7 @@ export function AuditLogView() {
             </button>
             {moreOpen && (
               <div className="absolute right-0 top-11 z-50 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
-                <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Modules</p>
+                <p className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Modules</p>
                 {moreModules.map((m) => (
                   <button
                     key={m}
@@ -255,12 +256,12 @@ export function AuditLogView() {
       </div>
 
       {/* Log table */}
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+      <div className="rounded-xl border border-slate-200/90 bg-white overflow-hidden shadow-xs dark:border-slate-800 dark:bg-slate-900">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm text-left">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50 text-left text-[11px] uppercase tracking-wide text-slate-400">
-                <th className="px-5 py-2.5 font-semibold">
+              <tr className="border-b border-slate-200/80 bg-slate-50/70 text-xs uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
+                <th className="px-5 py-3 font-semibold">
                   <button
                     onClick={() => toggleSort("date")}
                     className={cn(
@@ -268,11 +269,11 @@ export function AuditLogView() {
                       sortBy === "date" ? "text-indigo-600" : "hover:text-slate-600"
                     )}
                   >
-                    Horodatage
+                    Horodatage & Réf
                     <SortIcon column="date" sortBy={sortBy} sortDir={sortDir} />
                   </button>
                 </th>
-                <th className="px-3 py-2.5 font-semibold">
+                <th className="px-4 py-3 font-semibold">
                   <button
                     onClick={() => toggleSort("user")}
                     className={cn(
@@ -284,7 +285,7 @@ export function AuditLogView() {
                     <SortIcon column="user" sortBy={sortBy} sortDir={sortDir} />
                   </button>
                 </th>
-                <th className="px-3 py-2.5 font-semibold">
+                <th className="px-4 py-3 font-semibold">
                   <button
                     onClick={() => toggleSort("module")}
                     className={cn(
@@ -296,8 +297,8 @@ export function AuditLogView() {
                     <SortIcon column="module" sortBy={sortBy} sortDir={sortDir} />
                   </button>
                 </th>
-                <th className="px-3 py-2.5 font-semibold">Action</th>
-                <th className="px-3 py-2.5 font-semibold">
+                <th className="px-4 py-3 font-semibold">Action enregistrée</th>
+                <th className="px-5 py-3 font-semibold text-right">
                   <button
                     onClick={() => toggleSort("result")}
                     className={cn(
@@ -309,42 +310,56 @@ export function AuditLogView() {
                     <SortIcon column="result" sortBy={sortBy} sortDir={sortDir} />
                   </button>
                 </th>
-                <th className="px-5 py-2.5 font-semibold">IP</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {sorted.map((l) => (
-                <tr key={l.id} onClick={() => setSelectedLog(l)} className="cursor-pointer hover:bg-slate-50">
-                  <td className="px-5 py-3 font-mono text-xs text-slate-500">{l.date}</td>
-                  <td className="px-3 py-3">
-                    <p className="font-medium text-slate-800">{l.user}</p>
-                    <p className="text-[11px] text-slate-400">{l.role}</p>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+              {pagedLogs.map((l) => (
+                <tr
+                  key={l.id}
+                  onClick={() => setSelectedLog(l)}
+                  className="cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition group"
+                >
+                  <td className="px-5 py-3">
+                    <p className="font-mono text-xs text-slate-800 dark:text-slate-200">{l.date}</p>
+                    <p className="font-mono text-2xs text-indigo-600 dark:text-indigo-400 mt-0.5">{l.id}</p>
                   </td>
-                  <td className="px-3 py-3">
-                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{l.module}</span>
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-slate-800 dark:text-slate-200 text-sm">{l.user}</p>
+                    <p className="text-2xs text-slate-400">{l.role}</p>
                   </td>
-                  <td className="px-3 py-3 text-slate-700">{l.action}</td>
-                  <td className="px-3 py-3">
-                    <Badge variant="outline" className={cn(
-                      "border",
-                      l.result === "Succès" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"
-                    )}>
-                      {l.result}
-                    </Badge>
+                  <td className="px-4 py-3">
+                    <span className="rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-2xs font-medium text-slate-600 dark:text-slate-300">
+                      {l.module}
+                    </span>
                   </td>
-                  <td className="px-5 py-3 font-mono text-xs text-slate-400">{l.ip}</td>
+                  <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 max-w-xs truncate" title={l.action}>
+                    {l.action}
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    <div className="inline-flex flex-col items-end">
+                      <StatusBadge
+                        status={l.result === "Succès" ? "success" : "error"}
+                        label={l.result}
+                      />
+                      <span className="font-mono text-2xs text-slate-400 mt-0.5">{l.ip}</span>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-xs text-slate-400">
-          <span className="flex items-center gap-1.5">
-            <ScrollText className="h-3.5 w-3.5" />
-            {filtered.length} entrées affichées sur 1 042
-          </span>
-          <span>Chaque accès est journalisé avec horodatage et origine (AUTH-08)</span>
-        </div>
+        {logsTotal > 0 && (
+          <DataPagination
+            page={logsPage}
+            totalPages={logsTotalPages}
+            total={logsTotal}
+            pageSize={20}
+            onPageChange={setLogsPage}
+            itemLabel="entrées"
+            className="rounded-none border-x-0 border-b-0"
+          />
+        )}
       </div>
 
       {/* Log entry detail modal */}
@@ -438,7 +453,7 @@ export function AuditLogView() {
 
             {/* Traçabilité note */}
             <div className="mt-4 rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
-              Chaque accès est journalisé avec horodatage et origine (AUTH-08)
+              Chaque accès est journalisé avec horodatage et origine.
             </div>
 
             <div className="mt-5 flex items-center justify-end">

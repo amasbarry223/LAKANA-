@@ -12,11 +12,22 @@ class InvestigationRepository(BaseRepository[Investigation]):
     def get_by_reference(self, db: Session, reference: str) -> Optional[Investigation]:
         return db.query(Investigation).filter(Investigation.reference == reference).first()
 
-    def get_by_status(self, db: Session, status: Optional[str] = None) -> List[Investigation]:
+    def get_by_status(
+        self, db: Session, status: Optional[str] = None, skip: int = 0, limit: Optional[int] = None
+    ) -> List[Investigation]:
         q = db.query(Investigation)
         if status and status != "toutes":
             q = q.filter(Investigation.status == status)
-        return q.order_by(Investigation.date_ouverture.desc()).all()
+        q = q.order_by(Investigation.date_ouverture.desc()).offset(skip)
+        if limit is not None:
+            q = q.limit(limit)
+        return q.all()
+
+    def count_by_status(self, db: Session, status: Optional[str] = None) -> int:
+        q = db.query(Investigation)
+        if status and status != "toutes":
+            q = q.filter(Investigation.status == status)
+        return q.count()
 
     def close_investigation(
         self, db: Session, investigation: Investigation, status: str, decision: str
@@ -24,6 +35,15 @@ class InvestigationRepository(BaseRepository[Investigation]):
         investigation.status = status
         investigation.decision = decision
         investigation.date_cloture = datetime.utcnow()
+        db.add(investigation)
+        db.commit()
+        db.refresh(investigation)
+        return investigation
+
+    def reopen_investigation(self, db: Session, investigation: Investigation) -> Investigation:
+        investigation.status = "en_cours"
+        investigation.decision = None
+        investigation.date_cloture = None
         db.add(investigation)
         db.commit()
         db.refresh(investigation)

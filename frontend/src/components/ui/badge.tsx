@@ -17,6 +17,12 @@ const badgeVariants = cva(
           "border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
         outline:
           "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+        // Statut/sévérité métier — palette fixe (rose/amber/emerald/indigo/slate), voir @/lib/status
+        danger: "border-rose-200 bg-rose-50 text-rose-700",
+        warning: "border-amber-200 bg-amber-50 text-amber-700",
+        success: "border-emerald-200 bg-emerald-50 text-emerald-700",
+        brand: "border-indigo-200 bg-indigo-50 text-indigo-700",
+        neutral: "border-slate-200 bg-slate-100 text-slate-600",
       },
     },
     defaultVariants: {

@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.schemas.sanction import MatchResult, SanctionEntryOut
@@ -20,11 +20,14 @@ def check_name_against_lists(
 
 @router.get("/listes", response_model=List[SanctionEntryOut])
 def list_sanction_entries(
+    response: Response,
     type_liste: Optional[str] = Query(None, description="ONU, GAFI, CENTIF ou PPE"),
+    skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
 ):
     q = db.query(SanctionEntry)
     if type_liste:
         q = q.filter(SanctionEntry.liste_type == type_liste.upper())
-    return q.limit(limit).all()
+    response.headers["X-Total-Count"] = str(q.count())
+    return q.offset(skip).limit(limit).all()

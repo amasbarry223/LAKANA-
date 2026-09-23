@@ -26,10 +26,15 @@ import {
   Calendar,
   Layers,
   Check,
+  ChevronUp,
 } from "lucide-react"
 import { toast } from "sonner"
 import { clientService } from "@/services/clientService"
 import { transactionService, type SimulationResult } from "@/services/transactionService"
+import { DataPagination } from "@/components/ui/data-pagination"
+import { usePageSlice } from "@/hooks/use-pagination"
+import { MetricCard } from "@/components/ui/metric-card"
+import { StatusBadge } from "@/components/ui/status-badge"
 import type { Client } from "@/models/client"
 import type { Transaction } from "@/models/transaction"
 
@@ -45,16 +50,16 @@ const TYPES_OPERATION = [
 ]
 
 const CANAUX = ["Guichet", "Mobile Money", "Virement bancaire", "SWIFT", "Chèque", "TPE", "Internet"]
-const DEVISES = ["XOF", "EUR", "USD", "GBP", "CHF"]
+const DEVISES = ["XOF", "EUR", "USD"]
 const SEUIL_UEMOA = 5_000_000
 
 function Badge({ children, color }: { children: React.ReactNode; color: "green" | "yellow" | "red" | "blue" | "purple" | "gray" }) {
   const colors = {
     green: "bg-emerald-50 text-emerald-700 border border-emerald-200",
     yellow: "bg-amber-50 text-amber-700 border border-amber-200",
-    red: "bg-red-50 text-red-700 border border-red-200",
-    blue: "bg-blue-50 text-blue-700 border border-blue-200",
-    purple: "bg-purple-50 text-purple-700 border border-purple-200",
+    red: "bg-rose-50 text-rose-700 border border-rose-200",
+    blue: "bg-indigo-50 text-indigo-700 border border-indigo-200",
+    purple: "bg-rose-50 text-rose-700 border border-rose-200",
     gray: "bg-slate-100 text-slate-600 border border-slate-200",
   }
   return (
@@ -104,17 +109,17 @@ function AmlResultCard({
   const seuilDepasse = result.seuil_uemoa_depasse
   const hasAlert = !!alerte
   return (
-    <div className={`rounded-2xl border-2 p-6 transition-all ${hasAlert ? "border-red-300 bg-red-50" : seuilDepasse ? "border-amber-300 bg-amber-50" : "border-emerald-300 bg-emerald-50"}`}>
+    <div className={`rounded-2xl border-2 p-6 transition-all ${hasAlert ? "border-rose-300 bg-rose-50" : seuilDepasse ? "border-amber-300 bg-amber-50" : "border-emerald-300 bg-emerald-50"}`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${hasAlert ? "bg-red-100" : seuilDepasse ? "bg-amber-100" : "bg-emerald-100"}`}>
-            {hasAlert ? <AlertTriangle className="w-6 h-6 text-red-600" /> : seuilDepasse ? <Shield className="w-6 h-6 text-amber-600" /> : <CheckCircle2 className="w-6 h-6 text-emerald-600" />}
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${hasAlert ? "bg-rose-100" : seuilDepasse ? "bg-amber-100" : "bg-emerald-100"}`}>
+            {hasAlert ? <AlertTriangle className="w-6 h-6 text-rose-600" /> : seuilDepasse ? <Shield className="w-6 h-6 text-amber-600" /> : <CheckCircle2 className="w-6 h-6 text-emerald-600" />}
           </div>
           <div>
-            <p className={`text-lg font-bold ${hasAlert ? "text-red-800" : seuilDepasse ? "text-amber-800" : "text-emerald-800"}`}>
+            <p className={`text-lg font-bold ${hasAlert ? "text-rose-800" : seuilDepasse ? "text-amber-800" : "text-emerald-800"}`}>
               {hasAlert ? "Alerte AML déclenchée" : seuilDepasse ? "Seuil UEMOA dépassé (5M FCFA)" : "Transaction conforme"}
             </p>
-            <p className={`text-sm ${hasAlert ? "text-red-600" : seuilDepasse ? "text-amber-600" : "text-emerald-600"}`}>Réf : {result.transaction.reference}</p>
+            <p className={`text-sm ${hasAlert ? "text-rose-600" : seuilDepasse ? "text-amber-600" : "text-emerald-600"}`}>Réf : {result.transaction.reference}</p>
           </div>
         </div>
         {onGoToRegistry && (
@@ -128,7 +133,7 @@ function AmlResultCard({
       </div>
 
       {alerte && (
-        <div className="bg-white rounded-xl border border-red-200 p-4 mb-4 shadow-sm">
+        <div className="bg-white rounded-xl border border-rose-200 p-4 mb-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <p className="font-semibold text-slate-800 text-sm">Détail de l'alerte générée</p>
             <Badge color="red">{alerte.niveau}</Badge>
@@ -140,9 +145,9 @@ function AmlResultCard({
               <p className="text-slate-500 text-xs">Score</p>
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-red-500 rounded-full" style={{ width: `${Math.min(alerte.score, 100)}%` }} />
+                  <div className="h-full bg-rose-500 rounded-full" style={{ width: `${Math.min(alerte.score, 100)}%` }} />
                 </div>
-                <span className="font-bold text-red-600">{alerte.score}</span>
+                <span className="font-bold text-rose-600">{alerte.score}</span>
               </div>
             </div>
             <div><p className="text-slate-500 text-xs">Module</p><p className="font-medium text-slate-800">{alerte.module}</p></div>
@@ -152,7 +157,7 @@ function AmlResultCard({
               <p className="text-slate-500 text-xs mb-1.5">Facteurs déclencheurs</p>
               <div className="flex flex-wrap gap-1.5">
                 {alerte.facteurs.map((f: string, i: number) => (
-                  <span key={i} className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">{f}</span>
+                  <span key={i} className="bg-rose-100 text-rose-700 text-xs px-2 py-0.5 rounded-full">{f}</span>
                 ))}
               </div>
             </div>
@@ -194,6 +199,7 @@ export function TransactionSimulatorView() {
   const [devise, setDevise] = useState("XOF")
   const [beneficiaire, setBeneficiaire] = useState("")
   const [description, setDescription] = useState("")
+  const [showOptionalFields, setShowOptionalFields] = useState(false)
 
   // Status
   const [loading, setLoading] = useState(false)
@@ -265,6 +271,14 @@ export function TransactionSimulatorView() {
       return matchesSearch && matchesType && matchesAml
     })
   }, [transactions, clientMap, txSearch, txTypeFilter, txAmlFilter])
+
+  const {
+    data: pagedTransactions,
+    page: txPage,
+    setPage: setTxPage,
+    totalPages: txTotalPages,
+    total: txFilteredTotal,
+  } = usePageSlice(filteredTransactions, 20)
 
   // Statistiques calculées
   const totalVolume = useMemo(() => transactions.reduce((acc, t) => acc + (t.montant || 0), 0), [transactions])
@@ -344,7 +358,7 @@ export function TransactionSimulatorView() {
       {/* En-tête */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px] flex items-center gap-3">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
             <ArrowRightLeft className="w-7 h-7 text-indigo-600" />
             Transactions & Surveillance
           </h1>
@@ -380,47 +394,36 @@ export function TransactionSimulatorView() {
         </div>
       </div>
 
-      {/* Cartes KPI */}
+      {/* Cartes KPI avec MetricCard */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Opérations</p>
-            <p className="text-2xl font-bold text-slate-800 mt-1">{transactions.length}</p>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-            <CreditCard className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Volume Total</p>
-            <p className="text-2xl font-bold text-slate-800 mt-1">{formatAmount(totalVolume)}</p>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <Wallet className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Seuil UEMOA (≥ 5M)</p>
-            <p className="text-2xl font-bold text-red-600 mt-1">{countUemoa}</p>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
-            <AlertTriangle className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Montant Moyen</p>
-            <p className="text-2xl font-bold text-slate-800 mt-1">{formatAmount(avgAmount)}</p>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-            <BarChart2 className="w-5 h-5" />
-          </div>
-        </div>
+        <MetricCard
+          title="Total Opérations"
+          value={transactions.length}
+          subtitle="Enregistrées en base"
+          icon={CreditCard}
+          variant="default"
+        />
+        <MetricCard
+          title="Volume Total"
+          value={formatAmount(totalVolume)}
+          subtitle="Flux cumulés"
+          icon={Wallet}
+          variant="default"
+        />
+        <MetricCard
+          title="Seuil UEMOA (≥ 5M)"
+          value={countUemoa}
+          subtitle="Déclarations requises"
+          icon={AlertTriangle}
+          variant={countUemoa > 0 ? "danger" : "default"}
+        />
+        <MetricCard
+          title="Montant Moyen"
+          value={formatAmount(avgAmount)}
+          subtitle="Par transaction"
+          icon={BarChart2}
+          variant="default"
+        />
       </div>
 
       {/* VUE 1 : REGISTRE DES TRANSACTIONS */}
@@ -487,7 +490,7 @@ export function TransactionSimulatorView() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <tr className="bg-slate-50/80 border-b border-slate-200/80 text-xs font-bold text-slate-500 uppercase tracking-wider">
                   <th className="px-5 py-3.5">Réf & Date</th>
                   <th className="px-5 py-3.5">Client Émetteur</th>
                   <th className="px-5 py-3.5">Opération & Canal</th>
@@ -517,7 +520,7 @@ export function TransactionSimulatorView() {
                     </td>
                   </tr>
                 ) : (
-                  filteredTransactions.map((tx) => {
+                  pagedTransactions.map((tx) => {
                     const client = clientMap[tx.clientId]
                     const isUemoa = tx.montant >= SEUIL_UEMOA
                     const clientNom = client
@@ -532,7 +535,7 @@ export function TransactionSimulatorView() {
                         <td className="px-5 py-3.5">
                           <div className="flex flex-col">
                             <span className="font-mono font-bold text-indigo-700 text-xs">{tx.reference}</span>
-                            <span className="text-slate-400 text-[11px] flex items-center gap-1 mt-0.5">
+                            <span className="text-slate-400 text-xs flex items-center gap-1 mt-0.5">
                               <Clock className="w-3 h-3" />
                               {formatDate(tx.dateTransaction)}
                             </span>
@@ -544,7 +547,7 @@ export function TransactionSimulatorView() {
                           <div className="flex items-center gap-2">
                             <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs">
                               {client?.typeClient === "Entreprise" ? (
-                                <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                                <Building2 className="w-3.5 h-3.5 text-indigo-600" />
                               ) : (
                                 <User className="w-3.5 h-3.5 text-slate-600" />
                               )}
@@ -553,9 +556,9 @@ export function TransactionSimulatorView() {
                               <p className="font-medium text-slate-800 text-xs truncate max-w-[160px]">{clientNom}</p>
                               {client && (
                                 <div className="flex items-center gap-1 mt-0.5">
-                                  <span className="text-[10px] text-slate-400">{client.codeClient}</span>
+                                  <span className="text-xs text-slate-400">{client.codeClient}</span>
                                   {client.estPpe && (
-                                    <span className="bg-purple-100 text-purple-700 text-[9px] px-1.5 py-0.2 rounded font-semibold">
+                                    <span className="bg-rose-100 text-rose-700 text-xs px-1.5 py-0.2 rounded font-semibold">
                                       PPE
                                     </span>
                                   )}
@@ -569,7 +572,7 @@ export function TransactionSimulatorView() {
                         <td className="px-5 py-3.5">
                           <div>
                             <span className="font-medium text-slate-800 text-xs">{tx.typeOperation}</span>
-                            <span className="block text-slate-400 text-[11px]">{tx.canal || "Guichet"}</span>
+                            <span className="block text-slate-400 text-xs">{tx.canal || "Guichet"}</span>
                           </div>
                         </td>
 
@@ -582,24 +585,24 @@ export function TransactionSimulatorView() {
 
                         {/* Montant */}
                         <td className="px-5 py-3.5 text-right">
-                          <span className={`font-bold font-mono text-sm ${isUemoa ? "text-red-600" : "text-slate-800"}`}>
+                          <span className={`font-bold font-mono text-sm ${isUemoa ? "text-rose-600" : "text-slate-800"}`}>
                             {formatAmount(tx.montant)}
                           </span>
                           {isUemoa && (
-                            <span className="block text-[10px] font-semibold text-red-500">≥ Seuil UEMOA</span>
+                            <span className="block text-xs font-semibold text-rose-500">≥ Seuil UEMOA</span>
                           )}
                         </td>
 
                         {/* Statut AML */}
                         <td className="px-5 py-3.5 text-center">
                           {isUemoa ? (
-                            <Badge color="red">
-                              <AlertTriangle className="w-3 h-3" /> Déclaration CENTIF
-                            </Badge>
+                            <StatusBadge variant="danger" size="sm" dot>
+                              Déclaration CENTIF
+                            </StatusBadge>
                           ) : (
-                            <Badge color="green">
-                              <CheckCircle2 className="w-3 h-3" /> Conforme
-                            </Badge>
+                            <StatusBadge variant="success" size="sm" dot>
+                              Conforme
+                            </StatusBadge>
                           )}
                         </td>
                       </tr>
@@ -610,10 +613,17 @@ export function TransactionSimulatorView() {
             </table>
           </div>
 
-          <div className="p-4 bg-slate-50/60 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Affichage de {filteredTransactions.length} transaction(s)</span>
-            <span className="text-slate-400">Données synchronisées avec PostgreSQL local</span>
-          </div>
+          {txFilteredTotal > 0 && (
+            <DataPagination
+              page={txPage}
+              totalPages={txTotalPages}
+              total={txFilteredTotal}
+              pageSize={20}
+              onPageChange={setTxPage}
+              itemLabel="transactions"
+              className="rounded-none border-x-0 border-b-0"
+            />
+          )}
         </div>
       )}
 
@@ -631,7 +641,7 @@ export function TransactionSimulatorView() {
               {/* Sélection Client */}
               <div className="relative">
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Client émetteur de l'opération <span className="text-red-500">*</span>
+                  Client émetteur de l'opération <span className="text-rose-500">*</span>
                 </label>
                 <div
                   id="sim-client-select-btn"
@@ -694,7 +704,7 @@ export function TransactionSimulatorView() {
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-semibold text-slate-700">
                               {c.typeClient === "Entreprise" ? (
-                                <Building2 className="w-4 h-4 text-blue-600" />
+                                <Building2 className="w-4 h-4 text-indigo-600" />
                               ) : (
                                 <User className="w-4 h-4 text-slate-600" />
                               )}
@@ -734,7 +744,7 @@ export function TransactionSimulatorView() {
               {/* Montant & Devise */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Montant de l'opération <span className="text-red-500">*</span>
+                  Montant de l'opération <span className="text-rose-500">*</span>
                 </label>
                 <div className="flex items-center gap-3">
                   <div className="relative flex-1">
@@ -770,7 +780,7 @@ export function TransactionSimulatorView() {
                       <span className="text-slate-400">Seuil légal UEMOA (5 000 000 FCFA)</span>
                       <span
                         className={`font-semibold ${
-                          depasse ? "text-red-600" : procheSeuil ? "text-amber-600" : "text-slate-500"
+                          depasse ? "text-rose-600" : procheSeuil ? "text-amber-600" : "text-slate-500"
                         }`}
                       >
                         {seuilPercent.toFixed(0)}%
@@ -779,13 +789,13 @@ export function TransactionSimulatorView() {
                     <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${
-                          depasse ? "bg-red-500" : procheSeuil ? "bg-amber-500" : "bg-emerald-500"
+                          depasse ? "bg-rose-500" : procheSeuil ? "bg-amber-500" : "bg-emerald-500"
                         }`}
                         style={{ width: `${seuilPercent}%` }}
                       />
                     </div>
                     {depasse && (
-                      <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1 font-medium">
+                      <p className="text-rose-600 text-xs mt-1.5 flex items-center gap-1 font-medium">
                         <AlertTriangle className="w-3.5 h-3.5" /> Dépasse le seuil UEMOA — déclaration CENTIF obligatoire
                       </p>
                     )}
@@ -832,30 +842,43 @@ export function TransactionSimulatorView() {
                 </div>
               </div>
 
-              {/* Bénéficiaire & Description */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Bénéficiaire (optionnel)</label>
-                  <input
-                    id="sim-beneficiaire"
-                    type="text"
-                    value={beneficiaire}
-                    onChange={(e) => setBeneficiaire(e.target.value)}
-                    placeholder="Nom du bénéficiaire"
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm placeholder-slate-400 outline-none focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Description (optionnel)</label>
-                  <input
-                    id="sim-description"
-                    type="text"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Motif de la transaction"
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm placeholder-slate-400 outline-none focus:border-indigo-500"
-                  />
-                </div>
+              {/* Options complémentaires avec divulgation progressive */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowOptionalFields(!showOptionalFields)}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition cursor-pointer"
+                >
+                  {showOptionalFields ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  <span>Options complémentaires (Bénéficiaire, Motif...)</span>
+                </button>
+
+                {showOptionalFields && (
+                  <div className="grid grid-cols-2 gap-4 mt-3 animate-in fade-in-50 duration-200">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Bénéficiaire</label>
+                      <input
+                        id="sim-beneficiaire"
+                        type="text"
+                        value={beneficiaire}
+                        onChange={(e) => setBeneficiaire(e.target.value)}
+                        placeholder="Nom du bénéficiaire"
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder-slate-400 outline-none focus:border-indigo-500 focus:bg-white transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Motif / Description</label>
+                      <input
+                        id="sim-description"
+                        type="text"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Motif de la transaction"
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder-slate-400 outline-none focus:border-indigo-500 focus:bg-white transition"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Boutons d'action */}
@@ -899,7 +922,7 @@ export function TransactionSimulatorView() {
                   Client sélectionné
                 </h3>
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white font-bold text-sm">
                     {selectedClient.typeClient === "Entreprise"
                       ? (selectedClient.raisonSociale || selectedClient.nom || "E").charAt(0).toUpperCase()
                       : `${(selectedClient.prenom || "?").charAt(0)}${selectedClient.nom.charAt(0)}`.toUpperCase()}
@@ -960,10 +983,10 @@ export function TransactionSimulatorView() {
               </h3>
               <div className="space-y-2.5">
                 {[
-                  { label: "Seuil réglementaire UEMOA", desc: "≥ 5 000 000 FCFA → Déclaration CENTIF obligatoire", dot: "bg-red-500" },
-                  { label: "Fractionnement de seuil", desc: "Transactions répétées < seuil sur 48h détectées", dot: "bg-amber-500" },
-                  { label: "Majoration PPE", desc: "Pondération accrue si le client ou l'UBO est PPE", dot: "bg-purple-500" },
-                  { label: "Contrôle SWIFT / International", desc: "Vérification sanctions ONU / GAFI / UMOA", dot: "bg-blue-500" },
+                  { label: "Seuil réglementaire UEMOA", desc: "≥ 5 000 000 FCFA → Déclaration CENTIF obligatoire", dot: "bg-slate-400" },
+                  { label: "Fractionnement de seuil", desc: "Transactions répétées < seuil sur 48h détectées", dot: "bg-slate-400" },
+                  { label: "Majoration PPE", desc: "Pondération accrue si le client ou l'UBO est PPE", dot: "bg-slate-400" },
+                  { label: "Contrôle SWIFT / International", desc: "Vérification sanctions ONU / GAFI / UMOA", dot: "bg-slate-400" },
                 ].map((rule) => (
                   <div key={rule.label} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50">
                     <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${rule.dot}`} />

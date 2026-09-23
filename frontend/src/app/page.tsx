@@ -14,23 +14,16 @@ import { Client360View } from "@/components/dashboard/views/client-360"
 import { GraphView } from "@/components/dashboard/views/graph"
 import { InvestigationsView } from "@/components/dashboard/views/investigations"
 import { AssistantIAView } from "@/components/dashboard/views/assistant-ia"
-import { RiskScoreView } from "@/components/dashboard/views/risk-score"
 import { SanctionsView } from "@/components/dashboard/views/sanctions"
-import { BehavioralView } from "@/components/dashboard/views/behavioral"
-import { StructuringView } from "@/components/dashboard/views/structuring"
 import { IntegrationView } from "@/components/dashboard/views/integration"
 import { UsersView } from "@/components/dashboard/views/users"
 import { AuditLogView } from "@/components/dashboard/views/audit-log"
 import { ReportsView } from "@/components/dashboard/views/reports"
 import { SettingsView } from "@/components/dashboard/views/settings"
-import { SyncView } from "@/components/dashboard/views/sync"
-import { NotificationsView } from "@/components/dashboard/views/notifications"
-import { ProfileView } from "@/components/dashboard/views/profile"
 import { TransactionSimulatorView } from "@/components/dashboard/views/transaction-simulator"
 import { DashboardProvider, useDashboard } from "@/lib/dashboard-context"
 import type { NavigateDetail } from "@/lib/navigate"
 import { NewInvestigationModal } from "@/components/dashboard/new-investigation-modal"
-import { MOCK_ALERTS } from "@/lib/alerts-data"
 
 function DashboardListeners() {
   const { openNewInvestigation, setSelectedClientId, setSelectedInvestigationRef, investigations } = useDashboard()
@@ -50,12 +43,8 @@ function DashboardListeners() {
         if (existing) {
           setSelectedInvestigationRef(existing.ref)
         } else {
-          const alert = MOCK_ALERTS.find((a) => a.ref === opts.alertRef)
           openNewInvestigation({
             alertRef: opts.alertRef,
-            client: alert?.client,
-            type: alert?.type,
-            score: alert?.score,
           })
         }
       }
@@ -82,17 +71,15 @@ const views: Record<string, React.ComponentType<any>> = {
   "Investigations": InvestigationsView,
   "Assistant IA": AssistantIAView,
   "Filtrage sanctions/PPE": SanctionsView,
-  "Risk Score": RiskScoreView,
-  "Détection comportementale": BehavioralView,
-  "Fractionnement": StructuringView,
+  "Intégration & Synchronisation": IntegrationView,
   "Intégration des données": IntegrationView,
+  "Synchronisation": IntegrationView,
   "Utilisateurs & rôles": UsersView,
   "Journal d'audit": AuditLogView,
   "Rapports réglementaires": ReportsView,
   "Paramètres": SettingsView,
-  "Synchronisation": SyncView,
-  "Notifications": NotificationsView,
-  "Mon profil": ProfileView,
+  "Notifications": AlertsCenterView,
+  "Mon profil": SettingsView,
 }
 
 function roleToUserName(role: string) {

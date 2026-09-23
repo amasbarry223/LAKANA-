@@ -9,14 +9,18 @@ class TransactionRepository(BaseRepository[Transaction]):
     def __init__(self):
         super().__init__(Transaction)
 
-    def get_by_client(self, db: Session, client_id: str, limit: int = 50) -> List[Transaction]:
+    def get_by_client(self, db: Session, client_id: str, skip: int = 0, limit: int = 50) -> List[Transaction]:
         return (
             db.query(Transaction)
             .filter(Transaction.client_id == client_id)
             .order_by(Transaction.date_transaction.desc())
+            .offset(skip)
             .limit(limit)
             .all()
         )
+
+    def count_by_client(self, db: Session, client_id: str) -> int:
+        return db.query(Transaction).filter(Transaction.client_id == client_id).count()
 
     def get_in_window(
         self, db: Session, client_id: str, hours: int = 48, until: Optional[datetime] = None

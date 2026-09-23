@@ -1,5 +1,5 @@
 from typing import List, Optional, Any, Dict
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.client import Client
@@ -18,13 +18,17 @@ router = APIRouter()
 
 
 @router.get("", response_model=List[TransactionOut])
-def list_transactions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def list_transactions(response: Response, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    response.headers["X-Total-Count"] = str(transaction_repository.count(db))
     return transaction_repository.get_multi(db, skip, limit)
 
 
 @router.get("/client/{client_id}", response_model=List[TransactionOut])
-def list_client_transactions(client_id: str, limit: int = 50, db: Session = Depends(get_db)):
-    return transaction_repository.get_by_client(db, client_id, limit)
+def list_client_transactions(
+    client_id: str, response: Response, skip: int = 0, limit: int = 50, db: Session = Depends(get_db)
+):
+    response.headers["X-Total-Count"] = str(transaction_repository.count_by_client(db, client_id))
+    return transaction_repository.get_by_client(db, client_id, skip, limit)
 
 
 @router.post("", response_model=TransactionOut, status_code=201)

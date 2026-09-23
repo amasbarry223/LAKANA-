@@ -10,7 +10,6 @@ import {
   User,
   Building2,
   AlertTriangle,
-  ShieldAlert,
   ChevronDown,
   Search,
   RefreshCw,
@@ -22,6 +21,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
+import { SectionCard } from "@/components/ui/section-card"
 import { cn } from "@/lib/utils"
 import { navigateTo } from "@/lib/navigate"
 import { clientService } from "@/services/clientService"
@@ -232,7 +232,9 @@ export function GraphView() {
         })
     : []
 
-  const filteredClients = clients.filter((c) => {
+  const DROPDOWN_RESULTS_CAP = 20
+
+  const filteredClientsAll = clients.filter((c) => {
     const q = clientSearch.trim().toLowerCase()
     if (!q) return true
     const matchNom = c.nom?.toLowerCase().includes(q)
@@ -245,6 +247,9 @@ export function GraphView() {
     )
     return Boolean(matchNom || matchPrenom || matchRaison || matchCode || matchCni || matchComptes)
   })
+
+  const filteredClients = filteredClientsAll.slice(0, DROPDOWN_RESULTS_CAP)
+  const filteredClientsHiddenCount = Math.max(0, filteredClientsAll.length - filteredClients.length)
 
   // ----------------------------------------------------
   // FONCTIONS D'EXPORT : SVG corrigé, PNG & PDF
@@ -510,7 +515,7 @@ export function GraphView() {
       {/* En-tête avec bascule Mode Client / Réseau Global et Exports */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px] flex items-center gap-3">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
             <Share2 className="w-7 h-7 text-indigo-600" />
             Graphe de relations financières
           </h1>
@@ -615,7 +620,7 @@ export function GraphView() {
                                   ? c.raisonSociale || c.nom
                                   : `${c.prenom || ""} ${c.nom}`.trim()}
                               </p>
-                              <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[11px] text-slate-400">
+                              <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-xs text-slate-400">
                                 <span>{c.codeClient}</span>
                                 {c.pieceIdentite && (
                                   <>
@@ -624,11 +629,11 @@ export function GraphView() {
                                   </>
                                 )}
                                 {c.estPpe && (
-                                  <span className="bg-amber-100 text-amber-800 font-medium px-1 rounded text-[10px]">PPE</span>
+                                  <span className="bg-amber-100 text-amber-800 font-medium px-1 rounded text-xs">PPE</span>
                                 )}
                               </div>
                               {comptesList.length > 0 && (
-                                <p className="text-[11px] text-indigo-600 font-mono mt-1 truncate">
+                                <p className="text-xs text-indigo-600 font-mono mt-1 truncate">
                                   💳 {comptesList.length} cpte(s) : {comptesList.join(", ")}
                                 </p>
                               )}
@@ -636,8 +641,8 @@ export function GraphView() {
                             <Badge
                               variant="outline"
                               className={cn(
-                                "text-[10px] shrink-0",
-                                c.niveauRisque === "Élevé" ? "border-red-200 bg-red-50 text-red-700" : "border-slate-200"
+                                "text-xs shrink-0",
+                                c.niveauRisque === "Élevé" ? "border-rose-200 bg-rose-50 text-rose-700" : "border-slate-200"
                               )}
                             >
                               {c.riskScore ?? 0} pts
@@ -645,6 +650,11 @@ export function GraphView() {
                           </div>
                         )
                       })
+                    )}
+                    {filteredClientsHiddenCount > 0 && (
+                      <div className="p-2.5 text-center text-xs text-slate-400 border-t border-slate-100">
+                        +{filteredClientsHiddenCount} autre(s) résultat(s) — affinez votre recherche pour les voir.
+                      </div>
                     )}
                   </div>
                 </div>
@@ -720,7 +730,7 @@ export function GraphView() {
                   <FileText className="h-4 w-4 text-rose-600" />
                   <div>
                     <p className="font-semibold">Rapport PDF Complet</p>
-                    <p className="text-[11px] text-slate-400">Document imprimable avec graphe & flux</p>
+                    <p className="text-xs text-slate-400">Document imprimable avec graphe & flux</p>
                   </div>
                 </button>
 
@@ -731,7 +741,7 @@ export function GraphView() {
                   <ImageIcon className="h-4 w-4 text-emerald-600" />
                   <div>
                     <p className="font-semibold">Image PNG Haute Définition</p>
-                    <p className="text-[11px] text-slate-400">Pour intégration dans vos documents</p>
+                    <p className="text-xs text-slate-400">Pour intégration dans vos documents</p>
                   </div>
                 </button>
 
@@ -742,7 +752,7 @@ export function GraphView() {
                   <Share2 className="h-4 w-4 text-indigo-600" />
                   <div>
                     <p className="font-semibold">Fichier SVG Vectoriel</p>
-                    <p className="text-[11px] text-slate-400">Format XML standard valide pour navigateur</p>
+                    <p className="text-xs text-slate-400">Format XML standard valide pour navigateur</p>
                   </div>
                 </button>
               </div>
@@ -751,36 +761,33 @@ export function GraphView() {
         </div>
       </div>
 
-      {/* Bannière d'explication de la règle active */}
-      <div className="bg-gradient-to-r from-indigo-50 via-rose-50 to-amber-50 rounded-2xl border border-indigo-100 p-4 text-xs text-slate-700 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center text-rose-700 flex-shrink-0">
-            <ShieldAlert className="w-4 h-4" />
+      {/* Règle de coloration active — détail replié par défaut */}
+      <SectionCard
+        title="Règle de coloration rouge active"
+        subtitle="Conformité LAKANA / CENTIF"
+        collapsible
+        defaultOpen={false}
+        actions={
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700 font-semibold">
+              {nodes.length} Nœuds
+            </Badge>
+            <Badge variant="outline" className="border-rose-200 bg-rose-50 text-rose-700 font-semibold">
+              {nodes.filter((n) => n.alert).length} Alertes Rouges
+            </Badge>
+            <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 font-semibold">
+              {graphData.totalFlux.toLocaleString("fr-FR")} FCFA Flux
+            </Badge>
           </div>
-          <div>
-            <p className="font-semibold text-slate-800">
-              Règle de Coloration Rouge Active (Conformité LAKANA / CENTIF) :
-            </p>
-            <p className="text-slate-500 mt-0.5">
-              Un flux ou bénéficiaire passe en <span className="font-bold text-rose-600">ROUGE</span> si : (1) Le total
-              des transactions journalières de l'individu atteint{" "}
-              <span className="font-bold text-rose-600">15 000 000 FCFA</span> dans la journée, OU (2) Le montant dépasse{" "}
-              <span className="font-bold text-rose-600">2× ses transactions habituelles</span>.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-indigo-200 bg-white text-indigo-700 font-semibold">
-            {nodes.length} Nœuds
-          </Badge>
-          <Badge variant="outline" className="border-rose-200 bg-rose-50 text-rose-700 font-semibold">
-            {nodes.filter((n) => n.alert).length} Alertes Rouges
-          </Badge>
-          <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 font-semibold">
-            {graphData.totalFlux.toLocaleString("fr-FR")} FCFA Flux
-          </Badge>
-        </div>
-      </div>
+        }
+      >
+        <p className="text-xs text-slate-500">
+          Un flux ou bénéficiaire passe en <span className="font-bold text-rose-600">ROUGE</span> si : (1) Le total
+          des transactions journalières de l'individu atteint{" "}
+          <span className="font-bold text-rose-600">15 000 000 FCFA</span> dans la journée, OU (2) Le montant dépasse{" "}
+          <span className="font-bold text-rose-600">2× ses transactions habituelles</span>.
+        </p>
+      </SectionCard>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-4">
         {/* Canvas SVG du Graphe avec ViewBox Dynamique */}
@@ -847,7 +854,7 @@ export function GraphView() {
                             y={midY + 2}
                             textAnchor="middle"
                             className={cn(
-                              "text-[8px] font-bold",
+                              "text-xs font-bold",
                               e.strong ? "fill-rose-600 font-mono" : "fill-slate-500"
                             )}
                           >
@@ -908,7 +915,7 @@ export function GraphView() {
                         x={n.x}
                         y={n.y + 3}
                         textAnchor="middle"
-                        className="text-[9px] font-semibold"
+                        className="text-xs font-semibold"
                         fill={style.textColor}
                       >
                         {n.label.length > 16 ? `${n.label.slice(0, 14)}…` : n.label}
@@ -922,7 +929,7 @@ export function GraphView() {
             {/* Légende en incrustation */}
             <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-3 rounded-xl bg-white/95 backdrop-blur-sm px-3.5 py-2.5 shadow-md border border-slate-100">
               {legend.map((l) => (
-                <span key={l.label} className="flex items-center gap-1.5 text-[11px] text-slate-700 font-medium">
+                <span key={l.label} className="flex items-center gap-1.5 text-xs text-slate-700 font-medium">
                   <span className="h-3 w-3 rounded-full flex-shrink-0" style={{ background: l.color }} />
                   {l.label}
                 </span>
@@ -957,12 +964,12 @@ export function GraphView() {
                 </div>
 
                 {sel.alert && (
-                  <div className="rounded-xl bg-red-50 border border-red-200 p-3 space-y-1.5 animate-in fade-in-50">
-                    <div className="flex items-center gap-1.5 text-red-700 font-bold text-xs">
-                      <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                  <div className="rounded-xl bg-rose-50 border border-rose-200 p-3 space-y-1.5 animate-in fade-in-50">
+                    <div className="flex items-center gap-1.5 text-rose-700 font-bold text-xs">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
                       Coloration Rouge — Alerte Active
                     </div>
-                    <p className="text-xs text-red-600">
+                    <p className="text-xs text-rose-600">
                       {sel.details?.motif_alerte ||
                         (sel.type === "client"
                           ? "Score de risque élevé, cumul journalier ≥ 15M ou transaction > 2× l'habitude."
@@ -1030,7 +1037,7 @@ export function GraphView() {
                           {c.label && (
                             <span
                               className={cn(
-                                "font-mono text-[11px] shrink-0",
+                                "font-mono text-xs shrink-0",
                                 c.strong ? "font-bold text-rose-600" : "text-slate-500"
                               )}
                             >

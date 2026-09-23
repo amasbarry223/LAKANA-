@@ -92,7 +92,7 @@ const DEFAULT_SETTINGS: SettingsState = {
   devise: "FCFA (XOF)",
   langue: "Français",
   weights: [30, 25, 20, 15, 10],
-  thresholds: [1000000, 950000, 48, 24, 5, 30],
+  thresholds: [5000000, 4500000, 48, 24, 5, 30],
   mfa: true,
   autoLock: true,
 }
@@ -178,16 +178,21 @@ export function DashboardProvider({
 
   useEffect(() => {
     setSettings(loadSettings())
-    investigationService
-      .getInvestigations()
-      .then((data) => {
-        if (data && data.length > 0) {
-          setInvestigations(data)
-        }
-      })
-      .catch((err) => {
-        console.warn("Utilisation du cache local pour investigations:", err)
-      })
+    const refreshInv = () => {
+      investigationService
+        .getInvestigations()
+        .then((data) => {
+          if (data && data.length > 0) {
+            setInvestigations(data)
+          }
+        })
+        .catch((err) => {
+          console.warn("Utilisation du cache local pour investigations:", err)
+        })
+    }
+    refreshInv()
+    window.addEventListener("lakana-investigation-updated", refreshInv)
+    return () => window.removeEventListener("lakana-investigation-updated", refreshInv)
   }, [])
 
   const openNewInvestigation = useCallback((prefill?: NewInvestigationPrefill) => {

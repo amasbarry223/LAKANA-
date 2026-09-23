@@ -158,7 +158,7 @@ export function AssistantIAView() {
     <div className="space-y-5">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px] dark:text-slate-100">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
             Assistant IA LAKANA
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -195,21 +195,21 @@ export function AssistantIAView() {
           {/* Header du Chat */}
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5 dark:border-slate-800">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-700 shadow-xs">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-indigo-800 shadow-xs">
                 <Sparkles className="h-4 w-4 text-white" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                   Assistant Déterministe LAKANA
                 </p>
-                <p className="flex items-center gap-1.5 text-[11px] text-emerald-600 font-medium">
+                <p className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   Données Live BDD UEMOA • 100% Explicable
                 </p>
               </div>
             </div>
             <div className="hidden sm:flex items-center gap-2">
-              <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-[11px] text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-300">
+              <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-xs text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-300">
                 Instruction BCEAO n°003-03-2025
               </Badge>
             </div>
@@ -223,7 +223,7 @@ export function AssistantIAView() {
                   className={cn(
                     "flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-xs",
                     m.role === "assistant"
-                      ? "bg-gradient-to-br from-indigo-500 to-violet-600 text-white"
+                      ? "bg-gradient-to-br from-indigo-500 to-indigo-700 text-white"
                       : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
                   )}
                 >
@@ -242,7 +242,7 @@ export function AssistantIAView() {
 
                   {m.points_cles && m.points_cles.length > 0 && (
                     <div className="mt-3 border-t border-slate-200/60 pt-2.5 dark:border-slate-700/60">
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                         Signaux déterminants :
                       </p>
                       <ul className="mt-1 space-y-1">
@@ -257,7 +257,7 @@ export function AssistantIAView() {
                   )}
 
                   {m.source && (
-                    <p className="mt-2 text-[10px] text-slate-400 dark:text-slate-500">
+                    <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
                       Moteur : {m.source}
                     </p>
                   )}
@@ -267,7 +267,7 @@ export function AssistantIAView() {
 
             {isTyping && (
               <div className="flex gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-white">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 text-white">
                   <Sparkles className="h-4 w-4 animate-spin" />
                 </div>
                 <div className="rounded-2xl rounded-tl-xs bg-slate-50 border border-slate-100 px-4 py-3 text-sm text-slate-500 dark:bg-slate-800/80 dark:border-slate-700">
@@ -338,7 +338,7 @@ export function AssistantIAView() {
                   {activeClientContext ? `Contexte : ${activeClientContext.nom} ${activeClientContext.prenom || ""}` : "Contexte Client"}
                 </h3>
                 {activeClientContext && (
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-xs text-slate-500">
                     Réf : {activeClientContext.code_client} {activeClientContext.est_ppe ? "• [PPE Actif]" : ""}
                   </p>
                 )}
@@ -364,7 +364,7 @@ export function AssistantIAView() {
                 <div className="space-y-2">
                   {formatDecomposition(activeClientContext.decomposition).map((f) => (
                     <div key={f.label}>
-                      <div className="mb-1 flex items-center justify-between text-[11px]">
+                      <div className="mb-1 flex items-center justify-between text-xs">
                         <span className="text-slate-600 dark:text-slate-400">{f.label}</span>
                         <span className="font-semibold text-slate-700 dark:text-slate-300">
                           {f.points}/{f.max} pts
@@ -387,7 +387,7 @@ export function AssistantIAView() {
                   ))}
                 </div>
 
-                <div className="rounded-lg bg-slate-50 p-2.5 text-[11px] text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                <div className="rounded-lg bg-slate-50 p-2.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                   <p className="font-medium text-slate-900 dark:text-slate-100">
                     Activité : {activeClientContext.transactions_count ?? 0} transactions analysées
                   </p>
@@ -412,9 +412,9 @@ export function AssistantIAView() {
               <ShieldAlert className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
               <div>
                 <p className="text-xs font-semibold text-amber-900 dark:text-amber-300">
-                  Cadre Éthique & Décision Humaine (IA-03)
+                  Cadre Éthique & Décision Humaine
                 </p>
-                <p className="mt-1 text-[11px] leading-relaxed text-amber-800 dark:text-amber-400">
+                <p className="mt-1 text-xs leading-relaxed text-amber-800 dark:text-amber-400">
                   L'assistant IA de LAKANA produit des synthèses 100% déterministes à partir des calculs réglementaires.
                   Toute décision de gel de compte, blocage ou déclaration à la CENTIF-Mali relève de l'analyste habilité.
                 </p>

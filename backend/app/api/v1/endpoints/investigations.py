@@ -1,6 +1,6 @@
 from typing import List, Optional
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.investigation import Investigation
@@ -17,10 +17,15 @@ router = APIRouter()
 
 @router.get("", response_model=List[InvestigationOut])
 def list_investigations(
+    response: Response,
     status: Optional[str] = Query(None, description="en_cours, cloturee, transmise, ou toutes"),
+    skip: int = 0,
+    limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    invs = investigation_repository.get_by_status(db, status)
+    total = investigation_repository.count_by_status(db, status)
+    response.headers["X-Total-Count"] = str(total)
+    invs = investigation_repository.get_by_status(db, status, skip=skip, limit=limit)
     result = []
     for i in invs:
         out = InvestigationOut.model_validate(i)
@@ -102,5 +107,31 @@ def close_investigation(
         module="Investigations",
         cible=inv.reference,
         details=f"Décision enregistrée : {req.decision[:100]}...",
+    )
+    return updated
+
+
+@router.post("/{id}/reopen", response_model=InvestigationOut)
+def reopen_investigation(
+    id: str,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user),
+):
+    inv = investigation_repository.get(db, id)
+    if not inv:
+        inv = investigation_repository.get_by_reference(db, id)
+    if not inv:
+        raise HTTPException(status_code=404, detail="Investigation non trouvée")
+
+    updated = investigation_repository.reopen_investigation(db, inv)
+
+    audit_service.log_action(
+        db,
+        utilisateur=current_user.nom_complet if current_user else inv.analyste,
+        role=current_user.role if current_user else "Responsable",
+        action="Réouverture dossier d'investigation",
+        module="Investigations",
+        cible=inv.reference,
+        details="Dossier rouvert par le responsable (INV-05).",
     )
     return updated

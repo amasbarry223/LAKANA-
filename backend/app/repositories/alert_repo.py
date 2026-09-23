@@ -1,6 +1,7 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from app.models.alert import Alert
+from app.models.client import Client
 from app.repositories.base import BaseRepository
 
 
@@ -11,6 +12,37 @@ class AlertRepository(BaseRepository[Alert]):
     def get_by_reference(self, db: Session, reference: str) -> Optional[Alert]:
         return db.query(Alert).filter(Alert.reference == reference).first()
 
+    def _apply_filters(
+        self,
+        db: Session,
+        statut: Optional[str] = None,
+        niveau: Optional[str] = None,
+        module: Optional[str] = None,
+        analyste: Optional[str] = None,
+        q: Optional[str] = None,
+    ):
+        query = db.query(Alert)
+        if statut and statut != "Tous statuts":
+            query = query.filter(Alert.statut == statut)
+        if niveau and niveau != "Tous niveaux":
+            query = query.filter(Alert.niveau == niveau.lower())
+        if module and module != "Tous modules":
+            query = query.filter(Alert.module == module)
+        if analyste and analyste != "Tous analystes":
+            query = query.filter(Alert.analyste.ilike(f"%{analyste}%"))
+        if q:
+            pattern = f"%{q}%"
+            query = query.outerjoin(Client, Alert.client_id == Client.id).filter(
+                (Alert.reference.ilike(pattern))
+                | (Alert.type_alerte.ilike(pattern))
+                | (Alert.module.ilike(pattern))
+                | (Alert.analyste.ilike(pattern))
+                | (Client.nom.ilike(pattern))
+                | (Client.prenom.ilike(pattern))
+                | (Client.code_client.ilike(pattern))
+            )
+        return query
+
     def filter_alerts(
         self,
         db: Session,
@@ -18,19 +50,23 @@ class AlertRepository(BaseRepository[Alert]):
         niveau: Optional[str] = None,
         module: Optional[str] = None,
         analyste: Optional[str] = None,
+        q: Optional[str] = None,
         skip: int = 0,
         limit: int = 100,
     ) -> List[Alert]:
-        q = db.query(Alert)
-        if statut and statut != "Tous statuts":
-            q = q.filter(Alert.statut == statut)
-        if niveau and niveau != "Tous niveaux":
-            q = q.filter(Alert.niveau == niveau.lower())
-        if module and module != "Tous modules":
-            q = q.filter(Alert.module == module)
-        if analyste and analyste != "Tous analystes":
-            q = q.filter(Alert.analyste.ilike(f"%{analyste}%"))
-        return q.order_by(Alert.created_at.desc()).offset(skip).limit(limit).all()
+        query = self._apply_filters(db, statut, niveau, module, analyste, q)
+        return query.order_by(Alert.created_at.desc()).offset(skip).limit(limit).all()
+
+    def count_alerts(
+        self,
+        db: Session,
+        statut: Optional[str] = None,
+        niveau: Optional[str] = None,
+        module: Optional[str] = None,
+        analyste: Optional[str] = None,
+        q: Optional[str] = None,
+    ) -> int:
+        return self._apply_filters(db, statut, niveau, module, analyste, q).count()
 
     def count_by_level(self, db: Session) -> dict:
         total = db.query(Alert).count()

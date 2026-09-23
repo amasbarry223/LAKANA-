@@ -1,5 +1,5 @@
 from typing import List, Optional, Any
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.alert import Alert
@@ -15,16 +15,20 @@ router = APIRouter()
 
 @router.get("", response_model=List[AlertOut])
 def list_alerts(
+    response: Response,
     statut: Optional[str] = Query(None),
     niveau: Optional[str] = Query(None),
     module: Optional[str] = Query(None),
     analyste: Optional[str] = Query(None),
+    q: Optional[str] = Query(None, description="Recherche texte : référence, type, module, analyste, client"),
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
 ):
+    total = alert_repository.count_alerts(db, statut=statut, niveau=niveau, module=module, analyste=analyste, q=q)
+    response.headers["X-Total-Count"] = str(total)
     alerts = alert_repository.filter_alerts(
-        db, statut=statut, niveau=niveau, module=module, analyste=analyste, skip=skip, limit=limit
+        db, statut=statut, niveau=niveau, module=module, analyste=analyste, q=q, skip=skip, limit=limit
     )
     result = []
     for a in alerts:
