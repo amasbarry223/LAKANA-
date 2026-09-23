@@ -299,7 +299,7 @@ export function OverviewView() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {/* CARTE 1: Clients filtrés (Soulignement Bleu) */}
         <div
-          onClick={() => navigateTo("Clients & Enrôlement")}
+          onClick={() => navigateTo("Client 360°")}
           className="group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 border-b-4 border-b-blue-600 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:border-b-blue-600 dark:bg-slate-900"
         >
           <div>
@@ -829,7 +829,7 @@ export function OverviewView() {
               </h3>
             </div>
             <button
-              onClick={() => navigateTo("Clients & Enrôlement")}
+              onClick={() => navigateTo("Client 360°")}
               className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400"
             >
               Voir tout →

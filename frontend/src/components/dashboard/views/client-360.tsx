@@ -428,8 +428,8 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
         icon={User}
         title="Aucun client trouvé"
         description="La base de données ne contient aucun client pour le moment ou le sociétaire recherché n'a pas été trouvé."
-        actionLabel="Consulter le registre des clients"
-        onAction={() => navigateTo("Clients & Enrôlement")}
+        actionLabel="Actualiser les données"
+        onAction={loadClients}
         className="my-12 rounded-xl border border-slate-200 bg-white"
       />
     )

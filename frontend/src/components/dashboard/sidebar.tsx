@@ -3,7 +3,6 @@
 import {
   LayoutGrid,
   BellRing,
-  UserPlus,
   UserRound,
   Share2,
   FolderSearch,
@@ -60,7 +59,6 @@ const standardSections: NavSection[] = [
     title: "SURVEILLANCE OPÉRATIONNELLE",
     items: [
       { label: "Centre d'alertes", icon: BellRing, badgeType: "alerts" },
-      { label: "Contrôle & Pré-filtrage Sociétaire", icon: ShieldCheck },
       { label: "Filtrage sanctions/PPE", icon: ShieldAlert },
     ],
   },
@@ -69,7 +67,6 @@ const standardSections: NavSection[] = [
     title: "DOSSIERS & CLIENTS",
     items: [
       { label: "Investigations", icon: FolderSearch },
-      { label: "Clients & Enrôlement", icon: UserPlus },
       { label: "Client 360°", icon: UserRound },
       { label: "Graphe de relations", icon: Share2 },
       { label: "Consultation Réglementaire", icon: MessageSquare },
@@ -100,7 +97,6 @@ const guichetSections: NavSection[] = [
     id: "surveillance",
     title: "SÉCURITÉ & CONFORMITÉ GUICHET",
     items: [
-      { label: "Contrôle & Pré-filtrage Sociétaire", icon: ShieldCheck },
       { label: "Filtrage sanctions/PPE", icon: ShieldAlert },
     ],
   },

@@ -9,7 +9,6 @@ import { CommandPalette } from "@/components/dashboard/command-palette"
 import { LoginScreen } from "@/components/dashboard/login-screen"
 import { AlertsCenterView } from "@/components/dashboard/views/alerts-center"
 import { OverviewView } from "@/components/dashboard/views/overview"
-import { ClientsManagementView } from "@/components/dashboard/views/clients-management"
 import { Client360View } from "@/components/dashboard/views/client-360"
 import { GraphView } from "@/components/dashboard/views/graph"
 import { InvestigationsView } from "@/components/dashboard/views/investigations"
@@ -20,7 +19,6 @@ import { UsersView } from "@/components/dashboard/views/users"
 import { AuditLogView } from "@/components/dashboard/views/audit-log"
 import { ReportsView } from "@/components/dashboard/views/reports"
 import { SettingsView } from "@/components/dashboard/views/settings"
-import { TransactionSimulatorView } from "@/components/dashboard/views/transaction-simulator"
 import { DashboardProvider, useDashboard } from "@/lib/dashboard-context"
 import type { NavigateDetail } from "@/lib/navigate"
 import { NewInvestigationModal } from "@/components/dashboard/new-investigation-modal"
@@ -65,8 +63,6 @@ const views: Record<string, React.ComponentType<any>> = {
   "Accueil": OverviewView,
   "Tableau de bord": OverviewView,
   "Centre d'alertes": AlertsCenterView,
-  "Contrôle & Pré-filtrage Sociétaire": TransactionSimulatorView,
-  "Clients & Enrôlement": ClientsManagementView,
   "Client 360°": Client360View,
   "Graphe de relations": GraphView,
   "Investigations": InvestigationsView,
@@ -230,11 +226,6 @@ function DashboardContent({
           <div className="p-4 md:p-6">
             <View
               onLogout={active === "Mon profil" ? onLogout : undefined}
-              onSelectClient={
-                active === "Contrôle & Pré-filtrage Sociétaire"
-                  ? (c: any) => handleNavigate("Client 360°", { clientId: c.id || c.codeClient })
-                  : undefined
-              }
               initialClientId={selectedClientId}
             />
           </div>
