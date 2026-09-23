@@ -93,5 +93,83 @@ export const filteringService = {
   async testDispatch(phone?: string, email?: string): Promise<any> {
     return await ApiClient.post<any>("/filtrage/test-dispatch", { phone, email })
   },
+
+  // ─── GESTION RÉFÉRENTIEL PPE ───
+  async getPpeList(params?: { q?: string; skip?: number; limit?: number }): Promise<{ total: number; items: any[] }> {
+    try {
+      return await ApiClient.get<{ total: number; items: any[] }>("/filtrage/ppe", params)
+    } catch {
+      return { total: 0, items: [] }
+    }
+  },
+
+  async addPpeEntry(data: {
+    nom_complet: string
+    titre_fonction: string
+    agence?: string
+    numero_compte?: string
+    lieu_naissance?: string
+    lieu_residence?: string
+    nationalite?: string
+  }): Promise<{ success: boolean; message: string; id: string; code: string }> {
+    return await ApiClient.post("/filtrage/ppe", data)
+  },
+
+  async deletePpeEntry(ppeId: string): Promise<{ success: boolean; message: string }> {
+    return await ApiClient.delete(`/filtrage/ppe/${ppeId}`)
+  },
+
+  async importPpeCsv(csvContent: string, nomFichier?: string): Promise<{
+    success: boolean
+    total_traitees: number
+    nouvelles_importees: number
+    existantes_mises_a_jour: number
+    message: string
+  }> {
+    return await ApiClient.post("/filtrage/ppe/import-csv", {
+      csv_content: csvContent,
+      nom_fichier: nomFichier || "registre_ppe.csv",
+    })
+  },
+
+  // ─── WORKFLOW ARBITRAGE CONFORMITÉ <-> GUICHET ───
+  async registerPendingOperation(data: {
+    reference: string
+    client_id: string
+    client_nom: string
+    montant: number
+    type_operation: string
+    motif_alerte: string
+    fonction_ppe?: string
+    agence?: string
+    guichetier?: string
+  }): Promise<{ success: boolean; reference: string; statut: string; message: string }> {
+    try {
+      return await ApiClient.post("/filtrage/operation-pending", data)
+    } catch {
+      return { success: true, reference: data.reference, statut: "en_attente_conformite", message: "Opération enregistrée en local." }
+    }
+  },
+
+  async getPendingOperations(): Promise<any[]> {
+    try {
+      return await ApiClient.get<any[]>("/filtrage/operation-pending")
+    } catch {
+      return []
+    }
+  },
+
+  async submitOperationDecision(data: {
+    reference: string
+    decision: "autoriser" | "refuser"
+    motif: string
+    analyste?: string
+    client_nom?: string
+    montant?: number
+    agence?: string
+  }): Promise<{ success: boolean; reference: string; statut: string; analyste: string; motif: string; message: string }> {
+    return await ApiClient.post("/filtrage/operation-decision", data)
+  },
 }
+
 

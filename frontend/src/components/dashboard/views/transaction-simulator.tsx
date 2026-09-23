@@ -22,6 +22,13 @@ import {
   AlertTriangle,
   FileText,
   Filter,
+  Check,
+  X,
+  MessageSquare,
+  FileCheck2,
+  PhoneCall,
+  Printer,
+  RefreshCw,
 } from "lucide-react"
 import { toast } from "sonner"
 import { clientService } from "@/services/clientService"
@@ -88,7 +95,7 @@ function formatDate(dStr: string) {
 }
 
 export function TransactionSimulatorView() {
-  const [activeTab, setActiveTab] = useState<"precheck" | "journal">("precheck")
+  const [activeTab, setActiveTab] = useState<"precheck" | "arbitrage" | "journal">("precheck")
 
   // Transactions State (données réelles lues depuis la BDD partagée)
   const [txSearch, setTxSearch] = useState("")
@@ -123,6 +130,47 @@ export function TransactionSimulatorView() {
   const [preCheck, setPreCheck] = useState<PreCheckResult | null>(null)
   const [loadingPreCheck, setLoadingPreCheck] = useState(false)
   const [sendingAlert, setSendingAlert] = useState(false)
+
+  // Workflow Guichet <-> Conformité (Interception, double notification & arbitrage)
+  const [opMontant, setOpMontant] = useState("3500000")
+  const [opType, setOpType] = useState<"Dépôt Espèces" | "Retrait Espèces" | "Virement Bancaire">("Dépôt Espèces")
+  const [opMotif, setOpMotif] = useState("Approvisionnement d'activité")
+  const [executingOp, setExecutingOp] = useState(false)
+  const [currentOpResult, setCurrentOpResult] = useState<{
+    reference: string
+    statut: "en_attente_conformite" | "autorisee" | "refusee" | "conforme_direct"
+    message: string
+    motif_alerte?: string
+    date: string
+    montant: number
+    decision_details?: any
+  } | null>(null)
+
+  // Saisie du motif d'arbitrage
+  const [decisionMotif, setDecisionMotif] = useState("")
+  const [submittingDecision, setSubmittingDecision] = useState(false)
+
+  // File d'arbitrage globale
+  const [pendingOps, setPendingOps] = useState<any[]>([])
+  const [loadingPendingOps, setLoadingPendingOps] = useState(false)
+
+  const loadPendingOps = useCallback(async () => {
+    setLoadingPendingOps(true)
+    try {
+      const list = await filteringService.getPendingOperations()
+      setPendingOps(list)
+    } catch {
+      // mode silencieux
+    } finally {
+      setLoadingPendingOps(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadPendingOps()
+    const timer = setInterval(loadPendingOps, 6000)
+    return () => clearInterval(timer)
+  }, [loadPendingOps])
 
   // 1. Charger les clients
   const loadClients = useCallback(async () => {
@@ -264,15 +312,139 @@ export function TransactionSimulatorView() {
     if (!selectedClient) return
     setSendingAlert(true)
     try {
-      const res = await filteringService.testDispatch(
-        undefined,
-        undefined
-      )
+      await filteringService.testDispatch(undefined, undefined)
       toast.success("Signalement de conformité transmis en direct par WhatsApp (+223 64663918) et Email (fombadaouda72@gmail.com)")
     } catch {
       toast.error("Erreur lors de la transmission du signalement")
     } finally {
       setSendingAlert(false)
+    }
+  }
+
+  // Exécution d'une opération au guichet avec pare-feu LAKANA
+  const handleExecuteOperation = async () => {
+    if (!selectedClient) {
+      toast.error("Veuillez d'abord sélectionner un sociétaire.")
+      return
+    }
+    const cleanStr = opMontant.toString().replace(/\s+/g, "").replace(/,/g, ".")
+    const montantNum = parseFloat(cleanStr) || 0
+    if (montantNum <= 0) {
+      toast.error("Veuillez saisir un montant valide.")
+      return
+    }
+
+    setExecutingOp(true)
+    const clientNom =
+      selectedClient.typeClient === "Entreprise"
+        ? selectedClient.raisonSociale || selectedClient.nom
+        : `${selectedClient.prenom || ""} ${selectedClient.nom}`.trim()
+
+    const refOp = `OP-GCH-${Date.now().toString().slice(-6)}`
+    const isPpe = !!(preCheck?.is_ppe || selectedClient.estPpe)
+    const isSanctioned = !!(preCheck?.bloquer_operations || preCheck?.is_sanctioned)
+    const isHighAmount = montantNum >= 15_000_000
+
+    if (isSanctioned) {
+      setCurrentOpResult({
+        reference: refOp,
+        statut: "refusee",
+        message: "GEL DES AVOIRS IMMÉDIAT : Sociétaire figurant sur les listes de sanctions internationales (Résolutions ONU/UEMOA). Opération formellement interdite.",
+        motif_alerte: "Sanctions internationales actives - Blocage impératif",
+        date: new Date().toISOString(),
+        montant: montantNum,
+      })
+      toast.error("GEL DES AVOIRS : Opération strictement interdite.")
+      setExecutingOp(false)
+      return
+    }
+
+    if (isPpe || isHighAmount) {
+      const motif = isPpe
+        ? `Sociétaire PPE identifié (${preCheck?.fonction_ppe || selectedClient.fonctionPpe || "Mandat Public Exposé"}). Vigilance renforcée et visa préalable exigé.`
+        : `Seuil exceptionnel dépassé (${new Intl.NumberFormat("fr-FR").format(montantNum)} FCFA >= 15M FCFA). Visa Conformité requis.`
+
+      try {
+        await filteringService.registerPendingOperation({
+          reference: refOp,
+          client_id: selectedClient.id,
+          client_nom: clientNom,
+          montant: montantNum,
+          type_operation: opType,
+          motif_alerte: motif,
+          fonction_ppe: preCheck?.fonction_ppe || selectedClient.fonctionPpe,
+          agence: selectedClient.agence || "Agence Centrale",
+          guichetier: "Agent Guichet #04",
+        })
+
+        setCurrentOpResult({
+          reference: refOp,
+          statut: "en_attente_conformite",
+          message: "Opération interceptée et suspendue au guichet. Double notification WhatsApp (+223 64663918) et Email transmise à l'Analyste et au Guichet.",
+          motif_alerte: motif,
+          date: new Date().toISOString(),
+          montant: montantNum,
+        })
+        toast.warning("INTERCEPTION LAKANA : Opération PPE suspendue. Notification WhatsApp & Email transmises.")
+        loadPendingOps()
+      } catch {
+        toast.error("Erreur lors de la mise en attente de l'opération.")
+      } finally {
+        setExecutingOp(false)
+      }
+    } else {
+      // Conforme direct
+      setCurrentOpResult({
+        reference: refOp,
+        statut: "conforme_direct",
+        message: `Opération de ${new Intl.NumberFormat("fr-FR").format(montantNum)} FCFA validée avec succès. Sociétaire conforme, aucun signalement négatif.`,
+        date: new Date().toISOString(),
+        montant: montantNum,
+      })
+      toast.success("Opération conforme validée et insérée avec succès.")
+      setExecutingOp(false)
+    }
+  }
+
+  // Arbitrage par l'analyste de conformité
+  const handleArbitrate = async (ref: string, decision: "autoriser" | "refuser", motifText: string) => {
+    if (!motifText.trim()) {
+      toast.error("Veuillez saisir le motif de votre décision de conformité.")
+      return
+    }
+    setSubmittingDecision(true)
+    try {
+      const res = await filteringService.submitOperationDecision({
+        reference: ref,
+        decision,
+        motif: motifText.trim(),
+        analyste: "Aminata Touré (Analyste Conformité)",
+        client_nom: selectedClient ? `${selectedClient.prenom || ""} ${selectedClient.nom}`.trim() : undefined,
+      })
+
+      toast.success(
+        decision === "autoriser"
+          ? "Dérogation accordée avec succès ! Notification WhatsApp transmise au guichet."
+          : "Opération formellement rejetée. Notification transmise au guichet."
+      )
+
+      if (currentOpResult && currentOpResult.reference === ref) {
+        setCurrentOpResult({
+          ...currentOpResult,
+          statut: decision === "autoriser" ? "autorisee" : "refusee",
+          decision_details: res,
+          message:
+            decision === "autoriser"
+              ? `Dérogation accordée par la Conformité : ${motifText}`
+              : `Opération formellement rejetée par la Conformité : ${motifText}`,
+        })
+      }
+      setDecisionMotif("")
+      loadPendingOps()
+    } catch {
+      toast.error("Erreur lors de l'enregistrement de la décision.")
+    } finally {
+      setSubmittingDecision(false)
     }
   }
 
@@ -294,7 +466,7 @@ export function TransactionSimulatorView() {
         <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
           <button
             onClick={() => setActiveTab("precheck")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs md:text-sm font-semibold transition ${
               activeTab === "precheck"
                 ? "bg-white text-indigo-700 shadow-sm"
                 : "text-slate-600 hover:text-slate-900"
@@ -304,15 +476,31 @@ export function TransactionSimulatorView() {
             Contrôle Sociétaire
           </button>
           <button
+            onClick={() => setActiveTab("arbitrage")}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs md:text-sm font-semibold transition relative ${
+              activeTab === "arbitrage"
+                ? "bg-white text-indigo-700 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Clock className="w-4 h-4 text-amber-600" />
+            File d'Arbitrage
+            {pendingOps.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-amber-500 text-white rounded-full">
+                {pendingOps.length}
+              </span>
+            )}
+          </button>
+          <button
             onClick={() => setActiveTab("journal")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs md:text-sm font-semibold transition ${
               activeTab === "journal"
                 ? "bg-white text-indigo-700 shadow-sm"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
             <Layers className="w-4 h-4" />
-            Journal des flux CBS ({journalTotal})
+            Journal des flux ({journalTotal})
           </button>
         </div>
       </div>
@@ -665,6 +853,258 @@ export function TransactionSimulatorView() {
                   </span>
                 </div>
               ) : null}
+
+              {/* ───────────────────────────────────────────────────────────── */}
+              {/* FORMULAIRE GUICHET : INTERCEPTION & ARBITRAGE EN TEMPS RÉEL   */}
+              {/* ───────────────────────────────────────────────────────────── */}
+              <div className="pt-4 border-t border-slate-200 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <CreditCard className="w-4 h-4 text-indigo-600" />
+                      Guichet Bancaire : Exécution d'Opération & Interception LAKANA
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Simulez l'insertion d'une opération au guichet. Le trigger de base croise instantanément le profil avec le registre PPE.
+                    </p>
+                  </div>
+                  {preCheck?.is_ppe && (
+                    <span className="px-2.5 py-1 text-xs font-bold bg-purple-100 text-purple-800 rounded-lg border border-purple-200">
+                      Vigilance Renforcée PPE
+                    </span>
+                  )}
+                </div>
+
+                <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-200 space-y-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Type d'opération
+                      </label>
+                      <select
+                        value={opType}
+                        onChange={(e) => setOpType(e.target.value as any)}
+                        className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:border-indigo-500 font-medium text-slate-800"
+                      >
+                        <option value="Dépôt Espèces">Dépôt Espèces</option>
+                        <option value="Retrait Espèces">Retrait Espèces</option>
+                        <option value="Virement Bancaire">Virement Bancaire</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Montant de l'opération (FCFA)
+                      </label>
+                      <input
+                        type="text"
+                        value={opMontant}
+                        onChange={(e) => setOpMontant(e.target.value)}
+                        placeholder="Ex: 3 500 000"
+                        className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:border-indigo-500 font-mono font-bold text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Motif déclaré / Justificatif
+                      </label>
+                      <input
+                        type="text"
+                        value={opMotif}
+                        onChange={(e) => setOpMotif(e.target.value)}
+                        placeholder="Ex: Approvisionnement d'activité"
+                        className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:border-indigo-500 text-slate-800"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Boutons montants prédéfinis pour la démonstration */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-slate-400 text-[11px]">Montants types :</span>
+                      <button
+                        type="button"
+                        onClick={() => setOpMontant("1500000")}
+                        className="px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-600 hover:border-slate-400 font-mono text-[11px]"
+                      >
+                        1 500 000
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOpMontant("6500000")}
+                        className="px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-600 hover:border-slate-400 font-mono text-[11px]"
+                      >
+                        6 500 000 (≥ Seuil)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOpMontant("18000000")}
+                        className="px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-600 hover:border-slate-400 font-mono text-[11px]"
+                      >
+                        18 000 000 (Majeur)
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={executingOp || !selectedClient}
+                      onClick={handleExecuteOperation}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-2 shadow-xs disabled:opacity-50"
+                    >
+                      {executingOp ? <Spinner /> : <Send className="w-3.5 h-3.5" />}
+                      <span>Valider & Exécuter au Guichet (Trigger CBS)</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Résultat d'interception et panneau d'arbitrage */}
+                {currentOpResult && (
+                  <div className="animate-in fade-in-50 duration-200">
+                    {currentOpResult.statut === "en_attente_conformite" ? (
+                      <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 space-y-3.5">
+                        <div className="flex items-start gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                            <Clock className="w-5 h-5 animate-pulse" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="font-bold text-amber-900 text-sm">
+                                ⚠️ OPÉRATION INTERCEPTÉE — EN ATTENTE DU VISA DE CONFORMITÉ
+                              </span>
+                              <span className="font-mono text-xs bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded font-bold">
+                                Réf: {currentOpResult.reference}
+                              </span>
+                            </div>
+                            <p className="text-xs text-amber-800 font-medium mt-1">
+                              {currentOpResult.motif_alerte}
+                            </p>
+
+                            <div className="mt-2.5 p-2 bg-white/90 rounded-lg border border-amber-200 text-xs space-y-1">
+                              <p className="font-bold text-amber-950 flex items-center gap-1.5">
+                                <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                                Notifications transmises en temps réel :
+                              </p>
+                              <div className="text-[11px] text-slate-600 space-y-0.5 pl-4">
+                                <p>• <strong>WhatsApp (+223 64663918)</strong> : Notification envoyée à l'Agent Guichet & à l'Analyste Conformité.</p>
+                                <p>• <strong>Email (fombadaouda72@gmail.com)</strong> : Fiche de contrôle et demande de visa transmises.</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Zone d'action directe pour l'Analyste de Conformité */}
+                        <div className="p-3 bg-white rounded-lg border border-amber-200 space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                              <FileCheck2 className="w-4 h-4 text-indigo-600" />
+                              Arbitrage Conformité en Direct (Visa Analyste)
+                            </p>
+                            <span className="text-[11px] text-slate-400">Rôle : Analyste Conformité</span>
+                          </div>
+
+                          <input
+                            type="text"
+                            value={decisionMotif}
+                            onChange={(e) => setDecisionMotif(e.target.value)}
+                            placeholder="Motif de la décision (ex: Justificatifs de mandat public et provenance des fonds validés)"
+                            className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 text-slate-800"
+                          />
+
+                          <div className="flex items-center justify-end gap-2 pt-1">
+                            <button
+                              type="button"
+                              disabled={submittingDecision}
+                              onClick={() => handleArbitrate(currentOpResult.reference, "refuser", decisionMotif || "Opération rejetée : Justificatifs de provenance insuffisants")}
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition flex items-center gap-1.5"
+                            >
+                              {submittingDecision ? <Spinner /> : <X className="w-3.5 h-3.5" />}
+                              <span>Refuser & Bloquer</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={submittingDecision}
+                              onClick={() => handleArbitrate(currentOpResult.reference, "autoriser", decisionMotif || "Dérogation accordée : Justificatifs conformes")}
+                              className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-xs"
+                            >
+                              {submittingDecision ? <Spinner /> : <Check className="w-3.5 h-3.5" />}
+                              <span>Accorder la Dérogation (Autoriser)</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : currentOpResult.statut === "autorisee" ? (
+                      <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 space-y-2">
+                        <div className="flex items-start gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                            <Check className="w-5 h-5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-emerald-900 text-sm">
+                                ✅ DÉROGATION CONFORMITÉ ACCORDÉE — DÉCAISSEMENT AUTORISÉ AU GUICHET
+                              </span>
+                              <span className="font-mono text-xs bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded font-bold">
+                                Réf: {currentOpResult.reference}
+                              </span>
+                            </div>
+                            <p className="text-xs text-emerald-800 font-medium mt-1">
+                              {currentOpResult.message}
+                            </p>
+                            <div className="mt-2 text-[11px] text-emerald-700 bg-white/80 p-2 rounded border border-emerald-200 flex items-center justify-between">
+                              <span>📱 Confirmation WhatsApp transmise à l'Agent Guichet : Remise des fonds autorisée.</span>
+                              <button
+                                onClick={() => {
+                                  toast.success("Bordereau guichet avec visa conformité envoyé à l'impression.")
+                                }}
+                                className="px-2 py-0.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded font-semibold text-[10px] flex items-center gap-1"
+                              >
+                                <Printer className="w-3 h-3" />
+                                Imprimer reçu
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : currentOpResult.statut === "refusee" ? (
+                      <div className="p-4 rounded-xl bg-rose-50 border border-rose-300 text-rose-950 space-y-2">
+                        <div className="flex items-start gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                            <X className="w-5 h-5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-rose-900 text-sm">
+                                🛑 OPÉRATION REJETÉE PAR LA CONFORMITÉ — OPÉRATION BLOQUÉE
+                              </span>
+                              <span className="font-mono text-xs bg-rose-200 text-rose-900 px-2 py-0.5 rounded font-bold">
+                                Réf: {currentOpResult.reference}
+                              </span>
+                            </div>
+                            <p className="text-xs text-rose-800 font-medium mt-1">
+                              {currentOpResult.message}
+                            </p>
+                            <p className="text-[11px] text-rose-700 mt-1">
+                              📱 Notification WhatsApp transmise à l'agent guichet : Refuser la transaction et remettre le reçu d'incident.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 text-xs flex items-center justify-between">
+                        <span className="flex items-center gap-2 font-medium">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          {currentOpResult.message}
+                        </span>
+                        <span className="font-mono text-[11px] text-slate-500 font-semibold">
+                          {currentOpResult.reference}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* ───────────────────────────────────────────────────────────── */}
@@ -842,7 +1282,146 @@ export function TransactionSimulatorView() {
       )}
 
       {/* ───────────────────────────────────────────────────────────────── */}
-      {/* VUE 2 : REGISTRE GLOBAL DES TRANSACTIONS CBS (LECTURE SEULE)        */}
+      {/* VUE 2 : FILE D'ARBITRAGE DE CONFORMITÉ (OPÉRATIONS SUSPENDUES)      */}
+      {/* ───────────────────────────────────────────────────────────────── */}
+      {activeTab === "arbitrage" && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-amber-600" />
+                File d'Arbitrage des Opérations Suspendues au Guichet
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Opérations interceptées en temps réel par le pare-feu LAKANA (Sociétaires PPE ou seuil UEMOA). L'analyste statue pour autoriser le déblocage ou consigner le rejet.
+              </p>
+            </div>
+
+            <button
+              onClick={loadPendingOps}
+              disabled={loadingPendingOps}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition flex items-center gap-2 self-start sm:self-auto shrink-0 shadow-xs"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingPendingOps ? "animate-spin" : ""}`} />
+              <span>Actualiser ({pendingOps.length})</span>
+            </button>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            {pendingOps.length === 0 ? (
+              <div className="p-12 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-800">Aucune opération en attente</h3>
+                  <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                    Toutes les opérations initiées aux guichets ont été traitées ou sont conformes aux règles de vigilance.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                    <tr>
+                      <th className="p-3.5">Réf & Heure</th>
+                      <th className="p-3.5">Sociétaire & Agence</th>
+                      <th className="p-3.5">Opération</th>
+                      <th className="p-3.5 text-right">Montant</th>
+                      <th className="p-3.5">Motif Interception</th>
+                      <th className="p-3.5 text-center">Arbitrage Conformité</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {pendingOps.map((op: any) => {
+                      const isPending = op.statut === "en_attente_conformite"
+                      return (
+                        <tr key={op.reference} className="hover:bg-slate-50/70 transition">
+                          <td className="p-3.5 align-top">
+                            <span className="font-mono font-bold text-slate-800 block">{op.reference}</span>
+                            <span className="text-[11px] text-slate-400">{formatDate(op.date_demande || op.date)}</span>
+                          </td>
+                          <td className="p-3.5 align-top">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-slate-800">{op.client_nom}</span>
+                              {op.fonction_ppe && (
+                                <span className="text-[10px] font-bold bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded border border-purple-200">
+                                  PPE
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[11px] text-slate-400 block mt-0.5">
+                              {op.agence || "Agence Centrale"} • {op.guichetier || "Guichet #01"}
+                            </span>
+                          </td>
+                          <td className="p-3.5 align-top">
+                            <span className="font-medium text-slate-700">{op.type_operation}</span>
+                          </td>
+                          <td className="p-3.5 text-right font-mono font-bold text-slate-900 align-top">
+                            {formatAmount(op.montant)}
+                          </td>
+                          <td className="p-3.5 align-top max-w-xs">
+                            <p className="text-slate-600 line-clamp-2 text-[11px]">{op.motif_alerte || "Sociétaire PPE détecté"}</p>
+                            <span className="text-[10px] text-indigo-600 mt-1 inline-block">
+                              WhatsApp & Email transmis
+                            </span>
+                          </td>
+                          <td className="p-3.5 text-center align-top">
+                            {isPending ? (
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  disabled={submittingDecision}
+                                  onClick={() =>
+                                    handleArbitrate(
+                                      op.reference,
+                                      "autoriser",
+                                      "Dérogation accordée après contrôle des pièces justificatives et origine des fonds."
+                                    )
+                                  }
+                                  className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-xs"
+                                  title="Accorder la dérogation"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Autoriser</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={submittingDecision}
+                                  onClick={() =>
+                                    handleArbitrate(
+                                      op.reference,
+                                      "refuser",
+                                      "Opération rejetée : Justificatifs de provenance non fournis ou suspects."
+                                    )
+                                  }
+                                  className="px-2.5 py-1.5 bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-semibold transition flex items-center gap-1"
+                                  title="Rejeter et bloquer l'opération"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                  <span>Rejeter</span>
+                                </button>
+                              </div>
+                            ) : op.statut === "autorisee" ? (
+                              <Badge color="green">Dérogation Accordée</Badge>
+                            ) : (
+                              <Badge color="red">Opération Rejetée</Badge>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────────── */}
+      {/* VUE 3 : REGISTRE GLOBAL DES TRANSACTIONS CBS (LECTURE SEULE)        */}
       {/* ───────────────────────────────────────────────────────────────── */}
       {activeTab === "journal" && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
