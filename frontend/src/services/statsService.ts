@@ -104,7 +104,7 @@ export const statsService = {
             clientId: "CLI-1042",
           },
           {
-            icon: "Sparkles",
+            icon: "ShieldAlert",
             iconBg: "bg-cyan-50",
             iconColor: "text-cyan-500",
             title: "Correspondance PPE détectée",

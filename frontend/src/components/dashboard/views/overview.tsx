@@ -176,7 +176,7 @@ export function OverviewView() {
                 </span>
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px] dark:text-slate-100">
-                Espace Guichet — Contrôle des Opérations
+                Espace Guichet : Contrôle des Opérations
               </h1>
               <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
                 Session active de <strong>{userName}</strong>. Toutes les transactions sont vérifiées automatiquement contre le fractionnement et les listes de sanctions.
@@ -194,7 +194,7 @@ export function OverviewView() {
                 </span>
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px] dark:text-slate-100">
-                Tableau de bord — Conformité LAKANA
+                Tableau de bord : Conformité LAKANA
               </h1>
               <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
                 Vue de pilotage réglementaire pour l'analyste <strong>{userName}</strong> (Canevas CENTIF / BCEAO).
@@ -373,7 +373,7 @@ export function OverviewView() {
           <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Activité de Surveillance — 8 dernières semaines</h3>
+                <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Activité de Surveillance : 8 dernières semaines</h3>
                 <p className="text-xs text-slate-400">Évolution globale des signaux et dossiers d'investigation</p>
               </div>
               <div className="flex items-center gap-3 text-xs text-slate-500">

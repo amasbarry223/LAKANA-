@@ -21,7 +21,7 @@ const notifList: (AlertItem & { title: string; desc: string; time: string; color
     module: "Fractionnement",
     analyste: "A. Touré",
     title: "Alerte bloquante non traitée",
-    desc: "ALR-241 (Traoré M.) — score 87/100",
+    desc: "ALR-241 (Traoré M.) : score 87/100",
     time: "Il y a 12 min",
     color: "text-rose-600",
     target: "Investigations",
@@ -36,7 +36,7 @@ const notifList: (AlertItem & { title: string; desc: string; time: string; color
     module: "Filtrage sanctions",
     analyste: "A. Touré",
     title: "Correspondance PPE confirmée",
-    desc: "ALR-238 (Touré A.) — similarité 99%",
+    desc: "ALR-238 (Touré A.) : similarité 99%",
     time: "Il y a 1h",
     color: "text-amber-600",
     target: "Filtrage sanctions/PPE",
@@ -118,7 +118,7 @@ export function DashboardHeader({
                 ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                 : "border-amber-200 bg-amber-50 text-amber-700"
             )}
-            title={online ? "En ligne — données à jour" : "Mode hors ligne — synchronisation en attente"}
+            title={online ? "En ligne : données à jour" : "Mode hors ligne : synchronisation en attente"}
           >
             {online ? <Wifi className="h-3.5 w-3.5" /> : <CloudOff className="h-3.5 w-3.5" />}
             <span className="hidden sm:inline">{online ? "Synchronisé" : "Hors ligne"}</span>

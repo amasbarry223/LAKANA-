@@ -42,8 +42,8 @@ function buildSparkline(current: number, n = 16, vol = 2): { v: number }[] {
 const FALLBACK_METRICS: Metric[] = [
   {
     label: "Alertes bloquantes",
-    value: "—",
-    delta: "— vs hier",
+    value: "-",
+    delta: "- vs hier",
     positive: false,
     chartColor: CHART_COLORS[0],
     chartId: "m1",
@@ -52,8 +52,8 @@ const FALLBACK_METRICS: Metric[] = [
   },
   {
     label: "Alertes à analyser",
-    value: "—",
-    delta: "— vs hier",
+    value: "-",
+    delta: "- vs hier",
     positive: true,
     invertDelta: true,
     chartColor: CHART_COLORS[1],
@@ -63,8 +63,8 @@ const FALLBACK_METRICS: Metric[] = [
   },
   {
     label: "Score moyen",
-    value: "—",
-    delta: "— pts vs hier",
+    value: "-",
+    delta: "- pts vs hier",
     positive: false,
     chartColor: CHART_COLORS[2],
     chartId: "m3",
@@ -73,8 +73,8 @@ const FALLBACK_METRICS: Metric[] = [
   },
   {
     label: "Temps moyen traitement",
-    value: "—",
-    delta: "— vs hier",
+    value: "-",
+    delta: "- vs hier",
     positive: true,
     invertDelta: true,
     chartColor: CHART_COLORS[3],
@@ -84,8 +84,8 @@ const FALLBACK_METRICS: Metric[] = [
   },
   {
     label: "Investigations en cours",
-    value: "—",
-    delta: "— vs hier",
+    value: "-",
+    delta: "- vs hier",
     positive: false,
     chartColor: CHART_COLORS[4],
     chartId: "m5",
@@ -160,7 +160,7 @@ export function MetricCards() {
         },
         {
           label: "Score moyen",
-          value: s.score_moyen || "—",
+          value: s.score_moyen || "-",
           delta: `${scoreNum > 50 ? "↑" : "↓"} ${scoreNum} pts`,
           positive: scoreNum <= 50,
           chartColor: CHART_COLORS[2],
@@ -170,7 +170,7 @@ export function MetricCards() {
         },
         {
           label: "Temps moyen traitement",
-          value: "—",
+          value: "-",
           delta: "N/A",
           positive: true,
           invertDelta: true,

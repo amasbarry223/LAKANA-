@@ -14,7 +14,6 @@ import {
   Clock,
   Archive,
   ChevronRight,
-  Sparkles,
   ExternalLink,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -173,7 +172,7 @@ export function AlertsCenterView() {
       {compareMode && (
         <div className="flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm text-indigo-800">
           <span className="font-semibold">Mode comparaison actif</span>
-          <span className="text-indigo-600">— Période précédente : alertes bloquantes −8%, score moyen −2 pts</span>
+          <span className="text-indigo-600">· Période précédente : alertes bloquantes -8%, score moyen -2 pts</span>
         </div>
       )}
 

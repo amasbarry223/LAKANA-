@@ -18,7 +18,7 @@ LAKANA s'intercale comme une **couche intelligente de sécurité et de conformit
 
 ## 2. Architecture Technique Globale
 
-![Architecture LAKANA - Bouclier Intermédiaire](C:\Users\DELL\.gemini\antigravity-ide\brain\b9b5bb3e-2b6a-46b9-af9c-3db71082932a\lakana_man_in_middle_arch_1790120872861.jpg)
+![Architecture LAKANA - Bouclier Intermédiaire](./docs/images/lakana_architecture.jpg)
 
 ### Pourquoi LAKANA se place ENTRE le Système Existant et la Base de Données ?
 

@@ -257,7 +257,7 @@ export function SanctionsView() {
                 </div>
                 <p className="mt-0.5 text-xs text-slate-400">{m.id} • {m.clientId} • {m.date}</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Entrée : <span className="font-medium text-slate-700">{m.matchedEntry}</span> — {m.listName}
+                  Entrée : <span className="font-medium text-slate-700">{m.matchedEntry}</span> : {m.listName}
                 </p>
               </div>
               {/* Similarity */}
@@ -281,7 +281,7 @@ export function SanctionsView() {
                       onClick={(e) => {
                         e.stopPropagation()
                         setStatus(m.id, "confirme")
-                        toast.error("Correspondance confirmée", { description: `${m.id} — ${m.client}. Mesure de gel requise (FLT-04).` })
+                        toast.error("Correspondance confirmée", { description: `${m.id} : ${m.client}. Mesure de gel requise (FLT-04).` })
                       }}
                       className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100"
                       title="Confirmer (FLT-04)"
@@ -292,7 +292,7 @@ export function SanctionsView() {
                       onClick={(e) => {
                         e.stopPropagation()
                         setStatus(m.id, "rejete")
-                        toast.success("Faux positif rejeté", { description: `${m.id} — ${m.client}. Rejet motivé (FLT-05).` })
+                        toast.success("Faux positif rejeté", { description: `${m.id} : ${m.client}. Rejet motivé (FLT-05).` })
                       }}
                       className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200"
                       title="Rejeter faux positif (FLT-05)"
@@ -306,7 +306,7 @@ export function SanctionsView() {
                     onClick={(e) => {
                       e.stopPropagation()
                       setStatus(m.id, "en_attente")
-                      toast.info("Correspondance remise en attente", { description: `${m.id} — ${m.client}.` })
+                      toast.info("Correspondance remise en attente", { description: `${m.id} : ${m.client}.` })
                     }}
                     className="rounded-md px-2 py-1 text-[11px] font-semibold text-slate-500 hover:bg-slate-100"
                   >
@@ -337,7 +337,7 @@ export function SanctionsView() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Correspondance {selectedMatch.id}</h3>
-                <p className="mt-0.5 text-xs text-slate-400">{selectedMatch.client} — {selectedMatch.clientId}</p>
+                <p className="mt-0.5 text-xs text-slate-400">{selectedMatch.client} : {selectedMatch.clientId}</p>
               </div>
               <button
                 onClick={() => setSelectedMatch(null)}
@@ -407,7 +407,7 @@ export function SanctionsView() {
                   <button
                     onClick={() => {
                       setStatus(selectedMatch.id, "confirme")
-                      toast.error("Correspondance confirmée", { description: `${selectedMatch.id} — ${selectedMatch.client}. Mesure de gel requise (FLT-04).` })
+                      toast.error("Correspondance confirmée", { description: `${selectedMatch.id} : ${selectedMatch.client}. Mesure de gel requise (FLT-04).` })
                       setSelectedMatch(null)
                     }}
                     className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-rose-600 py-2.5 text-sm font-semibold text-white hover:bg-rose-700"
@@ -418,7 +418,7 @@ export function SanctionsView() {
                   <button
                     onClick={() => {
                       setStatus(selectedMatch.id, "rejete")
-                      toast.success("Faux positif rejeté", { description: `${selectedMatch.id} — ${selectedMatch.client}. Rejet motivé (FLT-05).` })
+                      toast.success("Faux positif rejeté", { description: `${selectedMatch.id} : ${selectedMatch.client}. Rejet motivé (FLT-05).` })
                       setSelectedMatch(null)
                     }}
                     className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
@@ -432,13 +432,13 @@ export function SanctionsView() {
                   <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
                     <span className="font-medium">Décision enregistrée :</span>{" "}
                     {selectedMatch.status === "confirme"
-                      ? "correspondance confirmée — mesure de gel appliquée."
+                      ? "correspondance confirmée : mesure de gel appliquée."
                       : "faux positif rejeté et motivé."}
                   </div>
                   <button
                     onClick={() => {
                       setStatus(selectedMatch.id, "en_attente")
-                      toast.info("Correspondance remise en attente", { description: `${selectedMatch.id} — ${selectedMatch.client}.` })
+                      toast.info("Correspondance remise en attente", { description: `${selectedMatch.id} : ${selectedMatch.client}.` })
                       setSelectedMatch(null)
                     }}
                     className="w-full rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"

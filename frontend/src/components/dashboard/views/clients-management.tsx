@@ -660,10 +660,10 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                         {isEntreprise ? (
                           <div className="text-xs text-slate-600 dark:text-slate-300 space-y-0.5">
                             <p>
-                              <span className="font-medium text-slate-400">RCCM:</span> {client.rccm || "—"}
+                              <span className="font-medium text-slate-400">RCCM:</span> {client.rccm || "-"}
                             </p>
                             <p>
-                              <span className="font-medium text-slate-400">NIF:</span> {client.nif || "—"}
+                              <span className="font-medium text-slate-400">NIF:</span> {client.nif || "-"}
                             </p>
                           </div>
                         ) : client.estPpe ? (
@@ -1070,7 +1070,7 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                         </div>
 
                         <p className="text-[11px] text-amber-700 dark:text-amber-400">
-                          ⚠️ <strong>Mesure réglementaire :</strong> L'enrôlement en tant que PPE déclenche automatiquement une vigilance renforcée (EDD) et un niveau de risque élevé sous surveillance CENTIF.
+                          <strong>Mesure réglementaire :</strong> L&apos;enrôlement en tant que PPE déclenche automatiquement une vigilance renforcée (EDD) et un niveau de risque élevé sous surveillance CENTIF.
                         </p>
                       </div>
                     )}

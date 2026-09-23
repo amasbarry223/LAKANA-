@@ -58,22 +58,22 @@ const statusColor: Record<User["status"], string> = {
   "Verrouillé": "bg-rose-50 text-rose-700 border-rose-200",
 }
 
-// Matrice des droits — section 12.3
+// Matrice des droits : section 12.3
 const matrix = [
-  { module: "Centre d'alertes", analyste: "E", responsable: "E", admin: "—", auditeur: "L" },
-  { module: "Client 360° et graphe", analyste: "L", responsable: "L", admin: "—", auditeur: "L" },
-  { module: "Investigations", analyste: "E", responsable: "E", admin: "—", auditeur: "L" },
-  { module: "Paramétrage du scoring", analyste: "—", responsable: "E", admin: "—", auditeur: "L" },
-  { module: "Listes sanctions/PPE", analyste: "L", responsable: "E", admin: "—", auditeur: "L" },
-  { module: "Gestion des utilisateurs", analyste: "—", responsable: "—", admin: "E", auditeur: "L" },
-  { module: "Rapports réglementaires", analyste: "—", responsable: "E", admin: "L", auditeur: "L" },
-  { module: "Journal d'audit", analyste: "—", responsable: "L", admin: "L", auditeur: "L" },
+  { module: "Centre d'alertes", analyste: "E", responsable: "E", admin: "-", auditeur: "L" },
+  { module: "Client 360° et graphe", analyste: "L", responsable: "L", admin: "-", auditeur: "L" },
+  { module: "Investigations", analyste: "E", responsable: "E", admin: "-", auditeur: "L" },
+  { module: "Paramétrage du scoring", analyste: "-", responsable: "E", admin: "-", auditeur: "L" },
+  { module: "Listes sanctions/PPE", analyste: "L", responsable: "E", admin: "-", auditeur: "L" },
+  { module: "Gestion des utilisateurs", analyste: "-", responsable: "-", admin: "E", auditeur: "L" },
+  { module: "Rapports réglementaires", analyste: "-", responsable: "E", admin: "L", auditeur: "L" },
+  { module: "Journal d'audit", analyste: "-", responsable: "L", admin: "L", auditeur: "L" },
 ]
 
 const accessColor: Record<string, string> = {
   "E": "bg-emerald-100 text-emerald-700",
   "L": "bg-blue-100 text-blue-700",
-  "—": "bg-slate-50 text-slate-300",
+  "-": "bg-slate-50 text-slate-300",
 }
 
 type SortColumn = "name" | "lastLogin"
@@ -165,11 +165,11 @@ export function UsersView() {
       role: form.role,
       mfa: form.mfa,
       status: "Actif",
-      lastLogin: "—",
+      lastLogin: "-",
       institution: form.institution,
     }
     setItems((arr) => [newUser, ...arr])
-    toast.success("Utilisateur créé", { description: `${form.name} (${form.role}) — compte actif (BO-01).` })
+    toast.success("Utilisateur créé", { description: `${form.name} (${form.role}) : compte actif (BO-01).` })
     setForm({ name: "", email: "", role: "Analyste conformité", institution: "SFD Bamako", mfa: false })
     setCreateOpen(false)
   }
@@ -193,7 +193,7 @@ export function UsersView() {
           : it
       )
     )
-    toast.success("Utilisateur modifié", { description: `${editForm.name} — modifications enregistrées (BO-01).` })
+    toast.success("Utilisateur modifié", { description: `${editForm.name} : modifications enregistrées (BO-01).` })
     setEditOpen(false)
     setEditingUser(null)
   }
@@ -378,14 +378,14 @@ export function UsersView() {
         </div>
       </div>
 
-      {/* Matrice des droits — section 12.3 */}
+      {/* Matrice des droits : section 12.3 */}
       <div className="rounded-xl border border-slate-200 bg-white p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-slate-400" />
             <h3 className="text-base font-semibold text-slate-900">Matrice des droits par module</h3>
           </div>
-          <span className="text-xs text-slate-400">Section 12.3 — L : Lecture · E : Écriture</span>
+          <span className="text-xs text-slate-400">Section 12.3 : L (Lecture) · E (Écriture)</span>
         </div>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
@@ -515,7 +515,7 @@ export function UsersView() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Modifier l'utilisateur</h3>
-                <p className="mt-0.5 text-xs text-slate-400">{editingUser.id} — {editingUser.name}</p>
+                <p className="mt-0.5 text-xs text-slate-400">{editingUser.id} : {editingUser.name}</p>
               </div>
               <button onClick={() => setEditOpen(false)} className="rounded-md p-1 text-slate-400 hover:bg-slate-100">
                 <X className="h-4 w-4" />

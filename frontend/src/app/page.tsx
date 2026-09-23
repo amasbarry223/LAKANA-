@@ -78,6 +78,7 @@ const views: Record<string, React.ComponentType<any>> = {
   "Client 360°": Client360View,
   "Graphe de relations": GraphView,
   "Investigations": InvestigationsView,
+  "Consultation Réglementaire": AssistantIAView,
   "Assistant IA": AssistantIAView,
   "Filtrage sanctions/PPE": SanctionsView,
   "Risk Score": RiskScoreView,

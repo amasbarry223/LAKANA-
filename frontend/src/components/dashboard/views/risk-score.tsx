@@ -30,7 +30,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { useDashboard } from "@/lib/dashboard-context"
 
-// Section 14 du cahier des charges — système de scoring
+// Section 14 du cahier des charges : système de scoring
 type Criterion = {
   code: string
   label: string
@@ -240,7 +240,7 @@ export function RiskScoreView() {
         </div>
         {total !== 100 && (
           <p className="mt-1.5 text-rose-600">
-            ⚠️ Le total devrait être 100 pts (actuel: {total}). Ajustez les pondérations.
+            Attention : Le total devrait être 100 pts (actuel: {total}). Ajustez les pondérations.
           </p>
         )}
       </div>
@@ -282,10 +282,10 @@ export function RiskScoreView() {
               </ResponsiveContainer>
             )}
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-4 text-[11px] text-slate-500">
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />Faible — {distribStats.faibles}</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500" />Moyen — {distribStats.moyens}</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-rose-500" />Élevé — {distribStats.eleves}</span>
+          <div className="flex items-center gap-4 text-xs text-slate-500">
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />Faible : {distribStats.faibles}</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500" />Moyen : {distribStats.moyens}</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-rose-500" />Élevé : {distribStats.eleves}</span>
           </div>
         </div>
 

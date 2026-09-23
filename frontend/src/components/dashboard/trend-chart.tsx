@@ -23,7 +23,7 @@ type Series = {
   color: string
 }
 
-// Niveaux d'alerte — ALR-01 : bloquante, à analyser, informative
+// Niveaux d'alerte : ALR-01 : bloquante, à analyser, informative
 const series: Series[] = [
   { key: "bloquante", name: "Bloquante", color: "#EF4444" },
   { key: "analyser", name: "À analyser", color: "#F59E0B" },

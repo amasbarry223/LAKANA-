@@ -152,7 +152,7 @@ class NotificationService:
 
         # Formatage du message WhatsApp professionnel sans icône ni émoji
         message = (
-            f"*ALERTE CONFORMITE LAKANA — {niveau.upper()}*\n"
+            f"*ALERTE CONFORMITE LAKANA : {niveau.upper()}*\n"
             f"------------------------------------\n"
             f"Ref Dossier : {alerte_ref}\n"
             f"Typologie : {type_alerte}\n"
@@ -201,7 +201,7 @@ class NotificationService:
         """
         recipient = destinataire or self.default_compliance_email
         now_str = datetime.utcnow().strftime("%d/%m/%Y à %H:%M")
-        subject = f"[LAKANA CONFORMITE] Alerte {niveau.upper()} : {type_alerte} — {client_nom}"
+        subject = f"[LAKANA CONFORMITE] Alerte {niveau.upper()} : {type_alerte} : {client_nom}"
 
         facteurs_html = "".join([f"<li>{f}</li>" for f in facteurs]) if facteurs else "<li>Signalement automatisé du pare-feu</li>"
         plain_text = f"ALERTE LAKANA ({niveau.upper()}) - Ref: {alerte_ref}\nClient: {client_nom}\nMontant: {montant_fcfa:,.0f} FCFA\nAgence: {agence}\nMotif: {type_alerte}"
@@ -211,7 +211,7 @@ class NotificationService:
         <body style="font-family: Arial, sans-serif; color: #1e293b; line-height: 1.6;">
             <div style="max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
                 <div style="background-color: #4338ca; color: white; padding: 16px 24px;">
-                    <h2 style="margin: 0; font-size: 18px;">LAKANA — Signalement de Conformité LBC/FT/FP</h2>
+                    <h2 style="margin: 0; font-size: 18px;">LAKANA : Signalement de Conformité LBC/FT/FP</h2>
                     <p style="margin: 4px 0 0 0; font-size: 12px; opacity: 0.85;">Instruction réglementaire CENTIF / UEMOA</p>
                 </div>
                 <div style="padding: 24px;">

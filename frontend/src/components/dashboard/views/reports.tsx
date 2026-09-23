@@ -19,12 +19,12 @@ type Report = {
 }
 
 const initialReports: Report[] = [
-  { id: "RPT-024", title: "Déclaration de soupçon — CENTIF", type: "CENTIF-Mali", period: "Août 2026", generatedAt: "25/08/2026 10:15", status: "Généré", size: "1,2 Mo", format: "PDF" },
+  { id: "RPT-024", title: "Déclaration de soupçon : CENTIF", type: "CENTIF-Mali", period: "Août 2026", generatedAt: "25/08/2026 10:15", status: "Généré", size: "1,2 Mo", format: "PDF" },
   { id: "RPT-023", title: "Synthèse alertes mensuelle", type: "Contrôle interne", period: "Juillet 2026", generatedAt: "05/08/2026 08:00", status: "Généré", size: "3,4 Mo", format: "XLSX" },
   { id: "RPT-022", title: "Rapport conformité BCEAO", type: "BCEAO", period: "T2 2026", generatedAt: "15/07/2026 14:30", status: "Généré", size: "2,8 Mo", format: "PDF" },
-  { id: "RPT-021", title: "Déclaration de soupçon — CENTIF", type: "CENTIF-Mali", period: "Juillet 2026", generatedAt: "28/07/2026 11:20", status: "Généré", size: "0,9 Mo", format: "PDF" },
+  { id: "RPT-021", title: "Déclaration de soupçon : CENTIF", type: "CENTIF-Mali", period: "Juillet 2026", generatedAt: "28/07/2026 11:20", status: "Généré", size: "0,9 Mo", format: "PDF" },
   { id: "RPT-020", title: "Synthèse alertes mensuelle", type: "Contrôle interne", period: "Juin 2026", generatedAt: "03/07/2026 08:00", status: "Généré", size: "3,1 Mo", format: "XLSX" },
-  { id: "RPT-025", title: "Synthèse alertes mensuelle", type: "Contrôle interne", period: "Août 2026", generatedAt: "—", status: "Planifié", size: "—", format: "XLSX" },
+  { id: "RPT-025", title: "Synthèse alertes mensuelle", type: "Contrôle interne", period: "Août 2026", generatedAt: "-", status: "Planifié", size: "-", format: "XLSX" },
 ]
 
 const statusConfig: Record<Report["status"], { color: string; icon: React.ComponentType<{ className?: string }> }> = {
@@ -47,7 +47,7 @@ const formatColor: Record<Report["format"], string> = {
 
 const templates: { title: string; desc: string; type: Report["type"]; color: string }[] = [
   { title: "Déclaration de soupçon CENTIF", desc: "Format réglementaire CENTIF-Mali", type: "CENTIF-Mali", color: "#EF4444" },
-  { title: "Rapport trimestriel BCEAO", desc: "Conformité LBC/FT — Banque centrale", type: "BCEAO", color: "#3B82F6" },
+  { title: "Rapport trimestriel BCEAO", desc: "Conformité LBC/FT : Banque centrale", type: "BCEAO", color: "#3B82F6" },
   { title: "Synthèse mensuelle interne", desc: "Tableau de bord conformité", type: "Contrôle interne", color: "#64748B" },
   { title: "Export investigations clôturées", desc: "Liste des dossiers traités", type: "Synthèse mensuelle", color: "#6366F1" },
 ]
@@ -215,7 +215,7 @@ export function ReportsView() {
       }
       setReports((prev) => [newReport, ...prev])
       setGenerating(null)
-      toast.success("Rapport généré", { description: `${t.title} — prêt au téléchargement.` })
+      toast.success("Rapport généré", { description: `${t.title} : prêt au téléchargement.` })
     }, 2000)
   }
 
@@ -400,7 +400,7 @@ export function ReportsView() {
                         <Badge variant="outline" className={cn("border", typeColor[r.type])}>{r.type}</Badge>
                       </div>
                       <p className="mt-0.5 text-xs text-slate-400">
-                        {r.id} • {r.period} • {r.format} {r.size !== "—" && `• ${r.size}`}
+                        {r.id} • {r.period} • {r.format} {r.size !== "-" && `• ${r.size}`}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -530,7 +530,7 @@ export function ReportsView() {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-bold text-slate-900">Liste des Transactions de 15 000 000 FCFA et plus</h3>
-                <Badge className="bg-amber-100 text-amber-800 border-amber-200">Déclaration OME — 11 Colonnes</Badge>
+                <Badge className="bg-amber-100 text-amber-800 border-amber-200">Déclaration OME : 11 Colonnes</Badge>
               </div>
               <p className="text-xs text-slate-500 mt-1">
                 Déclaration systématique des opérations de montant élevé (OME) auprès de la BCEAO / CENTIF.
@@ -637,7 +637,7 @@ export function ReportsView() {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-bold text-slate-900">Liste des Personnes Politiquement Exposées (PPE)</h3>
-                <Badge className="bg-violet-100 text-violet-800 border-violet-200">Surveillance Renforcée — 7 Colonnes</Badge>
+                <Badge className="bg-violet-100 text-violet-800 border-violet-200">Surveillance Renforcée : 7 Colonnes</Badge>
               </div>
               <p className="text-xs text-slate-500 mt-1">
                 Conforme au registre nominatif légal des PPE pour les Systèmes Financiers Décentralisés (SFD).
@@ -870,7 +870,7 @@ export function ReportsView() {
                         </head>
                         <body>
                           <div class="header">
-                            <div class="brand">LAKANA — Système de Conformité AML/CFT (UEMOA)</div>
+                            <div class="brand">LAKANA : Système de Conformité AML/CFT (UEMOA)</div>
                             <div class="title">${previewReport.title}</div>
                             <div class="meta">Réf : ${previewReport.id} | Période : ${previewReport.period} | Date : ${previewReport.generatedAt} | Destinataire : ${previewReport.type}</div>
                           </div>
@@ -969,7 +969,7 @@ export function ReportsView() {
                     }
                   } else {
                     let csv = "\uFEFF"
-                    csv += `LAKANA — ${previewReport.title}\n`
+                    csv += `LAKANA : ${previewReport.title}\n`
                     csv += `Reference;${previewReport.id}\nPeriode;${previewReport.period}\nType;${previewReport.type}\nDate;${previewReport.generatedAt}\n\n`
                     csv += `Indicateur;Valeur;Statut\n`
                     csv += `Transactions analysees;19690;Conforme\n`

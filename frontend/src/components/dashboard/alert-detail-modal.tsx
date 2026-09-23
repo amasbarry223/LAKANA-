@@ -50,7 +50,7 @@ export function AlertDetailModal({ alert, onClose }: AlertDetailModalProps) {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-slate-900">Détail de l'alerte</h3>
-            <p className="mt-0.5 text-xs text-slate-400">{alert.ref} — {alert.client}</p>
+            <p className="mt-0.5 text-xs text-slate-400">{alert.ref} : {alert.client}</p>
           </div>
           <button onClick={onClose} className="rounded-md p-1 text-slate-400 hover:bg-slate-100" aria-label="Fermer">
             <X className="h-4 w-4" />

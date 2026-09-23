@@ -24,7 +24,7 @@ const connectors = [
   { name: "SFD Bamako", type: "API REST", status: "Connecté", color: "#10B981", lastSync: "14:30" },
   { name: "SFD Sikasso", type: "API REST", status: "Connecté", color: "#10B981", lastSync: "12:15" },
   { name: "SFD Kayes", type: "Fichier CSV", status: "Dégradé", color: "#F59E0B", lastSync: "09:00" },
-  { name: "Import manuel", type: "CSV / Excel", status: "Disponible", color: "#6366F1", lastSync: "—" },
+  { name: "Import manuel", type: "CSV / Excel", status: "Disponible", color: "#6366F1", lastSync: "-" },
 ]
 
 type PendingFile = {
@@ -65,15 +65,15 @@ export function IntegrationView() {
     if (!pendingFile) return
     const hasErrors = pendingFile.doublons > 0 || pendingFile.incoherences > 0
     addImport({
-      source: `Import manuel — ${pendingFile.name}`,
+      source: `Import manuel : ${pendingFile.name}`,
       type: pendingFile.type,
       records: pendingFile.records,
       status: hasErrors ? "Erreurs" : "Validé",
       doublons: pendingFile.doublons || undefined,
       incoherences: pendingFile.incoherences || undefined,
     })
-    toast.success("Import confirmé", {
-      description: `${pendingFile.records.toLocaleString("fr-FR")} enregistrements intégrés — analyse auto déclenchée (INT-06).`,
+    toast.success("Fichier intégré avec succès", {
+      description: `${pendingFile.records.toLocaleString("fr-FR")} enregistrements intégrés : analyse auto déclenchée (INT-06).`,
     })
     setPendingFile(null)
   }
@@ -133,7 +133,7 @@ export function IntegrationView() {
             <UploadCloud className="h-7 w-7 text-indigo-600" />
           </div>
           <p className="mt-3 text-sm font-semibold text-slate-900">Déposez un fichier ici</p>
-          <p className="mt-1 text-xs text-slate-400">Formats acceptés : CSV, Excel (.xlsx) — INT-01</p>
+          <p className="mt-1 text-xs text-slate-400">Formats acceptés : CSV, Excel (.xlsx) : INT-01</p>
           <button
             onClick={() => fileInputRef.current?.click()}
             className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700"
@@ -159,12 +159,12 @@ export function IntegrationView() {
                 <button
                   onClick={() => {
                     addImport({
-                      source: `${c.name} — sync manuelle`,
+                      source: `${c.name} : sync manuelle`,
                       type: "API",
                       records: Math.floor(Math.random() * 3000) + 500,
                       status: "Validé",
                     })
-                    toast.success("Connecteur synchronisé", { description: `${c.name} — synchronisation relancée (BO-07).` })
+                    toast.success("Connecteur synchronisé", { description: `${c.name} : synchronisation relancée (BO-07).` })
                   }}
                   className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                   title="Synchroniser ce connecteur"

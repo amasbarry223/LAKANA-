@@ -12,7 +12,7 @@ const tabs = ["Général", "Scoring", "Seuils réglementaires", "Institutions", 
 type Tab = (typeof tabs)[number]
 
 const scoringRules = [
-  { id: "R-FRC-01", label: "Fractionnement — cumul > seuil (48h)", weight: 30, max: 40 },
+  { id: "R-FRC-01", label: "Fractionnement : cumul > seuil (48h)", weight: 30, max: 40 },
   { id: "R-VOL-01", label: "Volume > 3× moyenne historique", weight: 25, max: 30 },
   { id: "R-FREQ-01", label: "Fréquence > 10 transactions/jour", weight: 20, max: 25 },
   { id: "R-PPE-01", label: "Correspondance exacte PPE", weight: 15, max: 20 },
@@ -465,7 +465,7 @@ export function SettingsView() {
               <div className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
                 <div>
                   <p className="text-sm font-medium text-slate-700">Isolation des données</p>
-                  <p className="text-[11px] text-slate-400">BO-08 — données cloisonnées par institution</p>
+                  <p className="text-[11px] text-slate-400">BO-08 : données cloisonnées par institution</p>
                 </div>
                 <Switch
                   checked={instForm.isolated}

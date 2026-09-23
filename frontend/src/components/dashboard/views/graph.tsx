@@ -348,7 +348,7 @@ export function GraphView() {
       <html lang="fr">
       <head>
         <meta charset="UTF-8" />
-        <title>Rapport d'Investigation Financière — LAKANA</title>
+        <title>Rapport d&apos;Investigation Financière : LAKANA</title>
         <style>
           @page { size: A4 landscape; margin: 15mm; }
           body {
@@ -422,7 +422,7 @@ export function GraphView() {
       <body>
         <div class="header">
           <div>
-            <div class="title">🛡️ LAKANA — Graphe d'Investigation des Flux Financiers</div>
+            <div class="title">LAKANA : Graphe d&apos;Investigation des Flux Financiers</div>
             <div class="subtitle">Conformité LBC/FT/FP • Dossier : ${graphData.title}</div>
           </div>
           <div class="badge">Édité le ${dateStr}</div>
@@ -473,7 +473,7 @@ export function GraphView() {
                 <td><strong>${n.label}</strong></td>
                 <td>${n.type}</td>
                 <td>${n.alert ? "ALERTE ROUGE" : "Régulier"}</td>
-                <td>${n.details?.cumul ? Number(n.details.cumul).toLocaleString("fr-FR") + " FCFA" : "—"}</td>
+                <td>${n.details?.cumul ? Number(n.details.cumul).toLocaleString("fr-FR") + " FCFA" : "-"}</td>
                 <td>${n.details?.motif_alerte || (n.alert ? "Dépassement seuils 15M ou 2x habituel" : "Conforme")}</td>
               </tr>
             `
@@ -629,7 +629,7 @@ export function GraphView() {
                               </div>
                               {comptesList.length > 0 && (
                                 <p className="text-[11px] text-indigo-600 font-mono mt-1 truncate">
-                                  💳 {comptesList.length} cpte(s) : {comptesList.join(", ")}
+                                  {comptesList.length} compte(s) : {comptesList.join(", ")}
                                 </p>
                               )}
                             </div>
@@ -873,7 +873,7 @@ export function GraphView() {
                       onMouseLeave={() => setHovered(null)}
                       className="cursor-pointer transition-transform"
                     >
-                      <title>{`${n.label} — ${n.type} ${isAlert ? "(Alerte Rouge)" : ""}`}</title>
+                      <title>{`${n.label} : ${n.type} ${isAlert ? "(Alerte Rouge)" : ""}`}</title>
                       {isHov && !isSel && (
                         <circle
                           cx={n.x}
@@ -960,7 +960,7 @@ export function GraphView() {
                   <div className="rounded-xl bg-red-50 border border-red-200 p-3 space-y-1.5 animate-in fade-in-50">
                     <div className="flex items-center gap-1.5 text-red-700 font-bold text-xs">
                       <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
-                      Coloration Rouge — Alerte Active
+                      Coloration Rouge : Alerte Active
                     </div>
                     <p className="text-xs text-red-600">
                       {sel.details?.motif_alerte ||

@@ -36,17 +36,17 @@ type Notif = {
 }
 
 const notifs: Notif[] = [
-  { id: "N-012", type: "bloquante", title: "Alerte bloquante non traitée", desc: "ALR-241 (Traoré M.) — score 87/100, en attente depuis 2h.", time: "Il y a 12 min", read: false },
-  { id: "N-011", type: "bloquante", title: "Correspondance PPE confirmée", desc: "FLT-225 (Touré A.) — similarité 99%, mesure de gel requise.", time: "Il y a 1h", read: false },
+  { id: "N-012", type: "bloquante", title: "Alerte bloquante non traitée", desc: "ALR-241 (Traoré M.) : score 87/100, en attente depuis 2h.", time: "Il y a 12 min", read: false },
+  { id: "N-011", type: "bloquante", title: "Correspondance PPE confirmée", desc: "FLT-225 (Touré A.) : similarité 99%, mesure de gel requise.", time: "Il y a 1h", read: false },
   { id: "N-010", type: "investigation", title: "Investigation > 24h", desc: "INV-238 (Diarra F.) en cours depuis 26h.", time: "Il y a 2h", read: false },
-  { id: "N-009", type: "synchro", title: "Connecteur dégradé", desc: "SFD Kayes — dernière synchronisation il y a 5h.", time: "Il y a 3h", read: true },
-  { id: "N-008", type: "liste", title: "Nouvelle version de liste importée", desc: "Liste PPE Mali v2.4 — 286 enregistrements.", time: "Il y a 5h", read: true },
+  { id: "N-009", type: "synchro", title: "Connecteur dégradé", desc: "SFD Kayes : dernière synchronisation il y a 5h.", time: "Il y a 3h", read: true },
+  { id: "N-008", type: "liste", title: "Nouvelle version de liste importée", desc: "Liste PPE Mali v2.4 : 286 enregistrements.", time: "Il y a 5h", read: true },
   { id: "N-007", type: "investigation", title: "Investigation clôturée", desc: "INV-229 (Coulibaly A.) classée sans suite.", time: "Hier", read: true },
   { id: "N-006", type: "systeme", title: "Tentative de connexion échouée", desc: "Compte A. Diarra verrouillé après 5 essais (AUTH-04).", time: "Hier", read: true },
-  { id: "N-005", type: "synchro", title: "Resynchronisation complète", desc: "Base locale mise à jour — 18 428 enregistrements.", time: "Hier", read: true },
+  { id: "N-005", type: "synchro", title: "Resynchronisation complète", desc: "Base locale mise à jour : 18 428 enregistrements.", time: "Hier", read: true },
 ]
 
-const typeConfig: Record<Notif["type"], { color: string; icon: React.ComponentType<{ className?: string }>; label: string }> = {
+const typeConfig: Record<string, { color: string; icon: React.ComponentType<{ className?: string }>; label: string }> = {
   bloquante: { color: "bg-rose-50 text-rose-700 border-rose-200", icon: AlertTriangle, label: "Bloquante" },
   investigation: { color: "bg-amber-50 text-amber-700 border-amber-200", icon: Clock, label: "Investigation" },
   synchro: { color: "bg-cyan-50 text-cyan-700 border-cyan-200", icon: Bell, label: "Synchronisation" },
@@ -76,15 +76,15 @@ export function NotificationsView() {
       const res = await filteringService.testDispatch("+22364663918", "fombadaouda72@gmail.com")
       await fetchDispatched()
       if (res.whatsapp_statut?.includes("delivre")) {
-        toast.success(`✅ Alerte WhatsApp expédiée en direct au ${res.whatsapp_destinataire}`)
+        toast.success(`Alerte WhatsApp expédiée en direct au ${res.whatsapp_destinataire}`)
       } else {
-        toast.info(`ℹ️ WhatsApp (${res.whatsapp_statut}) : Vérifiez votre WASENDER_API_KEY dans backend/.env (compte https://wasenderapi.com/dashboard)`)
+        toast.info(`WhatsApp (${res.whatsapp_statut}) : Vérifiez votre WASENDER_API_KEY dans backend/.env (compte https://wasenderapi.com/dashboard)`)
       }
 
       if (res.email_statut?.includes("delivre")) {
-        toast.success(`✅ Fiche CENTIF expédiée par Email à ${res.email_destinataire}`)
+        toast.success(`Fiche CENTIF expédiée par Email à ${res.email_destinataire}`)
       } else {
-        toast.info(`ℹ️ Email (${res.email_statut}) : Renseignez SMTP_PASSWORD dans backend/.env pour l'envoi Gmail réel`)
+        toast.info(`Email (${res.email_statut}) : Renseignez SMTP_PASSWORD dans backend/.env pour l'envoi Gmail réel`)
       }
     } catch (e: any) {
       toast.error(e.message || "Erreur lors du test des canaux")
@@ -103,7 +103,7 @@ export function NotificationsView() {
           id: `N-DYN-${a.id.slice(0, 5)}`,
           type: "bloquante",
           title: `Alerte ${a.level === "bloquante" ? "bloquante" : "critique"} non traitée`,
-          desc: `${a.ref || "ALR"} (${a.client}) — score ${a.score}/100, type: ${a.type}`,
+          desc: `${a.ref || "ALR"} (${a.client}) : score ${a.score}/100, type: ${a.type}`,
           time: i === 0 ? "Il y a 5 min" : `Il y a ${(i + 1) * 15} min`,
           read: false,
         }))

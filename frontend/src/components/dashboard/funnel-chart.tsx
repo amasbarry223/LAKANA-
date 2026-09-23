@@ -143,14 +143,14 @@ export function FunnelChartWidget() {
           <span className="text-slate-500">Taux d&#39;alerte global :</span>
           <span className="font-semibold text-indigo-600">
             {steps.length > 1
-              ? `${steps[2]?.pct ?? "—"}%`
-              : "—"}
+              ? `${steps[2]?.pct ?? "-"}%`
+              : "-"}
           </span>
         </div>
         <div className="flex items-center gap-2 text-sm">
           <span className="text-slate-500">Total traité :</span>
           <span className="font-semibold text-slate-900">
-            {steps[0] ? fmt(steps[0].value) : "—"} transactions
+            {steps[0] ? fmt(steps[0].value) : "-"} transactions
           </span>
         </div>
         <div className="flex items-center gap-2 text-sm">
@@ -160,7 +160,7 @@ export function FunnelChartWidget() {
               ? `${topReason.label} (${topReason.count} alerte${topReason.count > 1 ? "s" : ""})`
               : totalAlerts !== null
               ? `${totalAlerts} alertes au total`
-              : "—"}
+              : "-"}
           </span>
         </div>
         <div className="flex items-center gap-2 text-sm">
@@ -197,7 +197,7 @@ export function FunnelChartWidget() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Détails du pipeline de détection</h3>
-                <p className="mt-0.5 text-xs text-slate-400">5 étapes de traitement LBC/FT — mise à jour il y a 12 min</p>
+                <p className="mt-0.5 text-xs text-slate-400">5 étapes de traitement LBC/FT : mise à jour il y a 12 min</p>
               </div>
               <button
                 onClick={() => setDetailOpen(false)}
@@ -254,19 +254,19 @@ export function FunnelChartWidget() {
               <div>
                 <p className="text-[11px] text-slate-400">Total traité</p>
                 <p className="mt-0.5 text-sm font-semibold text-slate-900">
-                  {steps[0] ? `${fmt(steps[0].value)} transactions` : "—"}
+                  {steps[0] ? `${fmt(steps[0].value)} transactions` : "-"}
                 </p>
               </div>
               <div>
                 <p className="text-[11px] text-slate-400">Taux d&#39;alerte global</p>
                 <p className="mt-0.5 text-sm font-semibold text-indigo-600">
-                  {steps.length > 2 ? `${steps[2].pct}%` : "—"}
+                  {steps.length > 2 ? `${steps[2].pct}%` : "-"}
                 </p>
               </div>
               <div>
                 <p className="text-[11px] text-slate-400">Plus grosse source</p>
                 <p className="mt-0.5 text-sm font-semibold text-rose-600">
-                  {topReason ? `${topReason.label} (${topReason.count})` : "—"}
+                  {topReason ? `${topReason.label} (${topReason.count})` : "-"}
                 </p>
               </div>
             </div>

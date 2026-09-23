@@ -64,20 +64,20 @@ const INITIAL_INVESTIGATIONS: Investigation[] = [
   { ref: "INV-241", client: "Traoré, Moussa", alertRef: "ALR-241", type: "Fractionnement", analyste: "A. Touré", status: "en_cours", dateOuverture: "25/08/2026", notes: 4, pieces: 2, score: 87 },
   { ref: "INV-238", client: "Diarra, Fatoumata", alertRef: "ALR-238", type: "Correspondance PPE", analyste: "A. Touré", status: "en_cours", dateOuverture: "24/08/2026", notes: 2, pieces: 1, score: 72 },
   { ref: "INV-235", client: "Keïta, Ibrahim", alertRef: "ALR-235", type: "Volume inhabituel", analyste: "M. Diallo", status: "en_cours", dateOuverture: "23/08/2026", notes: 1, pieces: 0, score: 64 },
-  { ref: "INV-229", client: "Coulibaly, Aïssata", alertRef: "ALR-229", type: "Fréquence anormale", analyste: "A. Touré", status: "cloturee", dateOuverture: "20/08/2026", dateCloture: "22/08/2026", decision: "Classée sans suite — activité justifiée", notes: 5, pieces: 3, score: 58 },
+  { ref: "INV-229", client: "Coulibaly, Aïssata", alertRef: "ALR-229", type: "Fréquence anormale", analyste: "A. Touré", status: "cloturee", dateOuverture: "20/08/2026", dateCloture: "22/08/2026", decision: "Classée sans suite : activité justifiée", notes: 5, pieces: 3, score: 58 },
   { ref: "INV-219", client: "Touré, Seydou", alertRef: "ALR-219", type: "Relations inhabituelles", analyste: "M. Diallo", status: "transmise", dateOuverture: "15/08/2026", dateCloture: "21/08/2026", decision: "Déclaration de soupçon transmise au CENTIF", notes: 7, pieces: 5, score: 81 },
-  { ref: "INV-156", client: "Sangaré, Mariam", alertRef: "ALR-156", type: "Comportement atypique", analyste: "A. Touré", status: "cloturee", dateOuverture: "02/08/2026", dateCloture: "10/08/2026", decision: "Classée — faux positif documenté", notes: 3, pieces: 1, score: 36 },
+  { ref: "INV-156", client: "Sangaré, Mariam", alertRef: "ALR-156", type: "Comportement atypique", analyste: "A. Touré", status: "cloturee", dateOuverture: "02/08/2026", dateCloture: "10/08/2026", decision: "Classée : faux positif documenté", notes: 3, pieces: 1, score: 36 },
 ]
 
 const INITIAL_IMPORTS: ImportItem[] = [
-  { id: "INT-1042", source: "SFD Bamako — API", type: "API", date: "25/08/2026 14:30", records: 12847, status: "Validé" },
-  { id: "INT-1041", source: "SFD Sikasso — API", type: "API", date: "25/08/2026 12:15", records: 5421, status: "Validé" },
-  { id: "INT-1040", source: "SFD Kayes — fichier CSV", type: "CSV", date: "25/08/2026 09:00", records: 3120, status: "Erreurs", doublons: 12, incoherences: 3 },
-  { id: "INT-1039", source: "Import Excel — Clients CIF", type: "Excel", date: "24/08/2026 16:45", records: 856, status: "Validé" },
-  { id: "INT-1038", source: "SFD Bamako — API", type: "API", date: "24/08/2026 14:30", records: 11203, status: "Validé" },
-  { id: "INT-1037", source: "Synchronisation différée — Kayes", type: "Synchronisation", date: "24/08/2026 06:00", records: 2044, status: "Validé" },
-  { id: "INT-1036", source: "SFD Sikasso — fichier CSV", type: "CSV", date: "23/08/2026 11:20", records: 2890, status: "Erreurs", doublons: 5, incoherences: 1 },
-  { id: "INT-1035", source: "Import Excel — Transactions T2", type: "Excel", date: "22/08/2026 10:00", records: 15640, status: "En file" },
+  { id: "INT-1042", source: "SFD Bamako : API", type: "API", date: "25/08/2026 14:30", records: 12847, status: "Validé" },
+  { id: "INT-1041", source: "SFD Sikasso : API", type: "API", date: "25/08/2026 12:15", records: 5421, status: "Validé" },
+  { id: "INT-1040", source: "SFD Kayes : fichier CSV", type: "CSV", date: "25/08/2026 09:00", records: 3120, status: "Erreurs", doublons: 12, incoherences: 3 },
+  { id: "INT-1039", source: "Import Excel : Clients CIF", type: "Excel", date: "24/08/2026 16:45", records: 856, status: "Validé" },
+  { id: "INT-1038", source: "SFD Bamako : API", type: "API", date: "24/08/2026 14:30", records: 11203, status: "Validé" },
+  { id: "INT-1037", source: "Synchronisation différée : Kayes", type: "Synchronisation", date: "24/08/2026 06:00", records: 2044, status: "Validé" },
+  { id: "INT-1036", source: "SFD Sikasso : fichier CSV", type: "CSV", date: "23/08/2026 11:20", records: 2890, status: "Erreurs", doublons: 5, incoherences: 1 },
+  { id: "INT-1035", source: "Import Excel : Transactions T2", type: "Excel", date: "22/08/2026 10:00", records: 15640, status: "En file" },
 ]
 
 export const DEFAULT_FILTERS: FilterState = {
@@ -211,7 +211,7 @@ export function DashboardProvider({
     const newInv: Investigation = {
       ref,
       client: overrides?.client ?? "Nouveau dossier",
-      alertRef: overrides?.alertRef ?? "—",
+      alertRef: overrides?.alertRef ?? "-",
       type: overrides?.type ?? "À documenter",
       analyste: overrides?.analyste ?? initials,
       status: overrides?.status ?? "en_cours",

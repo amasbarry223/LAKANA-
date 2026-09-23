@@ -84,7 +84,7 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
       return
     }
 
-    // Success — proceed to MFA or login
+    // Success : proceed to MFA or login
     if (selectedRole.mfa) {
       setStep("mfa")
       toast.info("Code MFA requis", { description: `Un code a été envoyé pour ${selectedRole.label} (AUTH-05).` })
@@ -125,7 +125,7 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
             <ShieldAlert className="h-5 w-5 text-white" />
           </div>
           <h1 className="mt-2 text-xl font-bold tracking-tight text-slate-900">LAKANA</h1>
-          <p className="text-[11px] font-medium text-slate-400">le bouclier — conformité LBC/FT/FP</p>
+          <p className="text-[11px] font-medium text-slate-400">le bouclier : conformité LBC/FT/FP</p>
         </div>
 
         {/* Form body */}
@@ -341,7 +341,7 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
         {/* Footer (compact) */}
         <div className="border-t border-slate-100 bg-slate-50 px-6 py-2 text-center">
           <p className="text-[10px] text-slate-400">
-            Déconnexion après inactivité (AUTH-07) · © Digi.Dev — Hackathon CIF 2026
+            Déconnexion après inactivité (AUTH-07) · © Digi.Dev : Hackathon CIF 2026
           </p>
         </div>
       </div>

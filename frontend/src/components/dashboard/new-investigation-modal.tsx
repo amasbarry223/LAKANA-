@@ -81,16 +81,18 @@ export function NewInvestigationModal({
       return
     }
 
+    const initialScore = selectedAlert?.score ?? prefill?.score ?? 0
+
     const ref = addInvestigation({
       client: client.trim(),
-      alertRef: source === "alerte" && alertRef ? alertRef : "—",
+      alertRef: source === "alerte" && alertRef ? alertRef : "-",
       type,
-      score: selectedAlert?.score ?? prefill?.score ?? 0,
+      score: initialScore,
       notes: motivation.trim() ? 1 : 0,
     })
 
-    toast.success("Investigation ouverte", {
-      description: `Dossier ${ref} — ${client.trim()}${motivation.trim() ? " · motivation enregistrée" : ""}.`,
+    toast.success("Investigation créée", {
+      description: `Dossier ${ref} : ${client.trim()}${motivation.trim() ? " · motivation enregistrée" : ""}.`,
     })
     navigateTo("Investigations", { investigationRef: ref })
     onClose()
@@ -108,7 +110,7 @@ export function NewInvestigationModal({
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-slate-900">Nouvelle investigation</h3>
-            <p className="mt-0.5 text-xs text-slate-400">Ouverture de dossier — prise en charge analyste (INV-01)</p>
+            <p className="mt-0.5 text-xs text-slate-400">Ouverture de dossier : prise en charge analyste (INV-01)</p>
           </div>
           <button onClick={onClose} className="rounded-md p-1 text-slate-400 hover:bg-slate-100" aria-label="Fermer">
             <X className="h-4 w-4" />
@@ -149,7 +151,7 @@ export function NewInvestigationModal({
             >
               {MOCK_ALERTS.map((a) => (
                 <option key={a.ref} value={a.ref}>
-                  {a.ref} — {a.client} ({a.type}, {a.score}/100)
+                  {a.ref} : {a.client} ({a.type}, {a.score}/100)
                 </option>
               ))}
             </select>

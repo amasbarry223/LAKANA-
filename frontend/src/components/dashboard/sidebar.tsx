@@ -6,7 +6,7 @@ import {
   UserRound,
   Share2,
   FolderSearch,
-  Sparkles,
+  FileText,
   ShieldAlert,
   ShieldCheck,
   Gauge,
@@ -52,7 +52,7 @@ const sections: NavSection[] = [
       { label: "Client 360°", icon: UserRound },
       { label: "Graphe de relations", icon: Share2 },
       { label: "Investigations", icon: FolderSearch },
-      { label: "Assistant IA", icon: Sparkles },
+      { label: "Consultation Réglementaire", icon: FileText },
     ],
   },
   {

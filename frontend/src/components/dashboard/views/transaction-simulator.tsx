@@ -11,7 +11,7 @@ import {
   Clock,
   User,
   Building2,
-  Star,
+  Landmark,
   BarChart2,
   CreditCard,
   Layers,
@@ -68,7 +68,7 @@ function formatAmount(n: number) {
 }
 
 function formatDate(dStr: string) {
-  if (!dStr) return "—"
+  if (!dStr) return "-"
   try {
     const d = new Date(dStr)
     return new Intl.DateTimeFormat("fr-FR", {
@@ -180,7 +180,7 @@ export function TransactionSimulatorView() {
             has_multi_accounts: false,
             message: selectedClient.estPpe
               ? `SOCIÉTAIRE PPE (Personne Politiquement Exposée) DÉTECTÉ (${selectedClient.fonctionPpe || "Mandat public"}). Vigilance renforcée requise.`
-              : "Sociétaire standard — Aucun signalement négatif.",
+              : "Sociétaire standard : Aucun signalement négatif.",
             consigne_guichet: selectedClient.estPpe
               ? "Demander le justificatif d'origine des fonds et aviser le chef d'agence."
               : "Traitement standard sous réserve des seuils légaux.",
@@ -534,7 +534,7 @@ export function TransactionSimulatorView() {
                 <div className="p-4 rounded-xl bg-purple-50 border-2 border-purple-300 text-purple-950 space-y-3 animate-in fade-in-50">
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow">
-                      <Star className="w-5 h-5 text-amber-300" />
+                      <Landmark className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -705,7 +705,7 @@ export function TransactionSimulatorView() {
                             <td className="p-3 font-mono font-medium text-slate-800">{tx.reference}</td>
                             <td className="p-3 text-slate-500">{formatDate(tx.dateTransaction)}</td>
                             <td className="p-3 font-medium text-slate-700">{tx.typeOperation}</td>
-                            <td className="p-3 text-slate-600">{tx.beneficiaireNom || tx.description || "—"}</td>
+                            <td className="p-3 text-slate-600">{tx.beneficiaireNom || tx.description || "-"}</td>
                             <td className="p-3 text-right font-mono font-bold text-slate-900">
                               {formatAmount(tx.montant)}
                             </td>
@@ -773,11 +773,11 @@ export function TransactionSimulatorView() {
                   </div>
                   <div className="flex justify-between pt-2">
                     <span className="text-slate-500">Score de risque LAKANA</span>
-                    <span className="font-bold text-slate-800">{selectedClient.riskScore ?? "—"}/100</span>
+                    <span className="font-bold text-slate-800">{selectedClient.riskScore ?? "-"}/100</span>
                   </div>
-                  <div className="flex justify-between pt-2">
-                    <span className="text-slate-500">Pièce d'identité (CNI/NINA)</span>
-                    <span className="font-mono font-medium text-slate-700">{selectedClient.pieceIdentite || "—"}</span>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Pièce ID (CNI/NINA) :</span>
+                    <span className="font-mono font-medium text-slate-700">{selectedClient.pieceIdentite || "-"}</span>
                   </div>
                   {selectedClient.nif && (
                     <div className="flex justify-between pt-2">

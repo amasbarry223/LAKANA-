@@ -94,7 +94,7 @@ export function SyncView() {
   const queueCount = syncData?.file_attente_count ?? 0
   const sourcesAJour = syncData?.sources_a_jour ?? 0
   const sourcesTotal = syncData?.sources_total ?? 0
-  const lastSync = syncData?.last_sync ?? "—"
+  const lastSync = syncData?.last_sync ?? "-"
   const anciennete = syncData?.anciennete_minutes ?? 0
 
   return (
@@ -143,7 +143,7 @@ export function SyncView() {
         </div>
         <div className="flex-1">
           <p className={cn("text-sm font-semibold", online ? "text-emerald-800" : "text-amber-800")}>
-            {online ? "Connexion établie — données synchronisées depuis PostgreSQL" : "Connexion perdue — mode hors ligne actif"}
+            {online ? "Connexion établie : données synchronisées depuis PostgreSQL" : "Connexion perdue : mode hors ligne actif"}
           </p>
           <p className={cn("mt-0.5 text-xs", online ? "text-emerald-600" : "text-amber-600")}>
             {online
@@ -209,7 +209,7 @@ export function SyncView() {
       </div>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-        {/* Sources de données — données réelles */}
+        {/* Sources de données : données réelles */}
         <div className="rounded-xl border border-slate-200 bg-white p-5 xl:col-span-2 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -339,14 +339,14 @@ export function SyncView() {
               ? "border-rose-200 bg-rose-50 text-rose-700"
               : "border-emerald-200 bg-emerald-50 text-emerald-700"
           )}>
-            {anciennete > 1440 ? `Dépassé (${Math.round(anciennete / 60)}h) — OFF-03` : "Récent — seuil OK (OFF-03)"}
+            {anciennete > 1440 ? `Dépassé (${Math.round(anciennete / 60)}h) : OFF-03` : "Récent : seuil OK (OFF-03)"}
           </Badge>
         </div>
         <div className="mt-4">
           <div className="mb-1.5 flex items-center justify-between text-xs">
             <span className="text-slate-500">Seuil d&apos;alerte ancienneté : 24h (1 440 min)</span>
             <span className={cn("font-semibold", anciennete > 60 ? "text-amber-600" : "text-emerald-600")}>
-              {anciennete === 0 ? "0 min — à jour" : `${anciennete} min`}
+              {anciennete === 0 ? "0 min : à jour" : `${anciennete} min`}
             </span>
           </div>
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">

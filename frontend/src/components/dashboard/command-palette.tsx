@@ -7,7 +7,7 @@ import {
   UserRound,
   Share2,
   FolderSearch,
-  Sparkles,
+  FileText,
   ShieldAlert,
   Gauge,
   Activity,
@@ -51,7 +51,7 @@ const navCommands = [
   { label: "Client 360°", icon: UserRound, keywords: "client fiche profil" },
   { label: "Graphe de relations", icon: Share2, keywords: "graphe reseau graph" },
   { label: "Investigations", icon: FolderSearch, keywords: "dossiers inv" },
-  { label: "Assistant IA", icon: Sparkles, keywords: "ia chat assistant" },
+  { label: "Consultation Réglementaire", icon: FileText, keywords: "consultation reglementaire analyse conformite" },
   { label: "Filtrage sanctions/PPE", icon: ShieldAlert, keywords: "sanctions ppe flt" },
   { label: "Risk Score", icon: Gauge, keywords: "score risque scr" },
   { label: "Détection comportementale", icon: Activity, keywords: "comportement cmp" },
@@ -76,11 +76,11 @@ const searchableClients = [
 ]
 
 const searchableAlerts = [
-  { name: "ALR-241 — Fractionnement (Traoré M.)", id: "ALR-241", type: "Alerte", clientId: "CLI-1042" },
-  { name: "ALR-238 — Correspondance PPE (Diarra F.)", id: "ALR-238", type: "Alerte", clientId: "CLI-1087" },
-  { name: "ALR-235 — Volume inhabituel (Keïta I.)", id: "ALR-235", type: "Alerte", clientId: "CLI-1103" },
-  { name: "INV-241 — Investigation Traoré", id: "INV-241", type: "Investigation" },
-  { name: "INV-238 — Investigation Diarra", id: "INV-238", type: "Investigation" },
+  { name: "ALR-241 : Fractionnement (Traoré M.)", id: "ALR-241", type: "Alerte", clientId: "CLI-1042" },
+  { name: "ALR-238 : Correspondance PPE (Diarra F.)", id: "ALR-238", type: "Alerte", clientId: "CLI-1087" },
+  { name: "ALR-235 : Volume inhabituel (Keïta I.)", id: "ALR-235", type: "Alerte", clientId: "CLI-1103" },
+  { name: "INV-241 : Investigation Traoré", id: "INV-241", type: "Investigation" },
+  { name: "INV-238 : Investigation Diarra", id: "INV-238", type: "Investigation" },
 ]
 
 export function CommandPalette({

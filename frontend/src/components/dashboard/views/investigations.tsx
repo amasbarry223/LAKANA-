@@ -77,7 +77,7 @@ export function InvestigationsView() {
       )
     )
     const label = decisionType === "transmise" ? "Déclaration transmise au CENTIF" : "Investigation clôturée"
-    toast.success(label, { description: `${selectedInv.ref} — ${selectedInv.client}. Décision tracée (INV-04).` })
+    toast.success(label, { description: `${selectedInv.ref} : ${selectedInv.client}. Décision tracée (INV-04).` })
     setDecisionText("")
     setDecisionOpen(false)
   }
@@ -91,7 +91,7 @@ export function InvestigationsView() {
             Investigations
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Dossiers d'investigation — traçabilité complète (INV-04).
+            Dossiers d&apos;investigation : traçabilité complète (INV-04).
           </p>
         </div>
         <button
@@ -276,7 +276,7 @@ export function InvestigationsView() {
                           : i
                       )
                     )
-                    toast.info("Dossier rouvert", { description: `${selectedInv.ref} — réouverture motivée par le responsable (INV-05).` })
+                    toast.info("Dossier rouvert", { description: `${selectedInv.ref} : réouverture motivée par le responsable (INV-05).` })
                   }}
                   className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
                 >
@@ -303,7 +303,7 @@ export function InvestigationsView() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Documenter une décision</h3>
-                <p className="mt-0.5 text-xs text-slate-400">{selectedInv.ref} — {selectedInv.client}</p>
+                <p className="mt-0.5 text-xs text-slate-400">{selectedInv.ref} : {selectedInv.client}</p>
               </div>
               <button onClick={() => setDecisionOpen(false)} className="rounded-md p-1 text-slate-400 hover:bg-slate-100">
                 <X className="h-4 w-4" />

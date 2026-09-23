@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AlertTriangle, Sparkles, Trophy, ChevronRight, ShieldAlert } from "lucide-react"
+import { AlertTriangle, CheckCircle2, ChevronRight, ShieldAlert, FileText } from "lucide-react"
 import { navigateTo } from "@/lib/navigate"
 import { statsService } from "@/services/statsService"
 
@@ -18,9 +18,9 @@ type Insight = {
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   AlertTriangle,
-  Sparkles,
-  Trophy,
+  CheckCircle2,
   ShieldAlert,
+  FileText,
 }
 
 export function FunnelInsights() {
@@ -50,9 +50,9 @@ export function FunnelInsights() {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5">
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-slate-900">Insights conformité</h3>
+        <h3 className="text-base font-semibold text-slate-900">Signaux de conformité</h3>
         <button
-          onClick={() => navigateTo("Assistant IA")}
+          onClick={() => navigateTo("Centre d'alertes")}
           className="text-xs font-semibold text-indigo-600 hover:underline"
         >
           Tout voir

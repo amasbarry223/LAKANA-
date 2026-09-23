@@ -48,7 +48,7 @@ function alertToSequence(a: Alert): Sequence {
     totalAmount,
     threshold: SEUIL_FCFA,
     window: windows[txCount % 3],
-    startDate: txs[0]?.date?.split(" ")[0] ?? "—",
+    startDate: txs[0]?.date?.split(" ")[0] ?? "-",
     status: (a.level === "bloquante" ? "bloquante" : "analyser") as "bloquante" | "analyser",
     txs,
     score: a.score,
@@ -92,7 +92,7 @@ export function StructuringView() {
       type: "Fractionnement",
       score: Math.min(100, Math.round((s.totalAmount / s.threshold) * 10)),
     })
-    toast.success("Investigation ouverte", { description: `Dossier ${ref} — ${s.client} (séquence ${s.id}).` })
+    toast.success("Investigation ouverte", { description: `Dossier ${ref} : ${s.client} (séquence ${s.id}).` })
     navigateTo("Investigations", { investigationRef: ref })
   }
 
@@ -264,7 +264,7 @@ export function StructuringView() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Détail de la séquence</h3>
-                <p className="mt-0.5 text-xs text-slate-400">{selectedSeq.id} — {selectedSeq.client}</p>
+                <p className="mt-0.5 text-xs text-slate-400">{selectedSeq.id} : {selectedSeq.client}</p>
               </div>
               <button
                 onClick={() => setSelectedSeq(null)}
@@ -282,7 +282,7 @@ export function StructuringView() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-900">{selectedSeq.client}</p>
-                  <p className="text-[11px] text-slate-400">Client — séquence {selectedSeq.id}</p>
+                  <p className="text-[11px] text-slate-400">Client : séquence {selectedSeq.id}</p>
                 </div>
               </div>
               <Badge
