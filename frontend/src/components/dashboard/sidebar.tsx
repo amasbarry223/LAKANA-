@@ -59,6 +59,7 @@ const standardSections: NavSection[] = [
     title: "SURVEILLANCE OPÉRATIONNELLE",
     items: [
       { label: "Centre d'alertes", icon: BellRing, badgeType: "alerts" },
+      { label: "Contrôle & Pré-filtrage Sociétaire", icon: ShieldCheck },
       { label: "Filtrage sanctions/PPE", icon: ShieldAlert },
     ],
   },
@@ -97,6 +98,7 @@ const guichetSections: NavSection[] = [
     id: "surveillance",
     title: "SÉCURITÉ & CONFORMITÉ GUICHET",
     items: [
+      { label: "Contrôle & Pré-filtrage Sociétaire", icon: ShieldCheck },
       { label: "Filtrage sanctions/PPE", icon: ShieldAlert },
     ],
   },

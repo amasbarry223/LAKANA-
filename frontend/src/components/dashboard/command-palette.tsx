@@ -9,6 +9,7 @@ import {
   FolderSearch,
   MessageSquare,
   ShieldAlert,
+  ShieldCheck,
   Database,
   Users,
   ScrollText,
@@ -42,6 +43,7 @@ type Command = {
 const navCommands = [
   { label: "Tableau de bord", icon: LayoutGrid, keywords: "overview accueil home pilotage" },
   { label: "Centre d'alertes", icon: BellRing, keywords: "alertes alr urgences" },
+  { label: "Contrôle & Pré-filtrage Sociétaire", icon: ShieldCheck, keywords: "controle pre-filtrage transactions cbs flux whatsapp email societaire" },
   { label: "Filtrage sanctions/PPE", icon: ShieldAlert, keywords: "sanctions ppe flt screening onu uemoa" },
   { label: "Investigations", icon: FolderSearch, keywords: "dossiers inv enquetes dos" },
   { label: "Client 360°", icon: UserRound, keywords: "client fiche profil score risque comportement" },
