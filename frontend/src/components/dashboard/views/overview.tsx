@@ -137,7 +137,7 @@ export function OverviewView() {
             Tableau de bord
           </h1>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Supervision AML/CFT en temps réel • Surveillance des flux du Core Banking
+            Supervision LBC/FT en temps réel • Suivi des flux du Core Banking
           </p>
         </div>
 
@@ -229,9 +229,9 @@ export function OverviewView() {
           </p>
         </div>
 
-        {/* CARTE 3: Sociétaires surveillés */}
+        {/* CARTE 3: Portefeuille sociétaires */}
         <div
-          onClick={() => navigateTo("Client 360°")}
+          onClick={() => navigateTo("Fiches Sociétaires")}
           className="group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 border-b-4 border-b-blue-600 bg-white p-5 shadow-xs transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:border-b-blue-600 dark:bg-slate-900"
         >
           <div>
@@ -241,7 +241,7 @@ export function OverviewView() {
                   <Users className="h-5 w-5" />
                 </div>
                 <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Sociétaires surveillés
+                  Portefeuille sociétaires
                 </span>
               </div>
               <ChevronRight className="h-4 w-4 text-slate-400 transition-transform group-hover:translate-x-0.5" />
@@ -299,7 +299,7 @@ export function OverviewView() {
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                Activité de Surveillance (8 dernières semaines)
+                Activité de Contrôle & Détections (8 dernières semaines)
               </h3>
               <p className="text-xs text-slate-400">
                 Volume d'alertes générées et de dossiers d'investigation ouverts

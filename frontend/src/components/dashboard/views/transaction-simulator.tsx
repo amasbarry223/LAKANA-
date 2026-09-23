@@ -341,7 +341,7 @@ export function TransactionSimulatorView() {
 
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Volume sous surveillance</p>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Volume total contrôlé</p>
             <p className="text-2xl font-bold text-slate-800 mt-1">{formatAmount(totalVolume)}</p>
           </div>
           <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">

@@ -635,7 +635,13 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                    {clientScore >= 70 ? "Vigilance renforcée requise" : clientScore >= 40 ? "Surveillance standard" : "Opérations régulières"}
+                    {clientScore >= 70
+                      ? activeClient.estPpe
+                        ? "Vigilance renforcée — Statut PPE identifié"
+                        : "Vigilance renforcée requise"
+                      : clientScore >= 40
+                      ? "Vigilance standard"
+                      : "Opérations conformes"}
                   </p>
                   <p className="mt-1 text-xs text-slate-500 max-w-md">
                     Calculé en temps réel à partir des flux de transactions, des alertes détectées et du statut sociétaire.

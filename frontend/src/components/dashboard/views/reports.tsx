@@ -94,7 +94,7 @@ function printReportDocument(report: Report) {
           </thead>
           <tbody>
             <tr>
-              <td>Portefeuille surveillé</td>
+              <td>Portefeuille sociétaires</td>
               <td>216 clients actifs & 19 690 transactions réelles</td>
               <td>Conforme BCEAO</td>
             </tr>
@@ -730,7 +730,7 @@ export function ReportsView() {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-bold text-slate-900">Liste des Personnes Politiquement Exposées (PPE)</h3>
-                <Badge className="bg-rose-100 text-rose-800 border-rose-200">Surveillance Renforcée — 7 Colonnes</Badge>
+                <Badge className="bg-rose-100 text-rose-800 border-rose-200">Vigilance Renforcée PPE — 7 Colonnes</Badge>
               </div>
               <p className="text-xs text-slate-500 mt-1">
                 Conforme au registre nominatif légal des PPE pour les Systèmes Financiers Décentralisés (SFD).
