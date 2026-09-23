@@ -36,7 +36,7 @@ import {
 } from "recharts"
 import { Badge } from "@/components/ui/badge"
 import { StatusBadge } from "@/components/ui/status-badge"
-import { cn } from "@/lib/utils"
+import { cn, formatFacteur } from "@/lib/utils"
 import { navigateTo } from "@/lib/navigate"
 import { useDashboard } from "@/lib/dashboard-context"
 import { clientService } from "@/services/clientService"
@@ -663,10 +663,10 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
               </p>
               {scoreData?.facteurs && scoreData.facteurs.length > 0 && (
                 <div className="mt-2 space-y-1">
-                  {scoreData.facteurs.map((fact: string, idx: number) => (
+                  {scoreData.facteurs.map((fact: any, idx: number) => (
                     <p key={idx} className="text-xs text-amber-800 bg-amber-50 p-1.5 rounded-lg flex items-start gap-1.5">
                       <span className="text-amber-600 font-bold">•</span>
-                      <span>{fact}</span>
+                      <span>{formatFacteur(fact)}</span>
                     </p>
                   ))}
                 </div>
@@ -815,7 +815,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
               {mlPrediction.facteurs_ia.map((fact, idx) => (
                 <div key={idx} className="text-xs text-slate-600 flex items-start gap-2">
                   <span className="text-indigo-500 font-bold">•</span>
-                  <span>{fact}</span>
+                  <span>{formatFacteur(fact)}</span>
                 </div>
               ))}
             </div>

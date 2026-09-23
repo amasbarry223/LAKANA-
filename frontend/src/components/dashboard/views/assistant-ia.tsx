@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Sparkles, Send, User, ShieldAlert, Bot, RefreshCw, AlertCircle, Database, CheckCircle2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
+import { cn, formatFacteur } from "@/lib/utils"
 import { aiService } from "@/services/aiService"
 import type { AIContextResponse } from "@/models/ai"
 import { toast } from "sonner"
@@ -393,7 +393,7 @@ export function AssistantIAView() {
                   </p>
                   {activeClientContext.facteurs && activeClientContext.facteurs.length > 0 && (
                     <p className="mt-1 line-clamp-2 text-slate-500 dark:text-slate-400">
-                      Premier signal : {activeClientContext.facteurs[0]}
+                      Premier signal : {formatFacteur(activeClientContext.facteurs[0])}
                     </p>
                   )}
                 </div>

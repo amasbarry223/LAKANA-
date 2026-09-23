@@ -16,8 +16,9 @@ export const aiService = {
       return await ApiClient.post<AIExplainResponse>("/assistant-ia/expliquer", payload)
     } catch (e) {
       console.warn("API IA indisponible, fallback modèle local (IA-04):", e)
+      const formatted = (payload.facteurs || []).map((f: any) => (typeof f === "object" ? (f?.description || f?.critere || JSON.stringify(f)) : String(f)))
       return {
-        synthese: `Le client ${payload.client_nom} présente un score de risque de ${payload.risk_score}/100. Les facteurs identifiés sont : ${payload.facteurs.join(", ")}.`,
+        synthese: `Le client ${payload.client_nom} présente un score de risque de ${payload.risk_score}/100. Les facteurs identifiés sont : ${formatted.join(", ")}.`,
         points_cles: [
           `Score calculé : ${payload.risk_score}/100`,
           `${payload.facteurs.length} facteur(s) déterminant(s)`,

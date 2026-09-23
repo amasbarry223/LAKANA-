@@ -33,7 +33,7 @@ import { navigateTo } from "@/lib/navigate"
 import { RowActionDropdown } from "@/components/ui/row-action-dropdown"
 import { StatusBadge } from "@/components/ui/status-badge"
 import type { Client } from "@/models/client"
-import { cn } from "@/lib/utils"
+import { cn, formatFacteur } from "@/lib/utils"
 
 type FilterType = "Tous" | "Particuliers" | "Entreprises" | "PPE" | "Risque Élevé"
 
@@ -1592,7 +1592,7 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                 <ul className="space-y-1.5">
                   {alertFeedbackModal.alerte.facteurs.map((f, i) => (
                     <li key={i} className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300">
-                      <span className="mt-0.5 h-4 w-4 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-xs shrink-0">!</span>{f}
+                      <span className="mt-0.5 h-4 w-4 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-xs shrink-0">!</span>{formatFacteur(f)}
                     </li>
                   ))}
                 </ul>

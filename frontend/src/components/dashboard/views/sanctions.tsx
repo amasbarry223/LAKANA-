@@ -5,7 +5,7 @@ import { ShieldAlert, Search, Check, X, ArrowUpDown, ArrowUp, ArrowDown, Refresh
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
+import { cn, formatFacteur } from "@/lib/utils"
 import { alertService } from "@/services/alertService"
 import { filteringService } from "@/services/filteringService"
 import { DataPagination } from "@/components/ui/data-pagination"
@@ -70,15 +70,15 @@ export function SanctionsView() {
           (a.module || "").toLowerCase().includes("sanction") ||
           (a.type || "").toLowerCase().includes("ppe") ||
           (a.type || "").toLowerCase().includes("sanction") ||
-          (a.facteurs || []).some((f) => /sanction|ppe|liste/i.test(f))
+          (a.facteurs || []).some((f) => /sanction|ppe|liste/i.test(formatFacteur(f)))
       )
-
       const dynamicMatches: Match[] = fltAlerts.map((a) => {
-        const simMatch = a.facteurs?.[0]?.match(/(\d+)%/)
+        const premierFacteur = formatFacteur(a.facteurs?.[0])
+        const simMatch = premierFacteur.match(/(\d+)%/)
         const sim = simMatch ? parseInt(simMatch[1], 10) : Math.max(75, a.score)
         const isPPE =
           (a.type || "").toLowerCase().includes("ppe") ||
-          (a.facteurs?.[0] || "").toLowerCase().includes("ppe")
+          premierFacteur.toLowerCase().includes("ppe")
         const listType: Match["listType"] = isPPE ? "PPE" : "ONU"
         const mapStatus = (s: string): Match["status"] => {
           if (s === "cloturee") return "confirme"
@@ -92,7 +92,7 @@ export function SanctionsView() {
           clientId: a.clientId || "CLI-1000",
           listName: isPPE ? "Liste PPE Mali (UEMOA)" : "Sanctions ONU / GAFI",
           listType,
-          matchedEntry: a.facteurs?.[0] || `${a.client} (${listType})`,
+          matchedEntry: premierFacteur || `${a.client} (${listType})`,
           similarity: sim,
           status: mapStatus(a.status),
           date: a.createdAt ? new Date(a.createdAt).toLocaleDateString("fr-FR") : new Date().toLocaleDateString("fr-FR"),

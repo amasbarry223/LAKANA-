@@ -6,6 +6,27 @@ export interface AlertsPageResult {
   total: number
 }
 
+export function sanitizeFacteurs(facteurs: any): string[] {
+  if (!facteurs) return []
+  if (!Array.isArray(facteurs)) {
+    if (typeof facteurs === "string") return [facteurs]
+    if (typeof facteurs === "object") {
+      return [facteurs.description || facteurs.critere || JSON.stringify(facteurs)]
+    }
+    return [String(facteurs)]
+  }
+  return facteurs
+    .map((f) => {
+      if (!f) return ""
+      if (typeof f === "string") return f
+      if (typeof f === "object") {
+        return f.description || f.critere || JSON.stringify(f)
+      }
+      return String(f)
+    })
+    .filter(Boolean)
+}
+
 function buildAlertParams(filters?: AlertFilter): Record<string, any> {
   const params: Record<string, any> = {}
   if (!filters) return params
@@ -48,7 +69,7 @@ function mapAlertFromBackend(a: any): Alert {
     type: a.type_alerte || a.type || "Alerte de conformité",
     level: (a.niveau || a.level || "analyser") as any,
     module: a.module || "Conformité",
-    facteurs: Array.isArray(a.facteurs) ? a.facteurs : [],
+    facteurs: sanitizeFacteurs(a.facteurs),
     status: a.statut || a.status || "nouvelle",
     analyste: a.analyste || "Non assigné",
     createdAt: a.created_at || a.createdAt,
@@ -103,20 +124,7 @@ export const alertService = {
     try {
       const a = await ApiClient.get<any>(`/alerts/${id}`)
       if (!a) return null
-      return {
-        id: a.id,
-        ref: a.reference,
-        clientId: a.client_id || a.clientId || "",
-        client: a.client_nom || a.client || "Client Inconnu",
-        score: typeof a.score === "number" ? a.score : 0,
-        type: a.type_alerte || a.type || "Alerte de conformité",
-        level: (a.niveau || a.level || "analyser") as any,
-        module: a.module || "Conformité",
-        facteurs: Array.isArray(a.facteurs) ? a.facteurs : [],
-        status: a.statut || a.status || "nouvelle",
-        analyste: a.analyste || "Non assigné",
-        createdAt: a.created_at || a.createdAt,
-      }
+      return mapAlertFromBackend(a)
     } catch (e) {
       console.error(`Erreur API lors de la récupération de l'alerte ${id} :`, e)
       return null
@@ -155,7 +163,7 @@ export const alertService = {
         type: res.type_alerte || res.type || "Alerte de conformité",
         level: (res.niveau || res.level || "analyser") as any,
         module: res.module || "Conformité",
-        facteurs: Array.isArray(res.facteurs) ? res.facteurs : [],
+        facteurs: sanitizeFacteurs(res.facteurs),
         status: res.statut || res.status || (typeof update === "string" ? update : update.statut || "nouvelle"),
         analyste: res.analyste || (typeof update === "object" ? update.analyste : undefined) || "Non assigné",
         createdAt: res.created_at || res.createdAt,
@@ -166,4 +174,3 @@ export const alertService = {
     }
   },
 }
-

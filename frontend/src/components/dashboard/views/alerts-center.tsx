@@ -25,6 +25,7 @@ import { AlertDetailModal } from "@/components/dashboard/alert-detail-modal"
 import { useDashboard, type AlertItem } from "@/lib/dashboard-context"
 import { alertService } from "@/services/alertService"
 import { navigateTo } from "@/lib/navigate"
+import { formatFacteur } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { DataPagination } from "@/components/ui/data-pagination"
 import { usePaginatedFetch } from "@/hooks/use-pagination"
@@ -333,7 +334,7 @@ export function AlertsCenterView() {
                     {a.facteurs && a.facteurs.length > 0 && (
                       <div className="rounded-lg bg-white p-2.5 border border-slate-200/80 text-xs text-slate-600 space-y-1">
                         <p className="font-medium text-slate-700 text-xs uppercase tracking-wide">Motif d'alerte :</p>
-                        <p className="line-clamp-2 italic">{a.facteurs[0]}</p>
+                        <p className="line-clamp-2 italic">{formatFacteur(a.facteurs[0])}</p>
                       </div>
                     )}
                   </div>

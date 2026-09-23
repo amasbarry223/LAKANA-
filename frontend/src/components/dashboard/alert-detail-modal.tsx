@@ -2,7 +2,7 @@
 
 import { X, User, FolderSearch, BellRing } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
+import { cn, formatFacteur } from "@/lib/utils"
 import { navigateTo } from "@/lib/navigate"
 import { useDashboard, type AlertItem } from "@/lib/dashboard-context"
 
@@ -91,7 +91,7 @@ export function AlertDetailModal({ alert, onClose }: AlertDetailModalProps) {
                 {alert.facteurs.map((facteur, idx) => (
                   <li key={idx} className="flex items-start gap-2 rounded bg-slate-50 p-2 text-xs text-slate-700">
                     <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-600" />
-                    <span>{facteur}</span>
+                    <span>{formatFacteur(facteur)}</span>
                   </li>
                 ))}
               </ul>

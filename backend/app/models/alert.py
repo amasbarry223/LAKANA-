@@ -28,7 +28,16 @@ class Alert(Base):
     @property
     def facteurs(self):
         try:
-            return json.loads(self._facteurs) if self._facteurs else []
+            val = json.loads(self._facteurs) if self._facteurs else []
+            if isinstance(val, list):
+                cleaned = []
+                for item in val:
+                    if isinstance(item, dict):
+                        cleaned.append(item.get("description") or item.get("critere") or str(item))
+                    elif item is not None:
+                        cleaned.append(str(item))
+                return cleaned
+            return []
         except Exception:
             return []
 
