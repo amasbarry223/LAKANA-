@@ -11,11 +11,27 @@ export type NavigateDetail = {
   options?: NavigateOptions
 }
 
-// Lightweight event-based navigation helper so any view can trigger
-// a sidebar navigation without prop drilling.
+const aliasMap: Record<string, string> = {
+  "Centre d'alertes": "Alertes & Détections",
+  "Investigations": "Dossiers d'investigation",
+  "Contrôle & Pré-filtrage Sociétaire": "Contrôle d'opération",
+  "Transactions": "Contrôle d'opération",
+  "Filtrage sanctions/PPE": "Vérification Sanctions & PPE",
+  "Client 360°": "Fiches Sociétaires",
+  "Graphe de relations": "Cartographie des flux",
+  "Consultation Réglementaire": "Guide Réglementaire LBC",
+  "Assistant IA": "Guide Réglementaire LBC",
+  "Utilisateurs & rôles": "Gestion des utilisateurs",
+  "Rapports réglementaires": "Rapports CENTIF & États",
+  "Journal d'audit": "Piste d'audit",
+  "Intégration & Synchronisation": "Tableau de bord",
+}
+
+// Helper de navigation léger et unifié
 export function navigateTo(label: string, options?: NavigateOptions) {
   if (typeof window !== "undefined") {
-    const detail: NavigateDetail = options ? { label, options } : { label }
+    const targetLabel = aliasMap[label] || label
+    const detail: NavigateDetail = options ? { label: targetLabel, options } : { label: targetLabel }
     window.dispatchEvent(new CustomEvent("lakana-navigate", { detail }))
   }
 }

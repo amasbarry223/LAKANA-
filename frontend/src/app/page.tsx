@@ -63,21 +63,28 @@ function DashboardListeners() {
 const views: Record<string, React.ComponentType<any>> = {
   "Accueil": OverviewView,
   "Tableau de bord": OverviewView,
+  "Alertes & Détections": AlertsCenterView,
   "Centre d'alertes": AlertsCenterView,
+  "Dossiers d'investigation": InvestigationsView,
+  "Investigations": InvestigationsView,
+  "Contrôle d'opération": TransactionSimulatorView,
   "Contrôle & Pré-filtrage Sociétaire": TransactionSimulatorView,
   "Transactions": TransactionSimulatorView,
+  "Vérification Sanctions & PPE": SanctionsView,
+  "Filtrage sanctions/PPE": SanctionsView,
+  "Fiches Sociétaires": Client360View,
   "Client 360°": Client360View,
+  "Cartographie des flux": GraphView,
   "Graphe de relations": GraphView,
-  "Investigations": InvestigationsView,
+  "Guide Réglementaire LBC": AssistantIAView,
   "Consultation Réglementaire": AssistantIAView,
   "Assistant IA": AssistantIAView,
-  "Filtrage sanctions/PPE": SanctionsView,
-  "Intégration & Synchronisation": IntegrationView,
-  "Intégration des données": IntegrationView,
-  "Synchronisation": IntegrationView,
+  "Gestion des utilisateurs": UsersView,
   "Utilisateurs & rôles": UsersView,
-  "Journal d'audit": AuditLogView,
+  "Rapports CENTIF & États": ReportsView,
   "Rapports réglementaires": ReportsView,
+  "Piste d'audit": AuditLogView,
+  "Journal d'audit": AuditLogView,
   "Paramètres": SettingsView,
   "Notifications": AlertsCenterView,
   "Mon profil": SettingsView,
@@ -230,8 +237,8 @@ function DashboardContent({
             <View
               onLogout={active === "Mon profil" ? onLogout : undefined}
               onSelectClient={
-                active === "Contrôle & Pré-filtrage Sociétaire"
-                  ? (c: any) => handleNavigate("Client 360°", { clientId: c.id || c.codeClient })
+                active === "Contrôle & Pré-filtrage Sociétaire" || active === "Contrôle d'opération"
+                  ? (c: any) => handleNavigate("Fiches Sociétaires", { clientId: c.id || c.codeClient })
                   : undefined
               }
               initialClientId={selectedClientId}

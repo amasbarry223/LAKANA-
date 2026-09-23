@@ -42,17 +42,16 @@ type Command = {
 
 const navCommands = [
   { label: "Tableau de bord", icon: LayoutGrid, keywords: "overview accueil home pilotage" },
-  { label: "Centre d'alertes", icon: BellRing, keywords: "alertes alr urgences" },
-  { label: "Contrôle & Pré-filtrage Sociétaire", icon: ShieldCheck, keywords: "controle pre-filtrage transactions cbs flux whatsapp email societaire" },
-  { label: "Filtrage sanctions/PPE", icon: ShieldAlert, keywords: "sanctions ppe flt screening onu uemoa" },
-  { label: "Investigations", icon: FolderSearch, keywords: "dossiers inv enquetes dos" },
-  { label: "Client 360°", icon: UserRound, keywords: "client fiche profil score risque comportement" },
-  { label: "Graphe de relations", icon: Share2, keywords: "graphe reseau graph liens beneficiaire" },
-  { label: "Consultation Réglementaire", icon: MessageSquare, keywords: "consultation reglementaire textes conformite bceao centif" },
-  { label: "Rapports réglementaires", icon: FileBarChart, keywords: "rapports reports bceao centif str" },
-  { label: "Journal d'audit", icon: ScrollText, keywords: "audit log tracabilite sha256" },
-  { label: "Intégration & Synchronisation", icon: Database, keywords: "import ingestion sfd connecteurs sync hors ligne offline" },
-  { label: "Utilisateurs & rôles", icon: Users, keywords: "users rbac bo profils habilitations" },
+  { label: "Alertes & Détections", icon: BellRing, keywords: "alertes alr urgences signalements" },
+  { label: "Dossiers d'investigation", icon: FolderSearch, keywords: "dossiers inv enquetes dos centif soupcon" },
+  { label: "Contrôle d'opération", icon: ShieldCheck, keywords: "controle pre-filtrage transactions guichet societaire depôt retrait" },
+  { label: "Vérification Sanctions & PPE", icon: ShieldAlert, keywords: "sanctions ppe screening onu centif uemoa gel avoirs" },
+  { label: "Fiches Sociétaires", icon: UserRound, keywords: "client societaire fiche profil score risque comportement kyc" },
+  { label: "Cartographie des flux", icon: Share2, keywords: "flux cartographie graphe reseau liens beneficiaire montants dates" },
+  { label: "Guide Réglementaire LBC", icon: MessageSquare, keywords: "guide reglementaire textes conformite bceao centif assistance uemoa" },
+  { label: "Gestion des utilisateurs", icon: Users, keywords: "users utilisateurs agents conformite guichet rbac profils" },
+  { label: "Rapports CENTIF & États", icon: FileBarChart, keywords: "rapports reports bceao centif str etats periodiques" },
+  { label: "Piste d'audit", icon: ScrollText, keywords: "audit log tracabilite journal sha256" },
   { label: "Paramètres", icon: Settings, keywords: "settings config seuils alertes" },
 ]
 
