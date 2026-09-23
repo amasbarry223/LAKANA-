@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
+import { useTheme } from "next-themes"
 import {
   User,
   ShieldAlert,
@@ -52,9 +53,9 @@ import type { MLPredictResponse } from "@/models/ai"
 function TxTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-md">
-      <p className="text-xs font-semibold text-slate-700">{label}</p>
-      <p className="text-xs font-mono font-bold text-indigo-600">
+    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-md dark:border-slate-800 dark:bg-slate-900">
+      <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{label}</p>
+      <p className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
         {Number(payload[0].value).toLocaleString("fr-FR")} FCFA
       </p>
     </div>
@@ -66,6 +67,8 @@ interface Client360Props {
 }
 
 export function Client360View({ initialClientId }: Client360Props = {}) {
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
   const { selectedClientId, setSelectedClientId } = useDashboard()
 
   const [clients, setClients] = useState<Client[]>([])
@@ -723,11 +726,11 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
               <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -15, bottom: 0 }}>
                 <defs>
                   <linearGradient id="txGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#070347" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#070347" stopOpacity={0} />
+                    <stop offset="0%" stopColor={isDark ? "#818CF8" : "#070347"} stopOpacity={isDark ? 0.35 : 0.2} />
+                    <stop offset="100%" stopColor={isDark ? "#818CF8" : "#070347"} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(148, 163, 184, 0.12)" : "#F1F5F9"} vertical={false} />
                 <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#94A3B8" }} tickLine={false} axisLine={false} />
                 <YAxis
                   tick={{ fontSize: 10, fill: "#94A3B8" }}
@@ -736,7 +739,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
                   tickFormatter={(v) => `${(v / 1000000).toFixed(1)}M`}
                 />
                 <Tooltip content={<TxTooltip />} />
-                <Area type="monotone" dataKey="montant" stroke="#070347" strokeWidth={2} fill="url(#txGrad)" isAnimationActive={false} />
+                <Area type="monotone" dataKey="montant" stroke={isDark ? "#818CF8" : "#070347"} strokeWidth={2} fill="url(#txGrad)" isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>

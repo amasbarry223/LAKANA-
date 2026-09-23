@@ -169,9 +169,9 @@ export function DashboardHeader({
             </button>
 
             {showNotifs && (
-              <div className="absolute right-0 top-11 z-50 w-80 rounded-xl border border-slate-200 bg-white p-3 shadow-xl">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <div className="absolute right-0 top-11 z-50 w-80 rounded-xl border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-800 dark:bg-slate-900 dark:shadow-2xl">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                     Alertes non traitées ({notifications.length})
                   </p>
                   <button
@@ -179,7 +179,7 @@ export function DashboardHeader({
                       setShowNotifs(false)
                       onNavigate("Centre d'alertes")
                     }}
-                    className="text-xs font-semibold text-indigo-600 hover:underline cursor-pointer"
+                    className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                   >
                     Voir tout
                   </button>
@@ -208,11 +208,11 @@ export function DashboardHeader({
                           })
                           setShowNotifs(false)
                         }}
-                        className="block w-full rounded-lg p-2 text-left transition hover:bg-slate-50 cursor-pointer"
+                        className="block w-full rounded-lg p-2 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
                       >
                         <p className={cn("text-xs font-semibold", n.color)}>{n.title}</p>
-                        <p className="mt-0.5 text-xs text-slate-600">{n.desc}</p>
-                        <p className="mt-0.5 text-2xs text-slate-400">{n.time}</p>
+                        <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">{n.desc}</p>
+                        <p className="mt-0.5 text-2xs text-slate-400 dark:text-slate-500">{n.time}</p>
                       </button>
                     ))
                   )}
@@ -224,15 +224,15 @@ export function DashboardHeader({
           <div className="relative">
             <button
               onClick={() => setShowDates(!showDates)}
-              className="flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:bg-slate-50 cursor-pointer dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+              className="flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:bg-slate-50 cursor-pointer dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
             >
-              <Calendar className="h-4 w-4 text-slate-500" />
+              <Calendar className="h-4 w-4 text-slate-500 dark:text-slate-400" />
               <span>{dateRange === "Ce trimestre" || !dateRange ? "14 - 21 août 2026" : dateRangeLabel}</span>
               <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
             </button>
             {showDates && (
-              <div className="absolute right-0 top-11 z-50 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
-                <p className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Période</p>
+              <div className="absolute right-0 top-11 z-50 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-900 dark:shadow-2xl">
+                <p className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Période</p>
                 {DATE_PRESETS.map((p) => (
                   <button
                     key={p}
@@ -241,8 +241,8 @@ export function DashboardHeader({
                       setShowDates(false)
                     }}
                     className={cn(
-                      "block w-full rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-slate-50 cursor-pointer",
-                      dateRange === p ? "font-semibold text-indigo-600" : "text-slate-600"
+                      "block w-full rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer",
+                      dateRange === p ? "font-semibold text-indigo-600 dark:text-indigo-400" : "text-slate-600 dark:text-slate-300"
                     )}
                   >
                     {p}

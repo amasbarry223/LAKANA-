@@ -40,10 +40,10 @@ const STATUS_CONFIG: Record<
   string,
   { label: string; bg: string; text: string; icon: React.ComponentType<{ className?: string }> }
 > = {
-  nouvelle: { label: "Nouvelle", bg: "bg-indigo-50 border-indigo-200", text: "text-indigo-700", icon: Clock },
-  en_cours: { label: "En cours", bg: "bg-amber-50 border-amber-200", text: "text-amber-700", icon: AlertTriangle },
-  cloturee: { label: "Clôturée", bg: "bg-emerald-50 border-emerald-200", text: "text-emerald-700", icon: CheckCircle2 },
-  classee: { label: "Classée", bg: "bg-slate-100 border-slate-200", text: "text-slate-600", icon: Archive },
+  nouvelle: { label: "Nouvelle", bg: "bg-indigo-50 border-indigo-200 dark:bg-indigo-950/40 dark:border-indigo-800", text: "text-indigo-700 dark:text-indigo-300", icon: Clock },
+  en_cours: { label: "En cours", bg: "bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-800", text: "text-amber-700 dark:text-amber-300", icon: AlertTriangle },
+  cloturee: { label: "Clôturée", bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800", text: "text-emerald-700 dark:text-emerald-300", icon: CheckCircle2 },
+  classee: { label: "Classée", bg: "bg-slate-100 border-slate-200 dark:bg-slate-800 dark:border-slate-700", text: "text-slate-600 dark:text-slate-300", icon: Archive },
 }
 
 const LEVEL_CONFIG: Record<
@@ -52,17 +52,17 @@ const LEVEL_CONFIG: Record<
 > = {
   bloquante: {
     label: "Bloquante",
-    badgeClass: "bg-rose-50 text-rose-700 border-rose-200 font-semibold",
+    badgeClass: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-900 font-semibold",
     icon: ShieldAlert,
   },
   analyser: {
     label: "À analyser",
-    badgeClass: "bg-amber-50 text-amber-700 border-amber-200 font-semibold",
+    badgeClass: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-900 font-semibold",
     icon: AlertTriangle,
   },
   informative: {
     label: "Informative",
-    badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold",
+    badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-900 font-semibold",
     icon: Info,
   },
 }

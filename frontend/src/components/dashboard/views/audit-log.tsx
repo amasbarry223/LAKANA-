@@ -179,7 +179,13 @@ export function AuditLogView() {
         ].map((s) => (
           <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full" style={{ background: s.color }} />
+              <span
+                className={cn(
+                  "h-2 w-2 rounded-full",
+                  s.color === "#070347" ? "bg-[#070347] dark:bg-indigo-400" : ""
+                )}
+                style={s.color !== "#070347" ? { background: s.color } : undefined}
+              />
               <p className="text-sm font-medium text-slate-500">{s.label}</p>
             </div>
             <p className="mt-1.5 text-2xl font-bold text-slate-900">{s.value}</p>

@@ -184,17 +184,17 @@ export function NewInvestigationModal({
         aria-modal="true"
         aria-labelledby="new-inv-title"
         aria-describedby="new-inv-desc"
-        className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+        className="w-full max-w-lg rounded-2xl bg-white dark:bg-slate-900 dark:border dark:border-slate-800 p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
           <div>
-            <h3 id="new-inv-title" className="text-lg font-semibold text-slate-900">Nouvelle investigation</h3>
-            <p id="new-inv-desc" className="mt-0.5 text-xs text-slate-400">Ouverture de dossier officiel LBC/FT — Prise en charge analyste</p>
+            <h3 id="new-inv-title" className="text-lg font-semibold text-slate-900 dark:text-slate-100">Nouvelle investigation</h3>
+            <p id="new-inv-desc" className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">Ouverture de dossier officiel LBC/FT — Prise en charge analyste</p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-slate-400 hover:bg-slate-100 cursor-pointer"
+            className="rounded-md p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
             aria-label="Fermer la boîte de dialogue"
           >
             <X className="h-4 w-4" />
@@ -202,7 +202,7 @@ export function NewInvestigationModal({
         </div>
 
         <div className="mt-4">
-          <label className="text-xs font-medium text-slate-600">Origine du dossier</label>
+          <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Origine du dossier</label>
           <div className="mt-1.5 grid grid-cols-2 gap-2">
             {[
               { v: "alerte" as const, label: "Depuis une alerte" },
@@ -218,8 +218,8 @@ export function NewInvestigationModal({
                 className={cn(
                   "rounded-lg border px-3 py-2 text-xs font-semibold transition cursor-pointer",
                   source === o.v
-                    ? "border-indigo-300 bg-indigo-50 text-indigo-700"
-                    : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                    ? "border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-300"
+                    : "border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                 )}
               >
                 {o.label}
@@ -268,7 +268,7 @@ export function NewInvestigationModal({
               </p>
             )}
             {existingInv && (
-              <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span>
                   Un dossier en cours existe déjà ({existingInv.ref}). La validation ouvrira ce dossier.
@@ -277,24 +277,24 @@ export function NewInvestigationModal({
             )}
             {selectedAlert && (
               <div className="mt-2 grid grid-cols-3 gap-2">
-                <div className="rounded-lg bg-slate-50 p-2.5">
-                  <p className="text-xs text-slate-400">Score</p>
-                  <p className="text-sm font-semibold text-indigo-600">{selectedAlert.score}/100</p>
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-2.5">
+                  <p className="text-xs text-slate-400 dark:text-slate-500">Score</p>
+                  <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">{selectedAlert.score}/100</p>
                 </div>
-                <div className="rounded-lg bg-slate-50 p-2.5">
-                  <p className="text-xs text-slate-400">Module</p>
-                  <p className="text-sm font-semibold text-slate-900">{selectedAlert.module}</p>
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-2.5">
+                  <p className="text-xs text-slate-400 dark:text-slate-500">Module</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{selectedAlert.module}</p>
                 </div>
-                <div className="rounded-lg bg-slate-50 p-2.5">
-                  <p className="text-xs text-slate-400">Niveau</p>
-                  <p className="text-sm font-semibold capitalize text-slate-900">{selectedAlert.level}</p>
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-2.5">
+                  <p className="text-xs text-slate-400 dark:text-slate-500">Niveau</p>
+                  <p className="text-sm font-semibold capitalize text-slate-900 dark:text-slate-100">{selectedAlert.level}</p>
                 </div>
               </div>
             )}
           </div>
         ) : (
           <div className="mt-4">
-            <label htmlFor="inv-source-client" className="text-xs font-medium text-slate-600">Client concerné</label>
+            <label htmlFor="inv-source-client" className="text-xs font-medium text-slate-600 dark:text-slate-300">Client concerné</label>
             <select
               id="inv-source-client"
               value={selectedClientId}
@@ -305,10 +305,10 @@ export function NewInvestigationModal({
               aria-invalid={!!errors.client}
               aria-describedby={errors.client ? "inv-source-client-err" : undefined}
               className={cn(
-                "mt-1 w-full rounded-lg border bg-slate-50 px-3 py-2 text-sm outline-none focus:bg-white transition",
+                "mt-1 w-full rounded-lg border bg-slate-50 px-3 py-2 text-sm outline-none focus:bg-white transition dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 dark:focus:bg-slate-900",
                 errors.client
                   ? "border-rose-400 bg-rose-50/20 focus:border-rose-500 focus:ring-1 focus:ring-rose-200"
-                  : "border-slate-200 focus:border-indigo-300"
+                  : "border-slate-200 focus:border-indigo-300 dark:focus:border-indigo-500"
               )}
             >
               <option value="">Sélectionner un client...</option>
@@ -319,7 +319,7 @@ export function NewInvestigationModal({
               ))}
             </select>
             {errors.client && (
-              <p id="inv-source-client-err" role="alert" className="mt-1 text-xs font-medium text-rose-600">
+              <p id="inv-source-client-err" role="alert" className="mt-1 text-xs font-medium text-rose-600 dark:text-rose-400">
                 {errors.client}
               </p>
             )}
@@ -327,12 +327,12 @@ export function NewInvestigationModal({
         )}
 
         <div className="mt-4">
-          <label htmlFor="inv-type" className="text-xs font-medium text-slate-600">Type d'investigation</label>
+          <label htmlFor="inv-type" className="text-xs font-medium text-slate-600 dark:text-slate-300">Type d'investigation</label>
           <select
             id="inv-type"
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-indigo-300 focus:bg-white"
+            className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-indigo-300 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-indigo-500 dark:focus:bg-slate-900"
           >
             {INVESTIGATION_TYPES.map((t) => (
               <option key={t} value={t}>
@@ -343,14 +343,14 @@ export function NewInvestigationModal({
         </div>
 
         <div className="mt-4">
-          <label htmlFor="inv-motivation" className="text-xs font-medium text-slate-600">Motivation initiale de l'analyste</label>
+          <label htmlFor="inv-motivation" className="text-xs font-medium text-slate-600 dark:text-slate-300">Motivation initiale de l'analyste</label>
           <textarea
             id="inv-motivation"
             value={motivation}
             onChange={(e) => setMotivation(e.target.value)}
             rows={3}
             placeholder="Contexte de la prise en charge, motifs de soupçon et éléments factuels..."
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm outline-none focus:border-indigo-300 focus:bg-white"
+            className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm outline-none focus:border-indigo-300 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-indigo-500 dark:focus:bg-slate-900"
           />
         </div>
 
@@ -358,7 +358,7 @@ export function NewInvestigationModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+            className="rounded-lg border border-slate-200 dark:border-slate-700 px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
           >
             Annuler
           </button>
@@ -366,7 +366,7 @@ export function NewInvestigationModal({
             type="button"
             disabled={submitting || loadingData}
             onClick={submit}
-            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 cursor-pointer disabled:opacity-50"
           >
             {submitting ? (
               <RefreshCw className="h-3.5 w-3.5 animate-spin" />
@@ -377,7 +377,7 @@ export function NewInvestigationModal({
           </button>
         </div>
 
-        <p className="mt-3 text-center text-xs text-slate-400">
+        <p className="mt-3 text-center text-xs text-slate-400 dark:text-slate-500">
           Traçabilité SHA-256 : l'ouverture est enregistrée dans le journal d'audit conforme BCEAO.
         </p>
       </div>

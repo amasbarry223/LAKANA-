@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useTheme } from "next-themes"
 import {
   Users,
   AlertTriangle,
@@ -62,6 +63,14 @@ function timeAgo(dateStr?: string) {
 
 export function OverviewView() {
   const { userName } = useDashboard()
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const isDark = mounted && resolvedTheme === "dark"
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [recentAlerts, setRecentAlerts] = useState<Alert[]>([])
@@ -309,11 +318,11 @@ export function OverviewView() {
 
           <div className="flex items-center gap-4 text-xs font-medium text-slate-600 dark:text-slate-400">
             <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#070347]" />
+              <span className="h-2.5 w-2.5 rounded-full bg-[#070347] dark:bg-indigo-400" />
               Alertes
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#F59E0B]" />
+              <span className="h-2.5 w-2.5 rounded-full bg-[#F59E0B] dark:bg-amber-400" />
               Investigations
             </span>
           </div>
@@ -324,18 +333,18 @@ export function OverviewView() {
             <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="alertGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#070347" stopOpacity={0.16} />
-                  <stop offset="100%" stopColor="#070347" stopOpacity={0.0} />
+                  <stop offset="0%" stopColor={isDark ? "#818CF8" : "#070347"} stopOpacity={isDark ? 0.35 : 0.16} />
+                  <stop offset="100%" stopColor={isDark ? "#818CF8" : "#070347"} stopOpacity={0.0} />
                 </linearGradient>
                 <linearGradient id="invGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#F59E0B" stopOpacity={0.16} />
+                  <stop offset="0%" stopColor="#F59E0B" stopOpacity={isDark ? 0.35 : 0.16} />
                   <stop offset="100%" stopColor="#F59E0B" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(148, 163, 184, 0.12)" : "#F1F5F9"} vertical={false} />
               <XAxis
                 dataKey="week"
-                tick={{ fontSize: 11, fill: "#94A3B8" }}
+                tick={{ fontSize: 11, fill: isDark ? "#94A3B8" : "#64748B" }}
                 tickLine={false}
                 axisLine={false}
                 dy={4}
@@ -343,23 +352,28 @@ export function OverviewView() {
               <YAxis
                 domain={[0, 4]}
                 ticks={[0, 1, 2, 3, 4]}
-                tick={{ fontSize: 11, fill: "#94A3B8" }}
+                tick={{ fontSize: 11, fill: isDark ? "#94A3B8" : "#64748B" }}
                 tickLine={false}
                 axisLine={false}
               />
               <Tooltip
                 contentStyle={{
+                  backgroundColor: isDark ? "#111827" : "#FFFFFF",
+                  borderColor: isDark ? "rgba(148, 163, 184, 0.2)" : "#E2E8F0",
+                  color: isDark ? "#F8FAFC" : "#0F172A",
                   borderRadius: 10,
-                  border: "1px solid #E2E8F0",
                   fontSize: 12,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+                  boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)",
+                }}
+                itemStyle={{
+                  color: isDark ? "#F8FAFC" : "#0F172A",
                 }}
               />
               <Area
                 type="monotone"
                 dataKey="alertes"
                 name="Alertes"
-                stroke="#070347"
+                stroke={isDark ? "#818CF8" : "#070347"}
                 strokeWidth={2.5}
                 fill="url(#alertGrad)"
               />
@@ -367,7 +381,7 @@ export function OverviewView() {
                 type="monotone"
                 dataKey="investigations"
                 name="Investigations"
-                stroke="#F59E0B"
+                stroke={isDark ? "#FBBF24" : "#F59E0B"}
                 strokeWidth={2}
                 fill="url(#invGrad)"
               />

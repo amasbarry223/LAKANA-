@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useTheme } from "next-themes"
 import {
   Eye,
   EyeOff,
@@ -14,6 +15,8 @@ import {
   Clock,
   Loader2,
   ArrowRight,
+  Sun,
+  Moon,
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -22,8 +25,14 @@ const MAX_ATTEMPTS = 5
 const LOCKOUT_SECONDS = 60
 
 export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const [username, setUsername] = useState("analyste@lakana.ml")
   const [password, setPassword] = useState("password123")
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   const [rememberMe, setRememberMe] = useState(true)
   const [showPwd, setShowPwd] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -183,10 +192,26 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
         aria-hidden="true"
       />
 
+      {/* Bouton de bascule Mode Sombre / Clair sur l'écran de connexion */}
+      <div className="absolute top-5 right-5 z-20">
+        <button
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/20 bg-white/20 backdrop-blur-md text-white shadow-lg transition hover:bg-white/30 dark:border-slate-700 dark:bg-slate-900/60 dark:hover:bg-slate-900/80 cursor-pointer"
+          title={mounted && theme === "dark" ? "Passer en mode clair" : "Passer en mode sombre"}
+          aria-label="Basculer le thème"
+        >
+          {mounted && theme === "dark" ? (
+            <Sun className="h-5 w-5 text-amber-400 transition-transform duration-200 hover:rotate-45" />
+          ) : (
+            <Moon className="h-5 w-5 text-white transition-transform duration-200 hover:-rotate-12" />
+          )}
+        </button>
+      </div>
+
       {/* Conteneur principal centré au milieu avec verre dépoli lumineux */}
-      <div className="relative z-10 w-full max-w-[420px] overflow-hidden rounded-3xl border border-white/70 bg-white/88 shadow-[0_25px_60px_-15px_rgba(15,23,42,0.35)] backdrop-blur-2xl ring-1 ring-black/5 animate-in fade-in-50 zoom-in-95 slide-in-from-bottom-3 duration-500">
+      <div className="relative z-10 w-full max-w-[420px] overflow-hidden rounded-3xl border border-white/70 bg-white/88 shadow-[0_25px_60px_-15px_rgba(15,23,42,0.35)] backdrop-blur-2xl ring-1 ring-black/5 dark:border-white/10 dark:bg-slate-900/90 dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] dark:ring-white/10 animate-in fade-in-50 zoom-in-95 slide-in-from-bottom-3 duration-500">
         {/* En-tête avec logo officiel proéminent et épuré */}
-        <div className="flex flex-col items-center px-8 pt-7 pb-5 text-center border-b border-slate-100/90 bg-gradient-to-b from-white/95 to-slate-50/60">
+        <div className="flex flex-col items-center px-8 pt-7 pb-5 text-center border-b border-slate-100/90 bg-gradient-to-b from-white/95 to-slate-50/60 dark:border-slate-800 dark:from-slate-900/95 dark:to-slate-950/80">
           <div className="mb-4 flex items-center justify-center">
             <img
               src="/logo.png"
@@ -194,7 +219,7 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
               className="h-32 w-auto max-w-[260px] object-contain drop-shadow-md transition-transform duration-300 hover:scale-105"
             />
           </div>
-          <p className="text-xs font-medium text-slate-500">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
             Portail de conformité LBC/FT • Surveillance SFD
           </p>
         </div>
@@ -349,6 +374,29 @@ export function LoginScreen({ onLogin }: { onLogin: (role: string) => void }) {
                     </>
                   )}
                 </button>
+
+                {/* Accès rapide démonstration jury */}
+                <div className="pt-2 text-center">
+                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                    Accès rapide démonstration
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onLogin("Analyste conformité")}
+                      className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-2 text-xs font-semibold text-slate-700 transition hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-200 dark:hover:bg-indigo-950/40 dark:hover:border-indigo-700 dark:hover:text-indigo-300 cursor-pointer"
+                    >
+                      🛡️ Analyste LBC
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onLogin("Agent de guichet")}
+                      className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-2 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-200 dark:hover:bg-emerald-950/40 dark:hover:border-emerald-700 dark:hover:text-emerald-300 cursor-pointer"
+                    >
+                      🏦 Agent Guichet
+                    </button>
+                  </div>
+                </div>
               </form>
             </>
           ) : (

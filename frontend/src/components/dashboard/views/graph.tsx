@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useState, useEffect, useCallback, useMemo } from "react"
+import { useTheme } from "next-themes"
 import {
   Share2,
   ZoomIn,
@@ -46,21 +47,25 @@ type InternalEdge = {
   strong?: boolean
 }
 
-const nodeStyle: Record<InternalNode["type"], { fill: string; stroke: string; textColor: string; r: number }> = {
-  client: { fill: "#070347", stroke: "#050236", textColor: "#ffffff", r: 30 },
-  compte: { fill: "#ffffff", stroke: "#98A3B9", textColor: "#29282B", r: 24 },
-  beneficiaire: { fill: "#ffffff", stroke: "#98A3B9", textColor: "#29282B", r: 22 },
-  alerte: { fill: "#FDF2F4", stroke: "#CD0D29", textColor: "#CD0D29", r: 22 },
-}
-
-const legend = [
-  { label: "Client émetteur", color: "#070347" },
-  { label: "Compte bancaire", color: "#98A3B9" },
-  { label: "Bénéficiaire régulier", color: "#98A3B9" },
-  { label: "Alerte Rouge (≥ 15M / jour ou > 2× habituel)", color: "#CD0D29" },
-]
+const getNodeStyles = (isDark: boolean): Record<InternalNode["type"], { fill: string; stroke: string; textColor: string; r: number }> => ({
+  client: { fill: isDark ? "#312E81" : "#070347", stroke: isDark ? "#818CF8" : "#050236", textColor: "#ffffff", r: 30 },
+  compte: { fill: isDark ? "#1E293B" : "#ffffff", stroke: isDark ? "#64748B" : "#98A3B9", textColor: isDark ? "#F8FAFC" : "#29282B", r: 24 },
+  beneficiaire: { fill: isDark ? "#1E293B" : "#ffffff", stroke: isDark ? "#64748B" : "#98A3B9", textColor: isDark ? "#F8FAFC" : "#29282B", r: 22 },
+  alerte: { fill: isDark ? "#451219" : "#FDF2F4", stroke: isDark ? "#FB7185" : "#CD0D29", textColor: isDark ? "#FECDD3" : "#CD0D29", r: 22 },
+})
 
 export function GraphView() {
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
+  const nodeStyle = useMemo(() => getNodeStyles(isDark), [isDark])
+
+  const legend = useMemo(() => [
+    { label: "Client émetteur", color: isDark ? "#818CF8" : "#070347" },
+    { label: "Compte bancaire", color: isDark ? "#64748B" : "#98A3B9" },
+    { label: "Bénéficiaire régulier", color: isDark ? "#64748B" : "#98A3B9" },
+    { label: "Alerte Rouge (≥ 15M / jour ou > 2× habituel)", color: isDark ? "#FB7185" : "#CD0D29" },
+  ], [isDark])
+
   const [zoom, setZoom] = useState(1)
   const [selected, setSelected] = useState<string | null>(null)
   const [hovered, setHovered] = useState<string | null>(null)
@@ -843,7 +848,7 @@ export function GraphView() {
                         y1={from.y}
                         x2={to.x}
                         y2={to.y}
-                        stroke={e.strong ? "#CD0D29" : "#98A3B9"}
+                        stroke={e.strong ? (isDark ? "#FB7185" : "#CD0D29") : (isDark ? "#475569" : "#98A3B9")}
                         strokeWidth={e.strong ? 2.5 : 1.5}
                         strokeDasharray={e.strong ? "4 3" : undefined}
                       />
@@ -855,8 +860,8 @@ export function GraphView() {
                             width={44}
                             height={18}
                             rx={4}
-                            fill="#ffffff"
-                            stroke={e.strong ? "#CD0D29" : "#98A3B9"}
+                            fill={isDark ? "#1E293B" : "#ffffff"}
+                            stroke={e.strong ? (isDark ? "#FB7185" : "#CD0D29") : (isDark ? "#475569" : "#98A3B9")}
                             strokeWidth={e.strong ? 1.5 : 1}
                           />
                           <text
@@ -865,7 +870,7 @@ export function GraphView() {
                             textAnchor="middle"
                             className={cn(
                               "text-xs font-bold",
-                              e.strong ? "fill-rose-600 font-mono" : "fill-slate-500"
+                              e.strong ? (isDark ? "fill-rose-400 font-mono" : "fill-rose-600 font-mono") : (isDark ? "fill-slate-300" : "fill-slate-500")
                             )}
                           >
                             {e.label}
@@ -908,7 +913,7 @@ export function GraphView() {
                           cy={n.y}
                           r={style.r + 6}
                           fill="none"
-                          stroke={isAlert ? "#CD0D29" : "#070347"}
+                          stroke={isAlert ? (isDark ? "#FB7185" : "#CD0D29") : (isDark ? "#818CF8" : "#070347")}
                           strokeWidth={2.5}
                           strokeDasharray="3 3"
                         />
@@ -937,9 +942,9 @@ export function GraphView() {
             )}
 
             {/* Légende en incrustation */}
-            <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-3 rounded-xl bg-white/95 backdrop-blur-sm px-3.5 py-2.5 shadow-md border border-slate-100">
+            <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-3 rounded-xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm px-3.5 py-2.5 shadow-md border border-slate-100 dark:border-slate-800">
               {legend.map((l) => (
-                <span key={l.label} className="flex items-center gap-1.5 text-xs text-slate-700 font-medium">
+                <span key={l.label} className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-200 font-medium">
                   <span className="h-3 w-3 rounded-full flex-shrink-0" style={{ background: l.color }} />
                   {l.label}
                 </span>

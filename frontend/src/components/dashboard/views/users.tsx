@@ -8,8 +8,8 @@ import { toast } from "sonner"
 import { userService, type UserItem, type Role } from "@/services/userService"
 
 const roleBadgeColor: Record<Role, string> = {
-  "Analyste de conformité": "bg-indigo-50 text-indigo-700 border-indigo-200",
-  "Agent guichet": "bg-amber-50 text-amber-700 border-amber-200",
+  "Analyste de conformité": "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800",
+  "Agent guichet": "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800",
 }
 
 // Matrice réglementaire stricte à 2 rôles : Analyste de conformité & Agent guichet
