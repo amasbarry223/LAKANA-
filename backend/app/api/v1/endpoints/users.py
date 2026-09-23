@@ -9,6 +9,7 @@ from app.core.security import get_password_hash
 router = APIRouter()
 
 
+@router.get("", response_model=List[UserOut])
 @router.get("/", response_model=List[UserOut])
 def list_users(
     q: Optional[str] = None,
@@ -42,6 +43,7 @@ def list_compliance_officers(db: Session = Depends(get_db)):
     )
 
 
+@router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 @router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def create_user(user_in: UserCreate, db: Session = Depends(get_db)):
     """Création d'un nouvel utilisateur (Analyste de conformité ou Agent guichet)."""
