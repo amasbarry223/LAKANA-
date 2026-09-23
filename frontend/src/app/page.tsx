@@ -96,7 +96,7 @@ function DashboardContent({
   role: string
   onLogout: () => void
 }) {
-  const [active, setActive] = useState("Accueil")
+  const [active, setActive] = useState("Tableau de bord")
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const { theme, setTheme } = useTheme()

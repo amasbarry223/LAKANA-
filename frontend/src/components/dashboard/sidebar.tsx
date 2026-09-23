@@ -1,7 +1,6 @@
 "use client"
 
 import {
-  Home,
   LayoutGrid,
   BellRing,
   UserPlus,
@@ -52,7 +51,6 @@ const standardSections: NavSection[] = [
     id: "main",
     title: "",
     items: [
-      { label: "Accueil", icon: Home },
       { label: "Tableau de bord", icon: LayoutGrid },
     ],
   },
@@ -201,7 +199,7 @@ function SidebarContent({
       {/* 1. Brand & Institution Header */}
       <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-5">
         <div
-          onClick={() => onSelect("Accueil")}
+          onClick={() => onSelect("Tableau de bord")}
           className="flex items-center gap-3 cursor-pointer group"
           title="Tableau de bord LAKANA"
         >
