@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { toast } from "sonner"
 import {
   Activity,
   Users,
@@ -17,6 +18,11 @@ import {
   Share2,
   FileText,
   ShieldAlert,
+  Plus,
+  Download,
+  Inbox,
+  BellRing,
+  UserRound,
 } from "lucide-react"
 import {
   Area,
@@ -31,8 +37,38 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { navigateTo } from "@/lib/navigate"
 import { statsService } from "@/services/statsService"
+import { alertService } from "@/services/alertService"
+import { clientService } from "@/services/clientService"
+import { TableSkeleton } from "@/components/ui/skeleton"
+import { EmptyState } from "@/components/ui/empty-state"
 import { useDashboard } from "@/lib/dashboard-context"
 import type { DashboardStats, ModuleStat } from "@/models/stats"
+import type { Alert } from "@/models/alert"
+import type { Client } from "@/models/client"
+
+const ALERT_LEVEL_BADGE: Record<string, string> = {
+  bloquante: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900",
+  analyser: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900",
+  informative: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900",
+}
+
+const ALERT_LEVEL_LABEL: Record<string, string> = {
+  bloquante: "Bloquante",
+  analyser: "À analyser",
+  informative: "Informative",
+}
+
+function timeAgo(dateStr?: string) {
+  if (!dateStr) return ""
+  const diffMs = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diffMs / 60000)
+  if (mins < 1) return "À l'instant"
+  if (mins < 60) return `Il y a ${mins} min`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `Il y a ${hours} h`
+  const days = Math.floor(hours / 24)
+  return `Il y a ${days} j`
+}
 
 // Sparkline SVG component for the modules
 function Sparkline({ data, color }: { data: number[]; color: string }) {
@@ -67,6 +103,9 @@ export function OverviewView() {
   const { userName } = useDashboard()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [recentAlerts, setRecentAlerts] = useState<Alert[]>([])
+  const [topRiskClients, setTopRiskClients] = useState<Client[]>([])
+  const [listsLoading, setListsLoading] = useState(true)
 
   // Chart data exactly representing the 8 weeks curve from the reference screenshot
   const trendData = [
@@ -92,8 +131,32 @@ export function OverviewView() {
     }
   }
 
+  const fetchLists = async () => {
+    setListsLoading(true)
+    try {
+      const [alerts, clientsPage] = await Promise.all([
+        alertService.getAlerts(),
+        clientService.getClientsPage({ niveauRisque: "Élevé", limit: 5 }),
+      ])
+      const sortedAlerts = [...alerts].sort((a, b) => {
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0
+        return tb - ta
+      })
+      setRecentAlerts(sortedAlerts.slice(0, 5))
+      setTopRiskClients(
+        [...clientsPage.data].sort((a, b) => b.riskScore - a.riskScore).slice(0, 5)
+      )
+    } catch (e) {
+      console.error("Erreur chargement listes overview:", e)
+    } finally {
+      setListsLoading(false)
+    }
+  }
+
   useEffect(() => {
     fetchData()
+    fetchLists()
   }, [])
 
   // Dynamic or fallback values matching reference screenshot
@@ -191,6 +254,43 @@ export function OverviewView() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* ───────────────────────────────────────────────────────────────── */}
+      {/* 1bis. ACTIONS RAPIDES                                              */}
+      {/* ───────────────────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent("lakana-new-investigation"))}
+          className="inline-flex items-center gap-2 rounded-xl bg-[#070347] px-4 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#0a0563] active:scale-[0.98]"
+        >
+          <Plus className="h-4 w-4" />
+          Nouvelle investigation
+        </button>
+        <button
+          onClick={() => navigateTo("Filtrage sanctions/PPE")}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:bg-slate-50 active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+        >
+          <ShieldAlert className="h-4 w-4 text-[#CD0D29]" />
+          Filtrage sanctions/PPE
+        </button>
+        <button
+          onClick={() => navigateTo("Rapports réglementaires")}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:bg-slate-50 active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+        >
+          <Download className="h-4 w-4 text-slate-500" />
+          Exporter un rapport
+        </button>
+        <button
+          onClick={() => {
+            navigateTo("Intégration & Synchronisation")
+            toast.success("Synchronisation lancée", { description: "Mise à jour de toutes les sources en cours." })
+          }}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:bg-slate-50 active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+        >
+          <RefreshCw className="h-4 w-4 text-slate-500" />
+          Lancer une synchronisation
+        </button>
       </div>
 
       {/* ───────────────────────────────────────────────────────────────── */}
@@ -645,6 +745,144 @@ export function OverviewView() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ───────────────────────────────────────────────────────────────── */}
+      {/* 5. ALERTES RÉCENTES & CLIENTS À RISQUE ÉLEVÉ                       */}
+      {/* ───────────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        {/* COLONNE GAUCHE : Alertes récentes */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <BellRing className="h-5 w-5 text-[#070347] dark:text-slate-300" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                Alertes récentes
+              </h3>
+            </div>
+            <button
+              onClick={() => navigateTo("Centre d'alertes")}
+              className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400"
+            >
+              Voir tout →
+            </button>
+          </div>
+
+          <div className="mt-5">
+            {listsLoading ? (
+              <TableSkeleton rows={5} cols={3} />
+            ) : recentAlerts.length === 0 ? (
+              <EmptyState
+                icon={Inbox}
+                title="Aucune alerte récente"
+                description="Les nouvelles alertes de conformité apparaîtront ici."
+                variant="compact"
+              />
+            ) : (
+              <div className="space-y-3">
+                {recentAlerts.map((a) => (
+                  <div
+                    key={a.id}
+                    onClick={() => navigateTo("Client 360°", { clientId: a.clientId })}
+                    className="flex cursor-pointer items-center justify-between rounded-xl border border-slate-100 p-3.5 transition-all hover:bg-slate-50/80 dark:border-slate-800 dark:hover:bg-slate-800/40"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-[#CD0D29] dark:bg-rose-950/50 dark:text-[#CD0D29]">
+                        <AlertTriangle className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-200">
+                          {a.client}
+                        </p>
+                        <p className="truncate text-[11px] text-slate-400">
+                          {a.type} · {timeAgo(a.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <span
+                        className={cn(
+                          "rounded-md border px-2 py-0.5 text-[10px] font-bold",
+                          ALERT_LEVEL_BADGE[a.level] || ALERT_LEVEL_BADGE.analyser
+                        )}
+                      >
+                        {ALERT_LEVEL_LABEL[a.level] || "À analyser"}
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-slate-300" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* COLONNE DROITE : Clients à risque élevé */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <UserRound className="h-5 w-5 text-[#070347] dark:text-slate-300" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                Clients à risque élevé
+              </h3>
+            </div>
+            <button
+              onClick={() => navigateTo("Clients & Enrôlement")}
+              className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400"
+            >
+              Voir tout →
+            </button>
+          </div>
+
+          <div className="mt-5">
+            {listsLoading ? (
+              <TableSkeleton rows={5} cols={3} />
+            ) : topRiskClients.length === 0 ? (
+              <EmptyState
+                icon={ShieldCheck}
+                title="Aucun client à risque élevé"
+                description="Les clients avec un score de risque élevé apparaîtront ici."
+                variant="compact"
+              />
+            ) : (
+              <div className="space-y-3">
+                {topRiskClients.map((c) => {
+                  const displayName =
+                    c.typeClient === "Entreprise"
+                      ? c.raisonSociale || c.nom
+                      : `${c.nom} ${c.prenom || ""}`.trim()
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => navigateTo("Client 360°", { clientId: c.id })}
+                      className="flex cursor-pointer items-center justify-between rounded-xl border border-slate-100 p-3.5 transition-all hover:bg-slate-50/80 dark:border-slate-800 dark:hover:bg-slate-800/40"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-[#070347] text-xs font-bold dark:bg-indigo-950/50 dark:text-indigo-300">
+                          {displayName.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-200">
+                            {displayName}
+                          </p>
+                          <p className="truncate text-[11px] text-slate-400">
+                            {c.codeClient} · {c.ville || "Bamako"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-3">
+                        <span className="rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-[#CD0D29] dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-300">
+                          {c.riskScore}/100
+                        </span>
+                        <ChevronRight className="h-4 w-4 text-slate-300" />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
