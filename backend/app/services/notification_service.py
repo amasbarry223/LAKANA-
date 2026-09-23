@@ -43,9 +43,12 @@ class NotificationService:
         # Mémoire tampon des dernières notifications expédiées (accessible pour l'UI)
         self._dispatched_history: List[DispatchedNotification] = []
 
-    def get_history(self, limit: int = 50) -> List[Dict[str, Any]]:
-        """Retourne l'historique des notifications expédiées."""
-        return [n.model_dump() for n in reversed(self._dispatched_history[-limit:])]
+    def get_history(self, skip: int = 0, limit: int = 50) -> Dict[str, Any]:
+        """Retourne une page de l'historique des notifications expédiées (plus récentes d'abord)."""
+        newest_first = list(reversed(self._dispatched_history))
+        total = len(newest_first)
+        page = newest_first[skip: skip + limit]
+        return {"data": [n.model_dump() for n in page], "total": total}
 
     def _clean_phone(self, phone: str) -> str:
         """Nettoie le numéro de téléphone pour WasenderAPI (format E.164 sans espaces ni tirets)."""

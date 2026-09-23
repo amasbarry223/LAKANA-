@@ -1,15 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Download, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, X, RefreshCw } from "lucide-react"
+import { Search, Download, ChevronDown, ArrowUp, ArrowDown, X, RefreshCw } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { cn } from "@/lib/utils"
-import { auditService } from "@/services/auditService"
+import { auditService, type ApiAuditLog } from "@/services/auditService"
 import { DataPagination } from "@/components/ui/data-pagination"
-import { usePageSlice } from "@/hooks/use-pagination"
+import { usePaginatedFetch } from "@/hooks/use-pagination"
+import { TableSkeleton } from "@/components/ui/skeleton"
+import { EmptyState } from "@/components/ui/empty-state"
 
 type LogEntry = {
   id: string
@@ -22,11 +24,21 @@ type LogEntry = {
   ip: string
 }
 
-
+function mapLogEntry(d: ApiAuditLog, i: number): LogEntry {
+  return {
+    id: d.id ? `LOG-${d.id.slice(0, 6)}` : `LOG-${1100 + i}`,
+    date: d.timestamp ? new Date(d.timestamp).toLocaleString("fr-FR") : new Date().toLocaleString("fr-FR"),
+    user: d.utilisateur || "Système",
+    role: d.role || "Système",
+    module: d.module || "Surveillance Flux",
+    action: d.action || "Action enregistrée",
+    result: (d.details || "").toLowerCase().includes("échec") || (d.action || "").toLowerCase().includes("échouée") ? "Échec" : "Succès",
+    ip: d.ip_address || "127.0.0.1",
+  }
+}
 
 const modules = ["Tous modules", "Authentification", "Centre d'alertes", "Client 360°", "Investigations", "Risk Score", "Filtrage sanctions", "Utilisateurs", "Journal d'audit", "Surveillance Flux"]
 
-type SortColumn = "date" | "user" | "module" | "result"
 type SortDir = "asc" | "desc"
 
 const moreModules = [
@@ -42,50 +54,57 @@ const moreModules = [
   "Surveillance Flux",
 ]
 
-function SortIcon({ column, sortBy, sortDir }: { column: SortColumn; sortBy: SortColumn | null; sortDir: SortDir }) {
-  const Icon: LucideIcon = sortBy !== column ? ArrowUpDown : sortDir === "asc" ? ArrowUp : ArrowDown
+function SortIcon({ sortDir }: { sortDir: SortDir }) {
+  const Icon: LucideIcon = sortDir === "asc" ? ArrowUp : ArrowDown
   return <Icon className="h-3 w-3" />
 }
 
 export function AuditLogView() {
-  const [items, setItems] = useState<LogEntry[]>([])
-  const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState("")
+  const [debouncedQuery, setDebouncedQuery] = useState("")
   const [module, setModule] = useState("Tous modules")
-  const [sortBy, setSortBy] = useState<SortColumn | null>(null)
-  const [sortDir, setSortDir] = useState<SortDir>("asc")
+  const [sortDir, setSortDir] = useState<SortDir>("desc")
   const [moreOpen, setMoreOpen] = useState(false)
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null)
 
-  const fetchLogs = async () => {
-    setLoading(true)
-    try {
-      const { data } = await auditService.getAuditLogsPage(undefined, { skip: 0, limit: 100 })
-      if (data && data.length > 0) {
-        const dynamicLogs: LogEntry[] = data.map((d, i) => ({
-          id: d.id ? `LOG-${d.id.slice(0, 6)}` : `LOG-${1100 + i}`,
-          date: d.timestamp ? new Date(d.timestamp).toLocaleString("fr-FR") : new Date().toLocaleString("fr-FR"),
-          user: d.utilisateur || "Système",
-          role: d.role || "Système",
-          module: d.module || "Surveillance Flux",
-          action: d.action || "Action enregistrée",
-          result: (d.details || "").toLowerCase().includes("échec") || (d.action || "").toLowerCase().includes("échouée") ? "Échec" : "Succès",
-          ip: d.ip_address || "127.0.0.1",
-        }))
-        setItems(dynamicLogs)
-      } else {
-        setItems([])
-      }
-    } catch (e) {
-      console.warn("Erreur chargement logs audit :", e)
-      setItems([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  // Recherche différée de 300ms pour éviter une requête serveur à chaque frappe
   useEffect(() => {
-    fetchLogs()
+    const t = setTimeout(() => setDebouncedQuery(query.trim()), 300)
+    return () => clearTimeout(t)
+  }, [query])
+
+  // Tableau paginé côté serveur — source de vérité pour le journal affiché
+  const {
+    data: rawLogs,
+    page: logsPage,
+    setPage: setLogsPage,
+    totalPages: logsTotalPages,
+    total: logsTotal,
+    loading,
+    refetch: refetchLogs,
+  } = usePaginatedFetch<ApiAuditLog>(
+    ({ skip, limit }) =>
+      auditService.getAuditLogsPage(
+        {
+          q: debouncedQuery || undefined,
+          module: module === "Tous modules" ? undefined : module,
+          order: sortDir,
+        },
+        { skip, limit }
+      ),
+    [debouncedQuery, module, sortDir],
+    { pageSize: 20 }
+  )
+  const pagedLogs = rawLogs.map(mapLogEntry)
+
+  // Instantané borné (200 entrées les plus récentes), découplé du tableau paginé,
+  // utilisé uniquement pour les cartes de synthèse et l'export CSV rapide.
+  const [statsSnapshot, setStatsSnapshot] = useState<LogEntry[]>([])
+  useEffect(() => {
+    auditService
+      .getAuditLogsPage(undefined, { skip: 0, limit: 200 })
+      .then(({ data }) => setStatsSnapshot(data.map(mapLogEntry)))
+      .catch(() => setStatsSnapshot([]))
   }, [])
 
   useEffect(() => {
@@ -97,37 +116,7 @@ export function AuditLogView() {
     return () => window.removeEventListener("keydown", onKey)
   }, [selectedLog])
 
-  const toggleSort = (col: SortColumn) => {
-    if (sortBy === col) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
-    } else {
-      setSortBy(col)
-      setSortDir("asc")
-    }
-  }
-
-  const filtered = items.filter((l) => {
-    const queryOk = !query || l.user.toLowerCase().includes(query.toLowerCase()) || l.action.toLowerCase().includes(query.toLowerCase())
-    const moduleOk = module === "Tous modules" || l.module === module
-    return queryOk && moduleOk
-  })
-
-  const sorted = [...filtered].sort((a, b) => {
-    if (!sortBy) return 0
-    const dir = sortDir === "asc" ? 1 : -1
-    if (sortBy === "user") return a.user.localeCompare(b.user) * dir
-    if (sortBy === "module") return a.module.localeCompare(b.module) * dir
-    if (sortBy === "result") return a.result.localeCompare(b.result) * dir
-    return a.date.localeCompare(b.date) * dir
-  })
-
-  const {
-    data: pagedLogs,
-    page: logsPage,
-    setPage: setLogsPage,
-    totalPages: logsTotalPages,
-    total: logsTotal,
-  } = usePageSlice(sorted, 20)
+  const toggleDateSort = () => setSortDir((d) => (d === "asc" ? "desc" : "asc"))
 
   const exportLogsCsv = () => {
     const headers = ["date", "user", "role", "module", "action", "result", "ip"]
@@ -138,7 +127,7 @@ export function AuditLogView() {
       }
       return s
     }
-    const rows = items.map((l) =>
+    const rows = statsSnapshot.map((l) =>
       [l.date, l.user, l.role, l.module, l.action, l.result, l.ip].map(escape).join(",")
     )
     const csv = [headers.join(","), ...rows].join("\r\n")
@@ -151,7 +140,7 @@ export function AuditLogView() {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-    toast.success("Journal exporté", { description: "Export CSV téléchargé." })
+    toast.success("Journal exporté", { description: "Export CSV des 200 entrées les plus récentes téléchargé." })
   }
 
   return (
@@ -163,7 +152,7 @@ export function AuditLogView() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={fetchLogs}
+            onClick={refetchLogs}
             disabled={loading}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900"
             title="Actualiser le journal"
@@ -183,10 +172,10 @@ export function AuditLogView() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
-          { label: "Entrées enregistrées", value: items.length, color: "#070347" },
-          { label: "Tentatives échouées", value: items.filter((l) => l.result === "Échec").length, color: "#CD0D29" },
-          { label: "Actions réussies", value: items.filter((l) => l.result === "Succès").length, color: "#059669" },
-          { label: "Actions admin", value: items.filter((l) => l.role.toLowerCase().includes("admin") || l.role.toLowerCase().includes("responsable")).length, color: "#D97706" },
+          { label: "Entrées enregistrées", value: logsTotal, color: "#070347" },
+          { label: "Tentatives échouées (récent)", value: statsSnapshot.filter((l) => l.result === "Échec").length, color: "#CD0D29" },
+          { label: "Actions réussies (récent)", value: statsSnapshot.filter((l) => l.result === "Succès").length, color: "#059669" },
+          { label: "Actions admin (récent)", value: statsSnapshot.filter((l) => l.role.toLowerCase().includes("admin") || l.role.toLowerCase().includes("responsable")).length, color: "#D97706" },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex items-center gap-2">
@@ -263,55 +252,43 @@ export function AuditLogView() {
               <tr className="border-b border-slate-200/80 bg-slate-50/70 text-xs uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
                 <th className="px-5 py-3 font-semibold">
                   <button
-                    onClick={() => toggleSort("date")}
-                    className={cn(
-                      "inline-flex items-center gap-1 transition cursor-pointer",
-                      sortBy === "date" ? "text-indigo-600" : "hover:text-slate-600"
-                    )}
+                    onClick={toggleDateSort}
+                    className="inline-flex items-center gap-1 text-indigo-600 transition cursor-pointer"
                   >
                     Horodatage & Réf
-                    <SortIcon column="date" sortBy={sortBy} sortDir={sortDir} />
+                    <SortIcon sortDir={sortDir} />
                   </button>
                 </th>
-                <th className="px-4 py-3 font-semibold">
-                  <button
-                    onClick={() => toggleSort("user")}
-                    className={cn(
-                      "inline-flex items-center gap-1 transition cursor-pointer",
-                      sortBy === "user" ? "text-indigo-600" : "hover:text-slate-600"
-                    )}
-                  >
-                    Utilisateur
-                    <SortIcon column="user" sortBy={sortBy} sortDir={sortDir} />
-                  </button>
-                </th>
-                <th className="px-4 py-3 font-semibold">
-                  <button
-                    onClick={() => toggleSort("module")}
-                    className={cn(
-                      "inline-flex items-center gap-1 transition cursor-pointer",
-                      sortBy === "module" ? "text-indigo-600" : "hover:text-slate-600"
-                    )}
-                  >
-                    Module
-                    <SortIcon column="module" sortBy={sortBy} sortDir={sortDir} />
-                  </button>
-                </th>
+                <th className="px-4 py-3 font-semibold">Utilisateur</th>
+                <th className="px-4 py-3 font-semibold">Module</th>
                 <th className="px-4 py-3 font-semibold">Action enregistrée</th>
-                <th className="px-5 py-3 font-semibold text-right">
-                  <button
-                    onClick={() => toggleSort("result")}
-                    className={cn(
-                      "inline-flex items-center gap-1 transition cursor-pointer",
-                      sortBy === "result" ? "text-indigo-600" : "hover:text-slate-600"
-                    )}
-                  >
-                    Résultat
-                    <SortIcon column="result" sortBy={sortBy} sortDir={sortDir} />
-                  </button>
-                </th>
+                <th className="px-5 py-3 font-semibold text-right">Résultat</th>
               </tr>
             </thead>
+            {loading ? (
+              <tbody>
+                <tr>
+                  <td colSpan={5}>
+                    <TableSkeleton rows={8} cols={5} />
+                  </td>
+                </tr>
+              </tbody>
+            ) : pagedLogs.length === 0 ? (
+              <tbody>
+                <tr>
+                  <td colSpan={5}>
+                    <EmptyState
+                      title="Aucune entrée trouvée"
+                      description={
+                        debouncedQuery || module !== "Tous modules"
+                          ? "Aucun résultat pour ces filtres. Modifiez vos termes ou réinitialisez."
+                          : "Aucune action n'a encore été journalisée."
+                      }
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            ) : (
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
               {pagedLogs.map((l) => (
                 <tr
@@ -347,6 +324,7 @@ export function AuditLogView() {
                 </tr>
               ))}
             </tbody>
+            )}
           </table>
         </div>
         {logsTotal > 0 && (

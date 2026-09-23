@@ -6,6 +6,9 @@ import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { statsService } from "@/services/statsService"
+import { usePaginatedFetch } from "@/hooks/use-pagination"
+import { DataPagination } from "@/components/ui/data-pagination"
+import { TableSkeleton } from "@/components/ui/skeleton"
 
 type Report = {
   id: string
@@ -133,33 +136,48 @@ export function ReportsView() {
 
   // Navigation par registres officiels
   const [activeTab, setActiveTab] = useState<"synthese" | "suspectes" | "15m" | "ppe">("synthese")
-  const [registreSuspectes, setRegistreSuspectes] = useState<any[]>([])
-  const [registre15M, setRegistre15M] = useState<any[]>([])
-  const [registrePPE, setRegistrePPE] = useState<any[]>([])
-  const [loadingRegistres, setLoadingRegistres] = useState(false)
   const [searchFilter, setSearchFilter] = useState("")
 
-  const loadRegistres = () => {
-    setLoadingRegistres(true)
-    Promise.all([
-      statsService.getRegistreOperationsSuspectes(),
-      statsService.getRegistreTransactions15M(),
-      statsService.getRegistrePPE(),
-    ])
-      .then(([suspectes, tx15, ppe]) => {
-        setRegistreSuspectes(suspectes || [])
-        setRegistre15M(tx15 || [])
-        setRegistrePPE(ppe || [])
-      })
-      .catch((err) => console.error("Erreur chargement registres :", err))
-      .finally(() => setLoadingRegistres(false))
-  }
+  // Chaque registre est paginé côté serveur indépendamment (skip/limit + total réel)
+  const {
+    data: registreSuspectes,
+    total: registreSuspectesTotal,
+    page: suspectesPage,
+    setPage: setSuspectesPage,
+    totalPages: suspectesTotalPages,
+    loading: loadingSuspectes,
+  } = usePaginatedFetch<any>(
+    ({ skip, limit }) => statsService.getRegistreOperationsSuspectesPage({ skip, limit }),
+    [],
+    { pageSize: 20 }
+  )
+  const {
+    data: registre15M,
+    total: registre15MTotal,
+    page: tx15Page,
+    setPage: setTx15Page,
+    totalPages: tx15TotalPages,
+    loading: loading15M,
+  } = usePaginatedFetch<any>(
+    ({ skip, limit }) => statsService.getRegistreTransactions15MPage({ skip, limit }),
+    [],
+    { pageSize: 20 }
+  )
+  const {
+    data: registrePPE,
+    total: registrePPETotal,
+    page: ppePage,
+    setPage: setPpePage,
+    totalPages: ppeTotalPages,
+    loading: loadingPPE,
+  } = usePaginatedFetch<any>(
+    ({ skip, limit }) => statsService.getRegistrePPEPage({ skip, limit }),
+    [],
+    { pageSize: 20 }
+  )
 
-  useEffect(() => {
-    loadRegistres()
-  }, [])
-
-  // Export CSV universel
+  // Export CSV universel — la page affichée est paginée, mais l'export peut porter
+  // sur le registre complet (voir exportFullRegistre plus bas)
   const exportCsv = (rows: any[], filename: string, headers: { key: string; label: string }[]) => {
     if (!rows || rows.length === 0) {
       toast.warning("Aucune donnée à exporter")
@@ -178,6 +196,26 @@ export function ReportsView() {
     a.click()
     URL.revokeObjectURL(url)
     toast.success("Fichier CSV généré", { description: `${filename}.csv téléchargé avec succès.` })
+  }
+
+  // Récupère le registre complet (au-delà de la page affichée) juste avant l'export,
+  // pour ne jamais garder l'intégralité des lignes en mémoire en dehors de ce moment.
+  const [exportingRegistre, setExportingRegistre] = useState<string | null>(null)
+  const exportFullRegistre = async (
+    fetchAll: () => Promise<any[]>,
+    filename: string,
+    headers: { key: string; label: string }[]
+  ) => {
+    setExportingRegistre(filename)
+    try {
+      const rows = await fetchAll()
+      exportCsv(rows, filename, headers)
+    } catch (e) {
+      console.error(`Erreur export ${filename} :`, e)
+      toast.error("Erreur lors de la récupération des données à exporter")
+    } finally {
+      setExportingRegistre(null)
+    }
   }
 
   // Escape key closes the preview modal
@@ -287,7 +325,7 @@ export function ReportsView() {
           <ShieldAlert className="h-4 w-4" />
           Opérations Suspectes
           <span className="ml-1 rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-700">
-            {registreSuspectes.length}
+            {registreSuspectesTotal}
           </span>
         </button>
 
@@ -303,7 +341,7 @@ export function ReportsView() {
           <FileSpreadsheet className="h-4 w-4" />
           Transactions ≥ 15M FCFA
           <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
-            {registre15M.length}
+            {registre15MTotal}
           </span>
         </button>
 
@@ -319,7 +357,7 @@ export function ReportsView() {
           <Building2 className="h-4 w-4" />
           Liste Officielle PPE
           <span className="ml-1 rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-700">
-            {registrePPE.length}
+            {registrePPETotal}
           </span>
         </button>
       </div>
@@ -450,23 +488,32 @@ export function ReportsView() {
             </div>
             <div className="flex items-center gap-2">
               <button
+                disabled={exportingRegistre === "registre-operations-suspectes"}
                 onClick={() =>
-                  exportCsv(registreSuspectes, "registre-operations-suspectes", [
-                    { key: "numero_depot", label: "1. N° Dépôt" },
-                    { key: "numero_compte", label: "2. N° Compte" },
-                    { key: "agence", label: "3. Agence" },
-                    { key: "nom_complet", label: "4. Prénom & Nom ou Nom et Prénom légal" },
-                    { key: "profession", label: "5. Profession" },
-                    { key: "nature_operation", label: "6. Nature de l'opération" },
-                    { key: "montant", label: "7. Montant de l'opération (FCFA)" },
-                    { key: "cause_operation", label: "8. Cause de l'opération (Motif ou libellé)" },
-                    { key: "adresse_complete", label: "9. Adresse complète" },
-                    { key: "operateur", label: "10. Opérateur" },
-                  ])
+                  exportFullRegistre(
+                    () => statsService.getRegistreOperationsSuspectes(),
+                    "registre-operations-suspectes",
+                    [
+                      { key: "numero_depot", label: "1. N° Dépôt" },
+                      { key: "numero_compte", label: "2. N° Compte" },
+                      { key: "agence", label: "3. Agence" },
+                      { key: "nom_complet", label: "4. Prénom & Nom ou Nom et Prénom légal" },
+                      { key: "profession", label: "5. Profession" },
+                      { key: "nature_operation", label: "6. Nature de l'opération" },
+                      { key: "montant", label: "7. Montant de l'opération (FCFA)" },
+                      { key: "cause_operation", label: "8. Cause de l'opération (Motif ou libellé)" },
+                      { key: "adresse_complete", label: "9. Adresse complète" },
+                      { key: "operateur", label: "10. Opérateur" },
+                    ]
+                  )
                 }
-                className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-sm"
+                className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-sm disabled:opacity-50"
               >
-                <Download className="h-3.5 w-3.5 text-emerald-600" />
+                {exportingRegistre === "registre-operations-suspectes" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+                ) : (
+                  <Download className="h-3.5 w-3.5 text-emerald-600" />
+                )}
                 Exporter CSV (10 colonnes)
               </button>
               <button
@@ -496,7 +543,13 @@ export function ReportsView() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
-                {registreSuspectes.length === 0 ? (
+                {loadingSuspectes ? (
+                  <tr>
+                    <td colSpan={10} className="p-0">
+                      <TableSkeleton rows={6} cols={5} />
+                    </td>
+                  </tr>
+                ) : registreSuspectes.length === 0 ? (
                   <tr>
                     <td colSpan={10} className="text-center py-6 text-slate-400">
                       Aucune opération suspecte enregistrée pour le moment.
@@ -525,6 +578,16 @@ export function ReportsView() {
               </tbody>
             </table>
           </div>
+          {registreSuspectesTotal > 0 && (
+            <DataPagination
+              page={suspectesPage}
+              totalPages={suspectesTotalPages}
+              total={registreSuspectesTotal}
+              pageSize={20}
+              onPageChange={setSuspectesPage}
+              itemLabel="opérations"
+            />
+          )}
         </div>
       )}
 
@@ -543,24 +606,33 @@ export function ReportsView() {
             </div>
             <div className="flex items-center gap-2">
               <button
+                disabled={exportingRegistre === "transactions-15m-fcfa-et-plus"}
                 onClick={() =>
-                  exportCsv(registre15M, "transactions-15m-fcfa-et-plus", [
-                    { key: "numero", label: "1. N°" },
-                    { key: "date", label: "2. Date" },
-                    { key: "numero_compte", label: "3. N° de compte" },
-                    { key: "agence", label: "4. Agence" },
-                    { key: "nom_complet", label: "5. Prénom et Nom" },
-                    { key: "profession", label: "6. Profession" },
-                    { key: "nature_operation", label: "7. Nature de l'opération" },
-                    { key: "montant", label: "8. Montant" },
-                    { key: "caractere", label: "9. Caractère de l'opération" },
-                    { key: "adresse_client", label: "10. Adresse du client" },
-                    { key: "operateur", label: "11. Opérateur" },
-                  ])
+                  exportFullRegistre(
+                    () => statsService.getRegistreTransactions15M(),
+                    "transactions-15m-fcfa-et-plus",
+                    [
+                      { key: "numero", label: "1. N°" },
+                      { key: "date", label: "2. Date" },
+                      { key: "numero_compte", label: "3. N° de compte" },
+                      { key: "agence", label: "4. Agence" },
+                      { key: "nom_complet", label: "5. Prénom et Nom" },
+                      { key: "profession", label: "6. Profession" },
+                      { key: "nature_operation", label: "7. Nature de l'opération" },
+                      { key: "montant", label: "8. Montant" },
+                      { key: "caractere", label: "9. Caractère de l'opération" },
+                      { key: "adresse_client", label: "10. Adresse du client" },
+                      { key: "operateur", label: "11. Opérateur" },
+                    ]
+                  )
                 }
-                className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-sm"
+                className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-sm disabled:opacity-50"
               >
-                <Download className="h-3.5 w-3.5 text-emerald-600" />
+                {exportingRegistre === "transactions-15m-fcfa-et-plus" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+                ) : (
+                  <Download className="h-3.5 w-3.5 text-emerald-600" />
+                )}
                 Exporter CSV (11 colonnes)
               </button>
               <button
@@ -591,7 +663,13 @@ export function ReportsView() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
-                {registre15M.length === 0 ? (
+                {loading15M ? (
+                  <tr>
+                    <td colSpan={11} className="p-0">
+                      <TableSkeleton rows={6} cols={5} />
+                    </td>
+                  </tr>
+                ) : registre15M.length === 0 ? (
                   <tr>
                     <td colSpan={11} className="text-center py-6 text-slate-400">
                       Aucune transaction supérieure ou égale à 15 000 000 FCFA enregistrée.
@@ -632,6 +710,16 @@ export function ReportsView() {
               </tbody>
             </table>
           </div>
+          {registre15MTotal > 0 && (
+            <DataPagination
+              page={tx15Page}
+              totalPages={tx15TotalPages}
+              total={registre15MTotal}
+              pageSize={20}
+              onPageChange={setTx15Page}
+              itemLabel="transactions"
+            />
+          )}
         </div>
       )}
 
@@ -650,20 +738,29 @@ export function ReportsView() {
             </div>
             <div className="flex items-center gap-2">
               <button
+                disabled={exportingRegistre === "liste-officielle-personnes-politiquement-exposees-ppe"}
                 onClick={() =>
-                  exportCsv(registrePPE, "liste-officielle-personnes-politiquement-exposees-ppe", [
-                    { key: "numero", label: "N°" },
-                    { key: "prenom_nom", label: "PRÉNOM ET NOM" },
-                    { key: "fonction", label: "FONCTION" },
-                    { key: "agence", label: "AGENCE" },
-                    { key: "numero_compte", label: "N° DE COMPTE" },
-                    { key: "lieu_naissance", label: "LIEU DE NAISSANCE" },
-                    { key: "lieu_residence", label: "LIEU DE RÉSIDENCE" },
-                  ])
+                  exportFullRegistre(
+                    () => statsService.getRegistrePPE(),
+                    "liste-officielle-personnes-politiquement-exposees-ppe",
+                    [
+                      { key: "numero", label: "N°" },
+                      { key: "prenom_nom", label: "PRÉNOM ET NOM" },
+                      { key: "fonction", label: "FONCTION" },
+                      { key: "agence", label: "AGENCE" },
+                      { key: "numero_compte", label: "N° DE COMPTE" },
+                      { key: "lieu_naissance", label: "LIEU DE NAISSANCE" },
+                      { key: "lieu_residence", label: "LIEU DE RÉSIDENCE" },
+                    ]
+                  )
                 }
-                className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-sm"
+                className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-sm disabled:opacity-50"
               >
-                <Download className="h-3.5 w-3.5 text-emerald-600" />
+                {exportingRegistre === "liste-officielle-personnes-politiquement-exposees-ppe" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+                ) : (
+                  <Download className="h-3.5 w-3.5 text-emerald-600" />
+                )}
                 Exporter CSV (7 colonnes)
               </button>
               <button
@@ -690,7 +787,13 @@ export function ReportsView() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
-                {registrePPE.length === 0 ? (
+                {loadingPPE ? (
+                  <tr>
+                    <td colSpan={7} className="p-0">
+                      <TableSkeleton rows={6} cols={5} />
+                    </td>
+                  </tr>
+                ) : registrePPE.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="text-center py-6 text-slate-400">
                       Aucune personne politiquement exposée identifiée.
@@ -716,6 +819,16 @@ export function ReportsView() {
               </tbody>
             </table>
           </div>
+          {registrePPETotal > 0 && (
+            <DataPagination
+              page={ppePage}
+              totalPages={ppeTotalPages}
+              total={registrePPETotal}
+              pageSize={20}
+              onPageChange={setPpePage}
+              itemLabel="personnes"
+            />
+          )}
         </div>
       )}
 

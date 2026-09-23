@@ -20,10 +20,14 @@ class AlertRepository(BaseRepository[Alert]):
         module: Optional[str] = None,
         analyste: Optional[str] = None,
         q: Optional[str] = None,
+        classification: Optional[str] = None,
     ):
         query = db.query(Alert)
         if statut and statut != "Tous statuts":
-            query = query.filter(Alert.statut == statut)
+            statuts = [s.strip() for s in statut.split(",") if s.strip()]
+            query = query.filter(Alert.statut.in_(statuts)) if len(statuts) > 1 else query.filter(
+                Alert.statut == statuts[0]
+            )
         if niveau and niveau != "Tous niveaux":
             query = query.filter(Alert.niveau == niveau.lower())
         if module and module != "Tous modules":
@@ -41,6 +45,17 @@ class AlertRepository(BaseRepository[Alert]):
                 | (Client.prenom.ilike(pattern))
                 | (Client.code_client.ilike(pattern))
             )
+        if classification == "sanctions_ppe":
+            # Même heuristique que l'ancien filtrage cote client (sanctions.tsx) :
+            # module, type ou facteurs évoquant une correspondance sanctions/PPE.
+            query = query.filter(
+                (Alert.module.ilike("%sanction%"))
+                | (Alert.type_alerte.ilike("%ppe%"))
+                | (Alert.type_alerte.ilike("%sanction%"))
+                | (Alert._facteurs.ilike("%sanction%"))
+                | (Alert._facteurs.ilike("%ppe%"))
+                | (Alert._facteurs.ilike("%liste%"))
+            )
         return query
 
     def filter_alerts(
@@ -51,11 +66,14 @@ class AlertRepository(BaseRepository[Alert]):
         module: Optional[str] = None,
         analyste: Optional[str] = None,
         q: Optional[str] = None,
+        classification: Optional[str] = None,
+        order: str = "desc",
         skip: int = 0,
         limit: int = 100,
     ) -> List[Alert]:
-        query = self._apply_filters(db, statut, niveau, module, analyste, q)
-        return query.order_by(Alert.created_at.desc()).offset(skip).limit(limit).all()
+        query = self._apply_filters(db, statut, niveau, module, analyste, q, classification)
+        order_col = Alert.created_at.asc() if order == "asc" else Alert.created_at.desc()
+        return query.order_by(order_col).offset(skip).limit(limit).all()
 
     def count_alerts(
         self,
@@ -65,8 +83,9 @@ class AlertRepository(BaseRepository[Alert]):
         module: Optional[str] = None,
         analyste: Optional[str] = None,
         q: Optional[str] = None,
+        classification: Optional[str] = None,
     ) -> int:
-        return self._apply_filters(db, statut, niveau, module, analyste, q).count()
+        return self._apply_filters(db, statut, niveau, module, analyste, q, classification).count()
 
     def count_by_level(self, db: Session) -> dict:
         total = db.query(Alert).count()

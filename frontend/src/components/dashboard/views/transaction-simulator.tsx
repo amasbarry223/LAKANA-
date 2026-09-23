@@ -27,6 +27,10 @@ import { toast } from "sonner"
 import { clientService } from "@/services/clientService"
 import { transactionService } from "@/services/transactionService"
 import { filteringService, type PreCheckResult } from "@/services/filteringService"
+import { usePaginatedFetch } from "@/hooks/use-pagination"
+import { DataPagination } from "@/components/ui/data-pagination"
+import { TableSkeleton } from "@/components/ui/skeleton"
+import { EmptyState } from "@/components/ui/empty-state"
 import type { Client } from "@/models/client"
 import type { Transaction } from "@/models/transaction"
 
@@ -87,11 +91,26 @@ export function TransactionSimulatorView() {
   const [activeTab, setActiveTab] = useState<"precheck" | "journal">("precheck")
 
   // Transactions State (données réelles lues depuis la BDD partagée)
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [loadingTx, setLoadingTx] = useState(true)
   const [txSearch, setTxSearch] = useState("")
+  const [debouncedTxSearch, setDebouncedTxSearch] = useState("")
   const [txTypeFilter, setTxTypeFilter] = useState("ALL")
   const [txAmlFilter, setTxAmlFilter] = useState("ALL")
+
+  // Recherche différée de 300ms pour éviter une requête serveur à chaque frappe
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedTxSearch(txSearch.trim()), 300)
+    return () => clearTimeout(t)
+  }, [txSearch])
+
+  // Instantané borné (200 opérations les plus récentes), découplé du tableau paginé,
+  // utilisé uniquement pour les cartes de synthèse (volume total, nb ≥ seuil UEMOA).
+  const [statsSnapshot, setStatsSnapshot] = useState<Transaction[]>([])
+  useEffect(() => {
+    transactionService
+      .getTransactionsPage({ skip: 0, limit: 200 })
+      .then(({ data }) => setStatsSnapshot(data))
+      .catch(() => setStatsSnapshot([]))
+  }, [])
 
   // Clients State (lus depuis la BDD partagée)
   const [clients, setClients] = useState<Client[]>([])
@@ -124,23 +143,48 @@ export function TransactionSimulatorView() {
     }
   }, [selectedClient])
 
-  // 2. Charger les transactions réelles de la base
-  const loadTransactions = useCallback(async () => {
-    setLoadingTx(true)
-    try {
-      const data = await transactionService.getTransactions(100)
-      setTransactions(data)
-    } catch {
-      toast.error("Impossible de charger les transactions depuis la base de données")
-    } finally {
-      setLoadingTx(false)
-    }
-  }, [])
+  // 2. Journal des transactions — pagination réelle côté serveur (recherche + filtres)
+  const {
+    data: pagedTransactions,
+    total: journalTotal,
+    page: journalPage,
+    setPage: setJournalPage,
+    totalPages: journalTotalPages,
+    loading: loadingTx,
+  } = usePaginatedFetch<Transaction>(
+    ({ skip, limit }) =>
+      transactionService.getTransactionsPage(
+        { skip, limit },
+        {
+          q: debouncedTxSearch || undefined,
+          typeOperation: txTypeFilter === "ALL" ? undefined : txTypeFilter,
+          montantMin: txAmlFilter === "UEMOA" ? SEUIL_UEMOA : undefined,
+          montantMax: txAmlFilter === "NORMAL" ? SEUIL_UEMOA : undefined,
+        }
+      ),
+    [debouncedTxSearch, txTypeFilter, txAmlFilter],
+    { pageSize: 20 }
+  )
+
+  // 3. Historique paginé des opérations du sociétaire sélectionné (onglet Contrôle)
+  const {
+    data: clientTransactions,
+    total: clientTxTotal,
+    page: clientTxPage,
+    setPage: setClientTxPage,
+    totalPages: clientTxTotalPages,
+  } = usePaginatedFetch<Transaction>(
+    ({ skip, limit }) =>
+      selectedClient
+        ? transactionService.getClientTransactionsPage(selectedClient.id, { skip, limit })
+        : Promise.resolve({ data: [], total: 0 }),
+    [selectedClient?.id],
+    { pageSize: 10 }
+  )
 
   useEffect(() => {
     loadClients()
-    loadTransactions()
-  }, [loadClients, loadTransactions])
+  }, [loadClients])
 
   // 3. Pré-filtrage instantané à la sélection d'un client
   useEffect(() => {
@@ -211,47 +255,9 @@ export function TransactionSimulatorView() {
     )
   }, [clients, clientSearch])
 
-  // Transactions du sociétaire sélectionné en BDD
-  const clientTransactions = useMemo(() => {
-    if (!selectedClient) return []
-    return transactions.filter(
-      (t) => t.clientId === selectedClient.id || t.clientId === selectedClient.codeClient
-    )
-  }, [transactions, selectedClient])
-
-  // Filtrage global des transactions (Onglet Journal)
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter((t) => {
-      const client = clientMap[t.clientId]
-      const clientNom = client
-        ? client.typeClient === "Entreprise"
-          ? client.raisonSociale || client.nom
-          : `${client.prenom || ""} ${client.nom}`
-        : ""
-
-      const query = txSearch.toLowerCase()
-      const matchesSearch =
-        !query ||
-        t.reference.toLowerCase().includes(query) ||
-        (t.beneficiaireNom && t.beneficiaireNom.toLowerCase().includes(query)) ||
-        clientNom.toLowerCase().includes(query) ||
-        (t.description && t.description.toLowerCase().includes(query))
-
-      const matchesType = txTypeFilter === "ALL" || t.typeOperation.toLowerCase().includes(txTypeFilter.toLowerCase())
-      const isUemoa = t.montant >= SEUIL_UEMOA
-      const matchesAml =
-        txAmlFilter === "ALL" ||
-        (txAmlFilter === "UEMOA" && isUemoa) ||
-        (txAmlFilter === "NORMAL" && !isUemoa)
-
-      return matchesSearch && matchesType && matchesAml
-    })
-  }, [transactions, clientMap, txSearch, txTypeFilter, txAmlFilter])
-
-  // Statistiques calculées
-  const totalVolume = useMemo(() => transactions.reduce((acc, t) => acc + (t.montant || 0), 0), [transactions])
-  const countUemoa = useMemo(() => transactions.filter((t) => t.montant >= SEUIL_UEMOA).length, [transactions])
-  const avgAmount = useMemo(() => (transactions.length > 0 ? totalVolume / transactions.length : 0), [transactions, totalVolume])
+  // Statistiques calculées sur l'instantané récent (200 dernières opérations)
+  const totalVolume = useMemo(() => statsSnapshot.reduce((acc, t) => acc + (t.montant || 0), 0), [statsSnapshot])
+  const countUemoa = useMemo(() => statsSnapshot.filter((t) => t.montant >= SEUIL_UEMOA).length, [statsSnapshot])
 
   // Déclencher un signalement d'alerte manuel vers WhatsApp et Email
   const handleTriggerAlert = async () => {
@@ -306,7 +312,7 @@ export function TransactionSimulatorView() {
             }`}
           >
             <Layers className="w-4 h-4" />
-            Journal des flux CBS ({transactions.length})
+            Journal des flux CBS ({journalTotal})
           </button>
         </div>
       </div>
@@ -326,7 +332,7 @@ export function TransactionSimulatorView() {
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex items-center justify-between">
           <div>
             <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Opérations en BDD</p>
-            <p className="text-2xl font-bold text-slate-800 mt-1">{transactions.length}</p>
+            <p className="text-2xl font-bold text-slate-800 mt-1">{journalTotal}</p>
           </div>
           <div className="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
             <CreditCard className="w-5 h-5" />
@@ -676,7 +682,7 @@ export function TransactionSimulatorView() {
                   </p>
                 </div>
                 <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg">
-                  {clientTransactions.length} opération(s)
+                  {clientTxTotal} opération(s)
                 </span>
               </div>
 
@@ -721,6 +727,17 @@ export function TransactionSimulatorView() {
                       })}
                     </tbody>
                   </table>
+                  {clientTxTotal > 0 && (
+                    <DataPagination
+                      page={clientTxPage}
+                      totalPages={clientTxTotalPages}
+                      total={clientTxTotal}
+                      pageSize={10}
+                      onPageChange={setClientTxPage}
+                      itemLabel="opérations"
+                      className="rounded-none border-x-0 border-b-0"
+                    />
+                  )}
                 </div>
               )}
             </div>
@@ -883,21 +900,22 @@ export function TransactionSimulatorView() {
               <tbody className="divide-y divide-slate-100">
                 {loadingTx ? (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-slate-400">
-                      <div className="flex items-center justify-center gap-2">
-                        <Spinner />
-                        <span>Chargement des opérations depuis la base de données centrale...</span>
-                      </div>
+                    <td colSpan={7} className="p-0">
+                      <TableSkeleton rows={8} cols={5} />
                     </td>
                   </tr>
-                ) : filteredTransactions.length === 0 ? (
+                ) : pagedTransactions.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-slate-400">
-                      Aucune opération trouvée avec les critères de recherche.
+                    <td colSpan={7}>
+                      <EmptyState
+                        title="Aucune opération trouvée"
+                        description="Aucune opération ne correspond aux critères de recherche."
+                        variant="compact"
+                      />
                     </td>
                   </tr>
                 ) : (
-                  filteredTransactions.map((tx) => {
+                  pagedTransactions.map((tx) => {
                     const client = clientMap[tx.clientId]
                     const clientNom = client
                       ? client.typeClient === "Entreprise"
@@ -934,10 +952,17 @@ export function TransactionSimulatorView() {
             </table>
           </div>
 
-          <div className="p-3.5 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Affichage de {filteredTransactions.length} transaction(s) en base</span>
-            <span className="text-slate-400 font-medium">Connecté à PostgreSQL (Core Banking System partagé)</span>
-          </div>
+          {journalTotal > 0 && (
+            <DataPagination
+              page={journalPage}
+              totalPages={journalTotalPages}
+              total={journalTotal}
+              pageSize={20}
+              onPageChange={setJournalPage}
+              itemLabel="transactions"
+              className="rounded-none border-x-0 border-b-0"
+            />
+          )}
         </div>
       )}
     </div>

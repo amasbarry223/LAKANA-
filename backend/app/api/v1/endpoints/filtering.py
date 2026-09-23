@@ -192,10 +192,12 @@ def pre_check_guichet(client_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/notifications-dispatched")
-def get_dispatched_notifications():
+def get_dispatched_notifications(response: Response, skip: int = 0, limit: int = 50):
     """Consulte l'historique des alertes transmises par WhatsApp et Email."""
     from app.services.notification_service import notification_service
-    return notification_service.get_history()
+    result = notification_service.get_history(skip=skip, limit=limit)
+    response.headers["X-Total-Count"] = str(result["total"])
+    return result["data"]
 
 
 @router.post("/test-dispatch")
@@ -222,6 +224,3 @@ def test_dispatch_notifications(
         email=email
     )
     return res
-
-
->>>>>>> 5ab72a897b301a3d012227b47bf4501c44bdd8f6

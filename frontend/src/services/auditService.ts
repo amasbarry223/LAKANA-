@@ -28,7 +28,7 @@ export const auditService = {
   },
 
   async getAuditLogsPage(
-    filters: { module?: string; action?: string; q?: string } | undefined,
+    filters: { module?: string; action?: string; q?: string; order?: "asc" | "desc" } | undefined,
     page: { skip: number; limit: number }
   ): Promise<AuditLogsPageResult> {
     try {

@@ -63,9 +63,18 @@ export const transactionService = {
     }
   },
 
-  async getTransactionsPage(page: { skip: number; limit: number }): Promise<TransactionsPageResult> {
+  async getTransactionsPage(
+    page: { skip: number; limit: number },
+    filters?: { q?: string; typeOperation?: string; montantMin?: number; montantMax?: number }
+  ): Promise<TransactionsPageResult> {
     try {
-      const { data, total } = await ApiClient.getPaginated<any>("/transactions", page)
+      const { data, total } = await ApiClient.getPaginated<any>("/transactions", {
+        ...page,
+        q: filters?.q || undefined,
+        type_operation: filters?.typeOperation || undefined,
+        montant_min: filters?.montantMin,
+        montant_max: filters?.montantMax,
+      })
       return { data: data.map(mapFromBackend), total }
     } catch (e) {
       console.error("Erreur récupération transactions:", e)

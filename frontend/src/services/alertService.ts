@@ -99,13 +99,15 @@ export const alertService = {
   async getAlertsPage(
     filters: AlertFilter | undefined,
     page: { skip: number; limit: number },
-    extra?: { q?: string; niveau?: string; statut?: string }
+    extra?: { q?: string; niveau?: string; statut?: string; classification?: string; order?: "asc" | "desc" }
   ): Promise<AlertsPageResult> {
     try {
       const { data, total } = await ApiClient.getPaginated<any>("/alerts", {
         ...buildAlertParams(filters),
         ...(extra?.niveau ? { niveau: extra.niveau } : {}),
         ...(extra?.statut ? { statut: extra.statut } : {}),
+        classification: extra?.classification || undefined,
+        order: extra?.order || undefined,
         q: extra?.q || undefined,
         skip: page.skip,
         limit: page.limit,

@@ -25,6 +25,9 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { cn } from "@/lib/utils"
 import { alertService } from "@/services/alertService"
 import { filteringService, type DispatchedNotification } from "@/services/filteringService"
+import { usePaginatedFetch } from "@/hooks/use-pagination"
+import { DataPagination } from "@/components/ui/data-pagination"
+import { TableSkeleton } from "@/components/ui/skeleton"
 
 type Notif = {
   id: string
@@ -64,17 +67,31 @@ export function NotificationsView() {
   const [mainTab, setMainTab] = useState<"internal" | "channels">("internal")
   const [filter, setFilter] = useState<(typeof filters)[number]>("Toutes")
   const [items, setItems] = useState<Notif[]>(notifs)
-  const [dispatched, setDispatched] = useState<DispatchedNotification[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loadingNotifs, setLoadingNotifs] = useState(false)
   const [notifToDelete, setNotifToDelete] = useState<Notif | null>(null)
   const [clearAllOpen, setClearAllOpen] = useState(false)
   const [testingDispatch, setTestingDispatch] = useState(false)
+
+  // Historique des transmissions WhatsApp/Email — pagination réelle côté serveur
+  const {
+    data: dispatched,
+    total: dispatchedTotal,
+    page: dispatchedPage,
+    setPage: setDispatchedPage,
+    totalPages: dispatchedTotalPages,
+    loading: loadingDispatched,
+    refetch: refetchDispatched,
+  } = usePaginatedFetch<DispatchedNotification>(
+    ({ skip, limit }) => filteringService.getDispatchedNotificationsPage({ skip, limit }),
+    [],
+    { pageSize: 20 }
+  )
 
   const handleTestDispatch = async () => {
     setTestingDispatch(true)
     try {
       const res = await filteringService.testDispatch("+22364663918", "fombadaouda72@gmail.com")
-      await fetchDispatched()
+      refetchDispatched()
       if (res.whatsapp_statut?.includes("delivre")) {
         toast.success(`Alerte WhatsApp expédiée en direct au ${res.whatsapp_destinataire}`)
       } else {
@@ -94,7 +111,7 @@ export function NotificationsView() {
   }
 
   const fetchNotifs = async () => {
-    setLoading(true)
+    setLoadingNotifs(true)
     try {
       const alerts = await alertService.getAlerts()
       const bloquantes = alerts.filter((a) => a.level === "bloquante" || a.score >= 75)
@@ -114,22 +131,12 @@ export function NotificationsView() {
     } catch (e) {
       console.warn("Erreur chargement notifications:", e)
     } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchDispatched = async () => {
-    try {
-      const data = await filteringService.getDispatchedNotifications()
-      setDispatched(data)
-    } catch (e) {
-      console.warn("Erreur chargement notifications transmises:", e)
+      setLoadingNotifs(false)
     }
   }
 
   useEffect(() => {
     fetchNotifs()
-    fetchDispatched()
   }, [])
 
   const filtered = items.filter((n) => {
@@ -187,16 +194,13 @@ export function NotificationsView() {
             Alertes internes ({items.length})
           </button>
           <button
-            onClick={() => {
-              setMainTab("channels")
-              fetchDispatched()
-            }}
+            onClick={() => setMainTab("channels")}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
               mainTab === "channels" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-600 hover:text-slate-900"
             }`}
           >
             <Send className="w-3.5 h-3.5 text-emerald-600" />
-            WhatsApp & Email ({dispatched.length})
+            WhatsApp & Email ({dispatchedTotal})
           </button>
         </div>
       </div>
@@ -229,11 +233,11 @@ export function NotificationsView() {
             <div className="flex items-center gap-2">
               <button
                 onClick={fetchNotifs}
-                disabled={loading}
+                disabled={loadingNotifs}
                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50"
                 title="Actualiser"
               >
-                <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+                <RefreshCw className={cn("h-4 w-4", loadingNotifs && "animate-spin")} />
               </button>
               <button
                 onClick={markAllRead}
@@ -260,7 +264,7 @@ export function NotificationsView() {
               { label: "Non lues", value: unread, color: "#CD0D29" },
               { label: "Bloquantes", value: items.filter((n) => n.type === "bloquante").length, color: "#D97706" },
               { label: "Aujourd'hui", value: items.length, color: "#070347" },
-              { label: "Canaux externes", value: dispatched.length, color: "#059669" },
+              { label: "Canaux externes", value: dispatchedTotal, color: "#059669" },
             ].map((s) => (
               <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="flex items-center gap-2">
@@ -423,7 +427,7 @@ export function NotificationsView() {
                 </p>
               </div>
               <button
-                onClick={fetchDispatched}
+                onClick={refetchDispatched}
                 className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 transition"
               >
                 <RefreshCw className="w-3.5 h-3.5" /> Actualiser
@@ -431,7 +435,9 @@ export function NotificationsView() {
             </div>
 
             <div className="divide-y divide-slate-100">
-              {dispatched.length === 0 ? (
+              {loadingDispatched ? (
+                <TableSkeleton rows={4} cols={3} />
+              ) : dispatched.length === 0 ? (
                 <div className="p-10 text-center text-slate-400">
                   <Send className="w-8 h-8 mx-auto text-slate-300 mb-2" />
                   <p className="font-semibold text-slate-600">Aucune alerte expédiée pour le moment</p>
@@ -516,6 +522,17 @@ export function NotificationsView() {
                 })
               )}
             </div>
+            {dispatchedTotal > 0 && (
+              <DataPagination
+                page={dispatchedPage}
+                totalPages={dispatchedTotalPages}
+                total={dispatchedTotal}
+                pageSize={20}
+                onPageChange={setDispatchedPage}
+                itemLabel="transmissions"
+                className="rounded-none border-x-0 border-b-0"
+              />
+            )}
           </div>
         </div>
       )}

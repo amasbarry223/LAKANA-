@@ -78,6 +78,18 @@ export const filteringService = {
     return await ApiClient.get<DispatchedNotification[]>("/filtrage/notifications-dispatched")
   },
 
+  async getDispatchedNotificationsPage(page: {
+    skip: number
+    limit: number
+  }): Promise<{ data: DispatchedNotification[]; total: number }> {
+    try {
+      return await ApiClient.getPaginated<DispatchedNotification>("/filtrage/notifications-dispatched", page)
+    } catch (e) {
+      console.warn("API filtrage indisponible, fallback local:", e)
+      return { data: [], total: 0 }
+    }
+  },
+
   async testDispatch(phone?: string, email?: string): Promise<any> {
     return await ApiClient.post<any>("/filtrage/test-dispatch", { phone, email })
   },

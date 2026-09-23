@@ -21,14 +21,29 @@ def list_alerts(
     module: Optional[str] = Query(None),
     analyste: Optional[str] = Query(None),
     q: Optional[str] = Query(None, description="Recherche texte : référence, type, module, analyste, client"),
+    classification: Optional[str] = Query(
+        None, description="Filtre métier prédéfini, ex: 'sanctions_ppe' pour les correspondances sanctions/PPE"
+    ),
+    order: str = Query("desc", description="Ordre de tri par date de création : 'asc' ou 'desc'"),
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    total = alert_repository.count_alerts(db, statut=statut, niveau=niveau, module=module, analyste=analyste, q=q)
+    total = alert_repository.count_alerts(
+        db, statut=statut, niveau=niveau, module=module, analyste=analyste, q=q, classification=classification
+    )
     response.headers["X-Total-Count"] = str(total)
     alerts = alert_repository.filter_alerts(
-        db, statut=statut, niveau=niveau, module=module, analyste=analyste, q=q, skip=skip, limit=limit
+        db,
+        statut=statut,
+        niveau=niveau,
+        module=module,
+        analyste=analyste,
+        q=q,
+        classification=classification,
+        order=order,
+        skip=skip,
+        limit=limit,
     )
     result = []
     for a in alerts:

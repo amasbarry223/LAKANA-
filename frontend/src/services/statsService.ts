@@ -160,6 +160,15 @@ export const statsService = {
     }
   },
 
+  async getRegistreOperationsSuspectesPage(page: { skip: number; limit: number }): Promise<{ data: any[]; total: number }> {
+    try {
+      return await ApiClient.getPaginated<any>("/stats/registre-operations-suspectes", page)
+    } catch (e) {
+      console.error("Erreur chargement registre opérations suspectes :", e)
+      return { data: [], total: 0 }
+    }
+  },
+
   async getRegistreTransactions15M(): Promise<any[]> {
     try {
       return await ApiClient.get<any[]>("/stats/registre-transactions-15m")
@@ -169,12 +178,30 @@ export const statsService = {
     }
   },
 
+  async getRegistreTransactions15MPage(page: { skip: number; limit: number }): Promise<{ data: any[]; total: number }> {
+    try {
+      return await ApiClient.getPaginated<any>("/stats/registre-transactions-15m", page)
+    } catch (e) {
+      console.error("Erreur chargement registre transactions 15M :", e)
+      return { data: [], total: 0 }
+    }
+  },
+
   async getRegistrePPE(): Promise<any[]> {
     try {
       return await ApiClient.get<any[]>("/stats/registre-ppe")
     } catch (e) {
       console.error("Erreur chargement registre PPE :", e)
       return []
+    }
+  },
+
+  async getRegistrePPEPage(page: { skip: number; limit: number }): Promise<{ data: any[]; total: number }> {
+    try {
+      return await ApiClient.getPaginated<any>("/stats/registre-ppe", page)
+    } catch (e) {
+      console.error("Erreur chargement registre PPE :", e)
+      return { data: [], total: 0 }
     }
   },
 }

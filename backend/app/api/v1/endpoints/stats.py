@@ -1,9 +1,9 @@
 import math
 from datetime import datetime, timedelta
-from typing import Dict, Any, List
-from fastapi import APIRouter, Depends
+from typing import Dict, Any, List, Optional
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from app.db.session import get_db
 from app.models.client import Client
 from app.models.alert import Alert
@@ -266,7 +266,9 @@ def get_score_distribution(db: Session = Depends(get_db)):
 # ─── 3 REGISTRES RÉGLEMENTAIRES OFFICIELS SFD / CENTIF / BCEAO ────────────────
 
 @router.get("/registre-operations-suspectes")
-def get_registre_operations_suspectes(db: Session = Depends(get_db)) -> List[Dict[str, Any]]:
+def get_registre_operations_suspectes(
+    response: Response, skip: int = 0, limit: int = 50, db: Session = Depends(get_db)
+) -> List[Dict[str, Any]]:
     """
     Registre confidentiel de recueil des opérations suspectes (10 champs obligatoires) :
     1. N° Dépôt
@@ -280,28 +282,36 @@ def get_registre_operations_suspectes(db: Session = Depends(get_db)) -> List[Dic
     9. Adresse complète
     10. Opérateur
     """
-    # Transactions liées à une alerte ou ayant un score de risque élevé / montant suspect
-    results = []
-    transactions = (
+    # Transactions liées à une alerte ou ayant un score de risque élevé / montant suspect,
+    # filtrées directement en base pour permettre une pagination réelle (skip/limit + total).
+    clients_avec_alerte = db.query(Alert.client_id).distinct()
+    base_query = (
         db.query(Transaction)
         .join(Client, Transaction.client_id == Client.id)
-        .order_by(Transaction.date_transaction.desc())
-        .limit(100)
-        .all()
+        .filter(
+            or_(
+                Client.id.in_(clients_avec_alerte),
+                Client.risk_score >= 40,
+                Transaction.montant >= 500_000,
+            )
+        )
     )
-    
-    for idx, t in enumerate(transactions, start=1):
+    total = base_query.count()
+    response.headers["X-Total-Count"] = str(total)
+    transactions = (
+        base_query.order_by(Transaction.date_transaction.desc()).offset(skip).limit(limit).all()
+    )
+
+    results = []
+    for idx, t in enumerate(transactions, start=skip + 1):
         c = t.client
         if not c:
             continue
-        # Inclure si le client est sous alerte ou montant notable
-        has_alert = len(c.alertes) > 0 if c.alertes else (c.risk_score >= 40)
-        if not has_alert and t.montant < 500_000:
-            continue
-            
+        has_alert = bool(db.query(Alert.id).filter(Alert.client_id == c.id).first()) or c.risk_score >= 40
+
         nom_legal = f"{c.prenom or ''} {c.nom}".strip() if c.type_client == "Particulier" else (c.raison_sociale or c.nom)
         adresse = c.adresse_complete or f"{c.ville or 'Bamako'}, {c.pays or 'Mali'}"
-        
+
         results.append({
             "numero_ordre": idx,
             "numero_depot": t.numero_depot or f"DEP-{t.reference}",
@@ -317,12 +327,14 @@ def get_registre_operations_suspectes(db: Session = Depends(get_db)) -> List[Dic
             "date": t.date_transaction.strftime("%d/%m/%Y %H:%M") if t.date_transaction else "25/08/2026",
             "statut_alerte": "Signalée" if has_alert else "Standard",
         })
-        
+
     return results
 
 
 @router.get("/registre-transactions-15m")
-def get_registre_transactions_15m(db: Session = Depends(get_db)) -> List[Dict[str, Any]]:
+def get_registre_transactions_15m(
+    response: Response, skip: int = 0, limit: int = 50, db: Session = Depends(get_db)
+) -> List[Dict[str, Any]]:
     """
     Liste des transactions de 15 000 000 FCFA et plus (11 champs obligatoires) :
     1. N°
@@ -345,7 +357,7 @@ def get_registre_transactions_15m(db: Session = Depends(get_db)) -> List[Dict[st
         .order_by(Transaction.date_transaction.desc())
         .all()
     )
-    
+
     # Si la base de dev n'en a pas encore assez, on prend également les transactions majeures
     if len(txs) < 3:
         top_txs = (
@@ -357,8 +369,13 @@ def get_registre_transactions_15m(db: Session = Depends(get_db)) -> List[Dict[st
         )
         txs = list({t.id: t for t in (txs + top_txs)}.values())
 
+    # Pagination appliquée côté Python : la liste combine deux sources hétérogènes
+    # (seuil légal + complément dev) qui ne peuvent pas être paginées en une seule requête SQL.
+    response.headers["X-Total-Count"] = str(len(txs))
+    txs = txs[skip: skip + limit]
+
     results = []
-    for idx, t in enumerate(txs, start=1):
+    for idx, t in enumerate(txs, start=skip + 1):
         c = t.client
         if not c:
             continue
@@ -389,7 +406,9 @@ def get_registre_transactions_15m(db: Session = Depends(get_db)) -> List[Dict[st
 
 
 @router.get("/registre-ppe")
-def get_registre_ppe(db: Session = Depends(get_db)) -> List[Dict[str, Any]]:
+def get_registre_ppe(
+    response: Response, skip: int = 0, limit: int = 50, db: Session = Depends(get_db)
+) -> List[Dict[str, Any]]:
     """
     LISTE DES PERSONNES POLITIQUEMENT EXPOSÉES (7 champs obligatoires) :
     1. N°
@@ -400,15 +419,13 @@ def get_registre_ppe(db: Session = Depends(get_db)) -> List[Dict[str, Any]]:
     6. LIEU DE NAISSANCE
     7. LIEU DE RÉSIDENCE
     """
-    results = []
-    idx = 1
-    
+    rows: List[Dict[str, Any]] = []
+
     # 1. Clients enregistrés avec est_ppe = True
     clients_ppe = db.query(Client).filter(Client.est_ppe == True).all()
     for c in clients_ppe:
         nom = f"{c.prenom or ''} {c.nom}".strip()
-        results.append({
-            "numero": idx,
+        rows.append({
             "code": c.code_client,
             "prenom_nom": nom.upper(),
             "fonction": c.fonction_ppe or "Personne Politiquement Exposée",
@@ -418,17 +435,15 @@ def get_registre_ppe(db: Session = Depends(get_db)) -> List[Dict[str, Any]]:
             "lieu_residence": c.lieu_residence or c.adresse_complete or f"{c.ville or 'Bamako'} - Quartier Badalabougou",
             "source": "Fichier Sociétaires SFD",
         })
-        idx += 1
-        
+
     # 2. Entrées dans la liste officielle des sanctions de type PPE
     sanctions_ppe = db.query(SanctionEntry).filter(SanctionEntry.liste_type == "PPE").all()
     for s in sanctions_ppe:
         # Éviter les doublons stricts de nom
-        if any(r["prenom_nom"] == s.nom_complet.upper() for r in results):
+        if any(r["prenom_nom"] == s.nom_complet.upper() for r in rows):
             continue
-        results.append({
-            "numero": idx,
-            "code": s.code_entree or f"PPE-{idx:03d}",
+        rows.append({
+            "code": s.code_entree or f"PPE-{len(rows) + 1:03d}",
             "prenom_nom": s.nom_complet.upper(),
             "fonction": s.titre_fonction or "Cadre dirigeant public",
             "agence": s.agence or "Agence Centrale Bamako",
@@ -437,7 +452,12 @@ def get_registre_ppe(db: Session = Depends(get_db)) -> List[Dict[str, Any]]:
             "lieu_residence": s.lieu_residence or f"{s.nationalite or 'Mali'} - Bamako ACI",
             "source": s.liste_nom or "Référentiel National PPE",
         })
-        idx += 1
-        
-    return results
+
+    # Pagination appliquée côté Python : la liste combine deux sources hétérogènes
+    # (clients + référentiel sanctions) dédupliquées, non paginables en une seule requête SQL.
+    response.headers["X-Total-Count"] = str(len(rows))
+    page = rows[skip: skip + limit]
+    for i, row in enumerate(page, start=skip + 1):
+        row["numero"] = i
+    return page
 

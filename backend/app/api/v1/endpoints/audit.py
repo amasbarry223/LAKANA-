@@ -14,6 +14,7 @@ def list_audit_logs(
     module: Optional[str] = Query(None),
     action: Optional[str] = Query(None),
     q: Optional[str] = Query(None, description="Recherche texte : utilisateur, action, cible, détails"),
+    order: str = Query("desc", description="Ordre de tri par horodatage : 'asc' ou 'desc'"),
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
@@ -32,4 +33,5 @@ def list_audit_logs(
             | (AuditLog.details.ilike(pattern))
         )
     response.headers["X-Total-Count"] = str(query.count())
-    return query.order_by(AuditLog.timestamp.desc()).offset(skip).limit(limit).all()
+    order_col = AuditLog.timestamp.asc() if order == "asc" else AuditLog.timestamp.desc()
+    return query.order_by(order_col).offset(skip).limit(limit).all()

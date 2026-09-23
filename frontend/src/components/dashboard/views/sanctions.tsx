@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ShieldAlert, Search, Check, X, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, UserCheck } from "lucide-react"
+import { ShieldAlert, Search, Check, X, ArrowUp, ArrowDown, RefreshCw, UserCheck } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -9,11 +9,12 @@ import { cn, formatFacteur } from "@/lib/utils"
 import { alertService } from "@/services/alertService"
 import { filteringService } from "@/services/filteringService"
 import { DataPagination } from "@/components/ui/data-pagination"
-import { usePageSlice } from "@/hooks/use-pagination"
+import { usePaginatedFetch } from "@/hooks/use-pagination"
 import { TableSkeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
 import { ErrorState } from "@/components/ui/error-state"
 import type { SanctionMatch } from "@/models/sanction"
+import type { Alert } from "@/models/alert"
 
 type Match = {
   id: string
@@ -43,80 +44,111 @@ const statusConfig: Record<Match["status"], { label: string; color: string }> = 
 
 const filters = ["Toutes", "En attente", "Confirmées", "Rejetées"] as const
 
-type SortColumn = "similarity" | "date"
+// "En attente" regroupe deux statuts backend (nouvelle + en_cours) — le backend
+// accepte une liste séparée par des virgules pour ce filtre.
+const filterToStatut: Record<(typeof filters)[number], string | undefined> = {
+  "Toutes": undefined,
+  "En attente": "nouvelle,en_cours",
+  "Confirmées": "cloturee",
+  "Rejetées": "classee",
+}
+
 type SortDir = "asc" | "desc"
 
-function SortIcon({ column, sortBy, sortDir }: { column: SortColumn; sortBy: SortColumn | null; sortDir: SortDir }) {
-  const Icon: LucideIcon = sortBy !== column ? ArrowUpDown : sortDir === "asc" ? ArrowUp : ArrowDown
+function SortIcon({ sortDir }: { sortDir: SortDir }) {
+  const Icon: LucideIcon = sortDir === "asc" ? ArrowUp : ArrowDown
   return <Icon className="h-3 w-3" />
 }
 
+function mapAlertToMatch(a: Alert): Match {
+  const premierFacteur = formatFacteur(a.facteurs?.[0])
+  const simMatch = premierFacteur.match(/(\d+)%/)
+  const sim = simMatch ? parseInt(simMatch[1], 10) : Math.max(75, a.score)
+  const isPPE =
+    (a.type || "").toLowerCase().includes("ppe") ||
+    premierFacteur.toLowerCase().includes("ppe")
+  const listType: Match["listType"] = isPPE ? "PPE" : "ONU"
+  const mapStatus = (s: string): Match["status"] => {
+    if (s === "cloturee") return "confirme"
+    if (s === "classee") return "rejete"
+    return "en_attente"
+  }
+  return {
+    id: a.ref || `FLT-${a.id.slice(0, 6)}`,
+    alertId: a.id,
+    client: a.client,
+    clientId: a.clientId || "CLI-1000",
+    listName: isPPE ? "Liste PPE Mali (UEMOA)" : "Sanctions ONU / GAFI",
+    listType,
+    matchedEntry: premierFacteur || `${a.client} (${listType})`,
+    similarity: sim,
+    status: mapStatus(a.status),
+    date: a.createdAt ? new Date(a.createdAt).toLocaleDateString("fr-FR") : new Date().toLocaleDateString("fr-FR"),
+  }
+}
+
 export function SanctionsView() {
-  const [items, setItems] = useState<Match[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | string | null>(null)
   const [filter, setFilter] = useState<(typeof filters)[number]>("Toutes")
   const [query, setQuery] = useState("")
-  const [sortBy, setSortBy] = useState<SortColumn | null>(null)
-  const [sortDir, setSortDir] = useState<SortDir>("asc")
+  const [debouncedQuery, setDebouncedQuery] = useState("")
+  const [sortDir, setSortDir] = useState<SortDir>("desc")
 
   // Testeur de nom RapidFuzz interactif en direct
   const [testNom, setTestNom] = useState("")
   const [testingFuzzy, setTestingFuzzy] = useState(false)
   const [testResults, setTestResults] = useState<SanctionMatch[] | null>(null)
 
-  const fetchMatches = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const alerts = await alertService.getAlerts()
-      const fltAlerts = alerts.filter(
-        (a) =>
-          (a.module || "").toLowerCase().includes("sanction") ||
-          (a.type || "").toLowerCase().includes("ppe") ||
-          (a.type || "").toLowerCase().includes("sanction") ||
-          (a.facteurs || []).some((f) => /sanction|ppe|liste/i.test(formatFacteur(f)))
-      )
-      const dynamicMatches: Match[] = fltAlerts.map((a) => {
-        const premierFacteur = formatFacteur(a.facteurs?.[0])
-        const simMatch = premierFacteur.match(/(\d+)%/)
-        const sim = simMatch ? parseInt(simMatch[1], 10) : Math.max(75, a.score)
-        const isPPE =
-          (a.type || "").toLowerCase().includes("ppe") ||
-          premierFacteur.toLowerCase().includes("ppe")
-        const listType: Match["listType"] = isPPE ? "PPE" : "ONU"
-        const mapStatus = (s: string): Match["status"] => {
-          if (s === "cloturee") return "confirme"
-          if (s === "classee") return "rejete"
-          return "en_attente"
-        }
-        return {
-          id: a.ref || `FLT-${a.id.slice(0, 6)}`,
-          alertId: a.id,
-          client: a.client,
-          clientId: a.clientId || "CLI-1000",
-          listName: isPPE ? "Liste PPE Mali (UEMOA)" : "Sanctions ONU / GAFI",
-          listType,
-          matchedEntry: premierFacteur || `${a.client} (${listType})`,
-          similarity: sim,
-          status: mapStatus(a.status),
-          date: a.createdAt ? new Date(a.createdAt).toLocaleDateString("fr-FR") : new Date().toLocaleDateString("fr-FR"),
-        }
-      })
-
-      setItems(dynamicMatches)
-    } catch (e) {
-      console.warn("Erreur chargement sanctions dynamiques:", e)
-      setError(e instanceof Error ? e : new Error(String(e)))
-      toast.error("Erreur de chargement", { description: "Impossible d'accéder au service de filtrage sanctions." })
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  // Recherche différée de 300ms pour éviter une requête serveur à chaque frappe
   useEffect(() => {
-    fetchMatches()
-  }, [])
+    const t = setTimeout(() => setDebouncedQuery(query.trim()), 300)
+    return () => clearTimeout(t)
+  }, [query])
+
+  // Correspondances sanctions/PPE — pagination réelle côté serveur, classification
+  // appliquée en base (voir `classification=sanctions_ppe` sur GET /alerts)
+  const {
+    data: rawAlerts,
+    total: matchesTotal,
+    page: matchesPage,
+    setPage: setMatchesPage,
+    totalPages: matchesTotalPages,
+    loading,
+    error,
+    refetch: refetchMatches,
+  } = usePaginatedFetch<Alert>(
+    ({ skip, limit }) =>
+      alertService.getAlertsPage(
+        undefined,
+        { skip, limit },
+        {
+          classification: "sanctions_ppe",
+          statut: filterToStatut[filter],
+          q: debouncedQuery || undefined,
+          order: sortDir,
+        }
+      ),
+    [debouncedQuery, filter, sortDir],
+    { pageSize: 10 }
+  )
+  const pagedMatches = rawAlerts.map(mapAlertToMatch)
+
+  // Compteurs des statuts : portée = toutes les correspondances sanctions/PPE,
+  // indépendante de l'onglet et de la page affichés
+  const [counts, setCounts] = useState({ en_attente: 0, confirme: 0, rejete: 0 })
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([
+      alertService.getAlertsPage(undefined, { skip: 0, limit: 1 }, { classification: "sanctions_ppe", statut: "nouvelle,en_cours" }),
+      alertService.getAlertsPage(undefined, { skip: 0, limit: 1 }, { classification: "sanctions_ppe", statut: "cloturee" }),
+      alertService.getAlertsPage(undefined, { skip: 0, limit: 1 }, { classification: "sanctions_ppe", statut: "classee" }),
+    ]).then(([enAttente, confirme, rejete]) => {
+      if (cancelled) return
+      setCounts({ en_attente: enAttente.total, confirme: confirme.total, rejete: rejete.total })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [pagedMatches])
 
   const handleTestFuzzy = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -138,51 +170,16 @@ export function SanctionsView() {
     }
   }
 
-  const toggleSort = (col: SortColumn) => {
-    if (sortBy === col) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
-    } else {
-      setSortBy(col)
-      setSortDir("desc")
-    }
-  }
+  const toggleDateSort = () => setSortDir((d) => (d === "asc" ? "desc" : "asc"))
 
   const setStatus = async (id: string, status: Match["status"], alertId?: string) => {
-    setItems((arr) => arr.map((m) => (m.id === id ? { ...m, status } : m)))
     if (alertId) {
       const backendStatut = status === "confirme" ? "cloturee" : status === "rejete" ? "classee" : "en_cours"
       await alertService.updateAlertStatus(alertId, { statut: backendStatut }).catch(() => {})
       window.dispatchEvent(new CustomEvent("lakana-alert-updated"))
+      refetchMatches()
     }
   }
-
-  const filtered = items.filter((m) => {
-    const statusOk =
-      filter === "Toutes" ||
-      (filter === "En attente" && m.status === "en_attente") ||
-      (filter === "Confirmées" && m.status === "confirme") ||
-      (filter === "Rejetées" && m.status === "rejete")
-    const queryOk =
-      !query ||
-      m.client.toLowerCase().includes(query.toLowerCase()) ||
-      m.matchedEntry.toLowerCase().includes(query.toLowerCase())
-    return statusOk && queryOk
-  })
-
-  const sorted = [...filtered].sort((a, b) => {
-    if (!sortBy) return 0
-    const dir = sortDir === "asc" ? 1 : -1
-    if (sortBy === "similarity") return (a.similarity - b.similarity) * dir
-    return a.date.localeCompare(b.date) * dir
-  })
-
-  const {
-    data: pagedMatches,
-    page: matchesPage,
-    setPage: setMatchesPage,
-    totalPages: matchesTotalPages,
-    total: matchesTotal,
-  } = usePageSlice(sorted, 10)
 
   return (
     <div className="space-y-5">
@@ -194,7 +191,7 @@ export function SanctionsView() {
           </p>
         </div>
         <button
-          onClick={fetchMatches}
+          onClick={refetchMatches}
           disabled={loading}
           className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 cursor-pointer"
           title="Actualiser les correspondances"
@@ -256,9 +253,9 @@ export function SanctionsView() {
       {/* Stats rapides */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
-          { label: "Correspondances en attente", value: items.filter((m) => m.status === "en_attente").length, color: "#D97706" },
-          { label: "Confirmées (bloquantes)", value: items.filter((m) => m.status === "confirme").length, color: "#CD0D29" },
-          { label: "Faux positifs rejetés", value: items.filter((m) => m.status === "rejete").length, color: "#98A3B9" },
+          { label: "Correspondances en attente", value: counts.en_attente, color: "#D97706" },
+          { label: "Confirmées (bloquantes)", value: counts.confirme, color: "#CD0D29" },
+          { label: "Faux positifs rejetés", value: counts.rejete, color: "#98A3B9" },
           { label: "Bases synchronisées", value: "ONU · CENTIF · PPE", color: "#070347" },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-xs">
@@ -301,27 +298,14 @@ export function SanctionsView() {
       {/* Matches list */}
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-xs">
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-          <h3 className="text-sm font-semibold text-slate-900">Correspondances actives ({sorted.length})</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Correspondances actives ({matchesTotal})</h3>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => toggleSort("date")}
-              className={cn(
-                "inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide transition cursor-pointer",
-                sortBy === "date" ? "text-indigo-600" : "text-slate-400 hover:text-slate-600"
-              )}
+              onClick={toggleDateSort}
+              className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-indigo-600 transition cursor-pointer"
             >
               Date
-              <SortIcon column="date" sortBy={sortBy} sortDir={sortDir} />
-            </button>
-            <button
-              onClick={() => toggleSort("similarity")}
-              className={cn(
-                "inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide transition cursor-pointer",
-                sortBy === "similarity" ? "text-indigo-600" : "text-slate-400 hover:text-slate-600"
-              )}
-            >
-              Similarité
-              <SortIcon column="similarity" sortBy={sortBy} sortDir={sortDir} />
+              <SortIcon sortDir={sortDir} />
             </button>
           </div>
         </div>
@@ -329,7 +313,7 @@ export function SanctionsView() {
         {error ? (
           <ErrorState
             error={error}
-            onRetry={fetchMatches}
+            onRetry={refetchMatches}
             title="Impossible de charger les correspondances"
             message="Le service de filtrage sanctions n'a pas pu récupérer les données depuis l'API."
             className="my-6"
