@@ -61,6 +61,7 @@ function DashboardListeners() {
 }
 
 const views: Record<string, React.ComponentType<any>> = {
+  "Accueil": OverviewView,
   "Tableau de bord": OverviewView,
   "Centre d'alertes": AlertsCenterView,
   "Contrôle & Pré-filtrage Sociétaire": TransactionSimulatorView,
@@ -95,7 +96,7 @@ function DashboardContent({
   role: string
   onLogout: () => void
 }) {
-  const [active, setActive] = useState("Tableau de bord")
+  const [active, setActive] = useState("Accueil")
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const { theme, setTheme } = useTheme()
@@ -115,7 +116,7 @@ function DashboardContent({
       setSelectedClientId(options.clientId)
       try {
         sessionStorage.setItem("lakana_selected_client_id", options.clientId)
-      } catch {}
+      } catch { }
     }
     if (options?.investigationRef) {
       setSelectedInvestigationRef(options.investigationRef)
@@ -218,7 +219,7 @@ function DashboardContent({
           }}
         />
 
-        <main className="lg:pl-[260px] pt-16">
+        <main className="lg:pl-[260px] pt-16 min-h-screen bg-[#F4F6F9] dark:bg-slate-950">
           <div className="p-4 md:p-6">
             <View
               onLogout={active === "Mon profil" ? onLogout : undefined}

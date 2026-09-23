@@ -46,10 +46,10 @@ const formatColor: Record<Report["format"], string> = {
 }
 
 const templates: { title: string; desc: string; type: Report["type"]; color: string }[] = [
-  { title: "Déclaration de soupçon CENTIF", desc: "Format réglementaire CENTIF-Mali", type: "CENTIF-Mali", color: "#EF4444" },
-  { title: "Rapport trimestriel BCEAO", desc: "Conformité LBC/FT — Banque centrale", type: "BCEAO", color: "#3B82F6" },
-  { title: "Synthèse mensuelle interne", desc: "Tableau de bord conformité", type: "Contrôle interne", color: "#64748B" },
-  { title: "Export investigations clôturées", desc: "Liste des dossiers traités", type: "Synthèse mensuelle", color: "#6366F1" },
+  { title: "Déclaration de soupçon CENTIF", desc: "Format réglementaire CENTIF-Mali", type: "CENTIF-Mali", color: "#CD0D29" },
+  { title: "Rapport trimestriel BCEAO", desc: "Conformité LBC/FT — Banque centrale", type: "BCEAO", color: "#070347" },
+  { title: "Synthèse mensuelle interne", desc: "Tableau de bord conformité", type: "Contrôle interne", color: "#98A3B9" },
+  { title: "Export investigations clôturées", desc: "Liste des dossiers traités", type: "Synthèse mensuelle", color: "#070347" },
 ]
 
 function printReportDocument(report: Report) {
@@ -64,8 +64,8 @@ function printReportDocument(report: Report) {
         <style>
           @page { size: A4; margin: 20mm; }
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 24px; color: #0f172a; line-height: 1.5; }
-          .header { border-bottom: 2px solid #0f172a; padding-bottom: 16px; margin-bottom: 24px; }
-          .brand { font-size: 20px; font-weight: 700; color: #4338ca; letter-spacing: -0.5px; }
+          .header { border-bottom: 2px solid #070347; padding-bottom: 16px; margin-bottom: 24px; }
+          .brand { font-size: 20px; font-weight: 700; color: #070347; letter-spacing: -0.5px; }
           .title { font-size: 18px; font-weight: 700; margin-top: 12px; color: #0f172a; }
           .meta { color: #64748b; font-size: 12px; margin-top: 6px; }
           table { width: 100%; border-collapse: collapse; margin-top: 24px; }
@@ -330,10 +330,10 @@ export function ReportsView() {
           {/* Stats */}
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             {[
-              { label: "Rapports générés", value: reports.filter((r) => r.status === "Généré").length, color: "#10B981" },
-              { label: "Déclarations CENTIF", value: reports.filter((r) => r.type === "CENTIF-Mali").length, color: "#EF4444" },
-              { label: "Rapports BCEAO", value: reports.filter((r) => r.type === "BCEAO").length, color: "#3B82F6" },
-              { label: "Planifiés", value: reports.filter((r) => r.status === "Planifié").length, color: "#64748B" },
+              { label: "Rapports générés", value: reports.filter((r) => r.status === "Généré").length, color: "#059669" },
+              { label: "Déclarations CENTIF", value: reports.filter((r) => r.type === "CENTIF-Mali").length, color: "#CD0D29" },
+              { label: "Rapports BCEAO", value: reports.filter((r) => r.type === "BCEAO").length, color: "#070347" },
+              { label: "Planifiés", value: reports.filter((r) => r.status === "Planifié").length, color: "#98A3B9" },
             ].map((s) => (
               <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4">
                 <div className="flex items-center gap-2">

@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import { X, User, FolderSearch, BellRing } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn, formatFacteur } from "@/lib/utils"
@@ -26,6 +27,15 @@ type AlertDetailModalProps = {
 export function AlertDetailModal({ alert, onClose }: AlertDetailModalProps) {
   const { investigations, openNewInvestigation } = useDashboard()
 
+  // Keyboard navigation: Escape key closes modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [onClose])
+
   const openInvestigation = () => {
     const existing = investigations.find(
       (i) => i.alertRef === alert.ref && i.status === "en_cours"
@@ -46,13 +56,24 @@ export function AlertDetailModal({ alert, onClose }: AlertDetailModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="alert-modal-title"
+        aria-describedby="alert-modal-desc"
+        className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">Détail de l'alerte</h3>
-            <p className="mt-0.5 text-xs text-slate-400">{alert.ref} : {alert.client}</p>
+            <h3 id="alert-modal-title" className="text-lg font-semibold text-slate-900">Détail de l'alerte</h3>
+            <p id="alert-modal-desc" className="mt-0.5 text-xs text-slate-400">{alert.ref} : {alert.client}</p>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-slate-400 hover:bg-slate-100" aria-label="Fermer">
+          <button
+            onClick={onClose}
+            className="rounded-md p-1 text-slate-400 hover:bg-slate-100 cursor-pointer"
+            aria-label="Fermer la boîte de dialogue"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>

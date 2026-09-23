@@ -36,10 +36,22 @@ export function NewInvestigationModal({
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [loadingData, setLoadingData] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Keyboard navigation: Escape key closes modal
+  useEffect(() => {
+    if (!open) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [open, onClose])
 
   useEffect(() => {
     if (!open) return
     setLoadingData(true)
+    setErrors({})
     Promise.all([
       alertService.getAlerts().catch(() => [] as Alert[]),
       clientService.getClients().catch(() => [] as Client[]),
@@ -95,6 +107,8 @@ export function NewInvestigationModal({
     : null
 
   const submit = async () => {
+    setErrors({})
+
     if (existingInv) {
       toast.info("Dossier existant", {
         description: `${existingInv.ref} est déjà ouvert pour cette alerte.`,
@@ -104,9 +118,18 @@ export function NewInvestigationModal({
       return
     }
 
+    const newErrors: Record<string, string> = {}
+    if (source === "alerte" && !selectedAlertId) {
+      newErrors.alert = "Veuillez sélectionner une alerte source."
+    }
     const clientIdToUse = selectedClientId || selectedAlert?.clientId
     if (!clientIdToUse) {
-      toast.error("Client requis", { description: "Veuillez sélectionner un client ou une alerte valide." })
+      newErrors.client = "Veuillez sélectionner un client concerné."
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      toast.error("Formulaire incomplet", { description: "Veuillez corriger les champs signalés en rouge." })
       return
     }
 
@@ -120,7 +143,7 @@ export function NewInvestigationModal({
 
       const payload = {
         reference: ref,
-        client_id: clientIdToUse,
+        client_id: clientIdToUse!,
         alerte_id: source === "alerte" && selectedAlert ? selectedAlert.id : undefined,
         analyste: userName || "A. Touré",
         type_motif: type,
@@ -157,15 +180,23 @@ export function NewInvestigationModal({
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="new-inv-title"
+        aria-describedby="new-inv-desc"
         className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">Nouvelle investigation</h3>
-            <p className="mt-0.5 text-xs text-slate-400">Ouverture de dossier officiel LBC/FT — Prise en charge analyste</p>
+            <h3 id="new-inv-title" className="text-lg font-semibold text-slate-900">Nouvelle investigation</h3>
+            <p id="new-inv-desc" className="mt-0.5 text-xs text-slate-400">Ouverture de dossier officiel LBC/FT — Prise en charge analyste</p>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-slate-400 hover:bg-slate-100" aria-label="Fermer">
+          <button
+            onClick={onClose}
+            className="rounded-md p-1 text-slate-400 hover:bg-slate-100 cursor-pointer"
+            aria-label="Fermer la boîte de dialogue"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -180,7 +211,10 @@ export function NewInvestigationModal({
               <button
                 key={o.v}
                 type="button"
-                onClick={() => setSource(o.v)}
+                onClick={() => {
+                  setSource(o.v)
+                  setErrors({})
+                }}
                 className={cn(
                   "rounded-lg border px-3 py-2 text-xs font-semibold transition cursor-pointer",
                   source === o.v
@@ -201,11 +235,22 @@ export function NewInvestigationModal({
           </div>
         ) : source === "alerte" ? (
           <div className="mt-4">
-            <label className="text-xs font-medium text-slate-600">Alerte source</label>
+            <label htmlFor="inv-source-alert" className="text-xs font-medium text-slate-600">Alerte source</label>
             <select
+              id="inv-source-alert"
               value={selectedAlertId}
-              onChange={(e) => setSelectedAlertId(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-indigo-300 focus:bg-white"
+              onChange={(e) => {
+                setSelectedAlertId(e.target.value)
+                if (errors.alert) setErrors((prev) => ({ ...prev, alert: "" }))
+              }}
+              aria-invalid={!!errors.alert}
+              aria-describedby={errors.alert ? "inv-source-alert-err" : undefined}
+              className={cn(
+                "mt-1 w-full rounded-lg border bg-slate-50 px-3 py-2 text-sm outline-none focus:bg-white transition",
+                errors.alert
+                  ? "border-rose-400 bg-rose-50/20 focus:border-rose-500 focus:ring-1 focus:ring-rose-200"
+                  : "border-slate-200 focus:border-indigo-300"
+              )}
             >
               {alerts.length === 0 ? (
                 <option value="">Aucune alerte disponible</option>
@@ -217,6 +262,11 @@ export function NewInvestigationModal({
                 ))
               )}
             </select>
+            {errors.alert && (
+              <p id="inv-source-alert-err" role="alert" className="mt-1 text-xs font-medium text-rose-600">
+                {errors.alert}
+              </p>
+            )}
             {existingInv && (
               <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -244,11 +294,22 @@ export function NewInvestigationModal({
           </div>
         ) : (
           <div className="mt-4">
-            <label className="text-xs font-medium text-slate-600">Client concerné</label>
+            <label htmlFor="inv-source-client" className="text-xs font-medium text-slate-600">Client concerné</label>
             <select
+              id="inv-source-client"
               value={selectedClientId}
-              onChange={(e) => setSelectedClientId(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-indigo-300 focus:bg-white"
+              onChange={(e) => {
+                setSelectedClientId(e.target.value)
+                if (errors.client) setErrors((prev) => ({ ...prev, client: "" }))
+              }}
+              aria-invalid={!!errors.client}
+              aria-describedby={errors.client ? "inv-source-client-err" : undefined}
+              className={cn(
+                "mt-1 w-full rounded-lg border bg-slate-50 px-3 py-2 text-sm outline-none focus:bg-white transition",
+                errors.client
+                  ? "border-rose-400 bg-rose-50/20 focus:border-rose-500 focus:ring-1 focus:ring-rose-200"
+                  : "border-slate-200 focus:border-indigo-300"
+              )}
             >
               <option value="">Sélectionner un client...</option>
               {clients.map((c) => (
@@ -257,12 +318,18 @@ export function NewInvestigationModal({
                 </option>
               ))}
             </select>
+            {errors.client && (
+              <p id="inv-source-client-err" role="alert" className="mt-1 text-xs font-medium text-rose-600">
+                {errors.client}
+              </p>
+            )}
           </div>
         )}
 
         <div className="mt-4">
-          <label className="text-xs font-medium text-slate-600">Type d'investigation</label>
+          <label htmlFor="inv-type" className="text-xs font-medium text-slate-600">Type d'investigation</label>
           <select
+            id="inv-type"
             value={type}
             onChange={(e) => setType(e.target.value)}
             className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-indigo-300 focus:bg-white"
@@ -276,8 +343,9 @@ export function NewInvestigationModal({
         </div>
 
         <div className="mt-4">
-          <label className="text-xs font-medium text-slate-600">Motivation initiale de l'analyste</label>
+          <label htmlFor="inv-motivation" className="text-xs font-medium text-slate-600">Motivation initiale de l'analyste</label>
           <textarea
+            id="inv-motivation"
             value={motivation}
             onChange={(e) => setMotivation(e.target.value)}
             rows={3}

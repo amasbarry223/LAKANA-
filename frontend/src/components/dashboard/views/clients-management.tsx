@@ -28,6 +28,9 @@ import { Badge } from "@/components/ui/badge"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { DataPagination } from "@/components/ui/data-pagination"
 import { usePaginatedFetch } from "@/hooks/use-pagination"
+import { TableSkeleton } from "@/components/ui/skeleton"
+import { EmptyState } from "@/components/ui/empty-state"
+import { ErrorState } from "@/components/ui/error-state"
 import { clientService } from "@/services/clientService"
 import { navigateTo } from "@/lib/navigate"
 import { RowActionDropdown } from "@/components/ui/row-action-dropdown"
@@ -149,6 +152,29 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
     }
   }, [filter])
 
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+  const [editFormErrors, setEditFormErrors] = useState<Record<string, string>>({})
+
+  // Fermeture des modales avec la touche Echap
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (modalOpen) {
+          setModalOpen(false)
+          setFormErrors({})
+        }
+        if (editModalOpen) {
+          setEditModalOpen(false)
+          setEditFormErrors({})
+        }
+        if (accountModalOpen) setAccountModalOpen(false)
+        if (clientToDelete) setClientToDelete(null)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [modalOpen, editModalOpen, accountModalOpen, clientToDelete])
+
   const {
     data: clients,
     total: totalFiltered,
@@ -156,6 +182,7 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
     setPage,
     totalPages,
     loading,
+    error,
     refetch: refetchClients,
   } = usePaginatedFetch(
     ({ skip, limit }) =>
@@ -201,14 +228,21 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (clientType === "Particulier" && !form.nom.trim()) {
-      toast.error("Veuillez saisir le nom du particulier")
+    const errors: Record<string, string> = {}
+    if (clientType === "Particulier") {
+      if (!form.nom.trim()) errors.nom = "Le nom de famille est obligatoire."
+      if (!form.telephone.trim()) errors.telephone = "Le numéro de téléphone est obligatoire."
+    } else {
+      if (!form.raisonSociale.trim()) errors.raisonSociale = "La raison sociale est obligatoire."
+      if (!form.rccm.trim()) errors.rccm = "Le numéro RCCM est obligatoire pour une personne morale."
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors)
+      toast.error("Formulaire incomplet", { description: "Veuillez renseigner les champs obligatoires en surbrillance." })
       return
     }
-    if (clientType === "Entreprise" && !form.raisonSociale.trim()) {
-      toast.error("Veuillez saisir la raison sociale de l'entreprise")
-      return
-    }
+    setFormErrors({})
 
     setSubmitting(true)
     try {
@@ -310,14 +344,19 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
     e.preventDefault()
     if (!clientToEdit) return
 
-    if (editClientType === "Particulier" && !editForm.nom.trim()) {
-      toast.error("Veuillez saisir le nom du client")
+    const errors: Record<string, string> = {}
+    if (editClientType === "Particulier") {
+      if (!editForm.nom.trim()) errors.nom = "Le nom du client est obligatoire."
+    } else {
+      if (!editForm.raisonSociale.trim()) errors.raisonSociale = "La raison sociale est obligatoire."
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setEditFormErrors(errors)
+      toast.error("Vérification requise", { description: "Veuillez corriger les informations requises." })
       return
     }
-    if (editClientType === "Entreprise" && !editForm.raisonSociale.trim()) {
-      toast.error("Veuillez saisir la raison sociale")
-      return
-    }
+    setEditFormErrors({})
 
     setEditSubmitting(true)
     try {
@@ -576,17 +615,45 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-              {loading ? (
+              {error ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center text-slate-400">
-                    <RefreshCw className="h-6 w-6 animate-spin mx-auto text-indigo-500 mb-2" />
-                    Chargement des clients depuis PostgreSQL...
+                  <td colSpan={5} className="p-6">
+                    <ErrorState
+                      error={error}
+                      onRetry={fetchClients}
+                      title="Impossible d'accéder aux fiches clients"
+                      message="La synchronisation avec la base PostgreSQL a échoué. Assurez-vous que le serveur API est opérationnel."
+                    />
+                  </td>
+                </tr>
+              ) : loading ? (
+                <tr>
+                  <td colSpan={5} className="p-0">
+                    <TableSkeleton rows={8} cols={5} />
                   </td>
                 </tr>
               ) : filteredClients.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center text-slate-400">
-                    Aucun client trouvé pour cette sélection.
+                  <td colSpan={5} className="p-4">
+                    <EmptyState
+                      icon={Users}
+                      title={debouncedSearch || filter !== "Tous" ? "Aucun client ne correspond aux filtres" : "Aucun client enregistré"}
+                      description={
+                        debouncedSearch || filter !== "Tous"
+                          ? `Aucun résultat pour "${debouncedSearch || filter}". Modifiez vos termes ou réinitialisez les filtres.`
+                          : "Le registre sociétaires est actuellement vierge. Vous pouvez enrôler un premier client dès maintenant."
+                      }
+                      actionLabel={debouncedSearch || filter !== "Tous" ? "Réinitialiser les filtres" : "Enrôler un nouveau client"}
+                      onAction={
+                        debouncedSearch || filter !== "Tous"
+                          ? () => {
+                              setSearch("")
+                              setFilter("Tous")
+                            }
+                          : () => setModalOpen(true)
+                      }
+                      className="py-12"
+                    />
                   </td>
                 </tr>
               ) : (
@@ -754,8 +821,20 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
 
       {/* Modal d'enrôlement client */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in"
+          onClick={() => {
+            setModalOpen(false)
+            setFormErrors({})
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="enrolement-modal-title"
+            className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header Modal */}
             <div className="sticky top-0 bg-white dark:bg-slate-900 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between z-10">
               <div className="flex items-center gap-2.5">
@@ -763,7 +842,7 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                   <UserPlus className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                  <h2 id="enrolement-modal-title" className="text-lg font-bold text-slate-900 dark:text-white">
                     Enrôlement d'un Nouveau Client
                   </h2>
                   <p className="text-xs text-slate-500">
@@ -772,8 +851,13 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                 </div>
               </div>
               <button
-                onClick={() => setModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                type="button"
+                onClick={() => {
+                  setModalOpen(false)
+                  setFormErrors({})
+                }}
+                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                aria-label="Fermer la boîte de dialogue"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -788,9 +872,12 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => setClientType("Particulier")}
+                    onClick={() => {
+                      setClientType("Particulier")
+                      setFormErrors({})
+                    }}
                     className={cn(
-                      "flex items-center gap-3 p-3 rounded-xl border text-left transition",
+                      "flex items-center gap-3 p-3 rounded-xl border text-left transition cursor-pointer",
                       clientType === "Particulier"
                         ? "border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200 ring-2 ring-indigo-500/20"
                         : "border-slate-200 hover:bg-slate-50 text-slate-700"
@@ -805,9 +892,12 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
 
                   <button
                     type="button"
-                    onClick={() => setClientType("Entreprise")}
+                    onClick={() => {
+                      setClientType("Entreprise")
+                      setFormErrors({})
+                    }}
                     className={cn(
-                      "flex items-center gap-3 p-3 rounded-xl border text-left transition",
+                      "flex items-center gap-3 p-3 rounded-xl border text-left transition cursor-pointer",
                       clientType === "Entreprise"
                         ? "border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200 ring-2 ring-indigo-500/20"
                         : "border-slate-200 hover:bg-slate-50 text-slate-700"
@@ -827,23 +917,40 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                 <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Raison Sociale *
+                      <label htmlFor="create-raison-sociale" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Raison Sociale <span className="text-rose-500">*</span>
                       </label>
                       <input
+                        id="create-raison-sociale"
                         type="text"
-                        required
                         placeholder="Ex: Sahel Transit SARL"
                         value={form.raisonSociale}
-                        onChange={(e) => setForm({ ...form, raisonSociale: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        onChange={(e) => {
+                          setForm({ ...form, raisonSociale: e.target.value })
+                          if (formErrors.raisonSociale) setFormErrors((prev) => { const n = { ...prev }; delete n.raisonSociale; return n; })
+                        }}
+                        aria-invalid={!!formErrors.raisonSociale}
+                        aria-describedby={formErrors.raisonSociale ? "create-rs-err" : undefined}
+                        className={cn(
+                          "w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 outline-none transition",
+                          formErrors.raisonSociale
+                            ? "border-rose-400 bg-rose-50/30 focus:border-rose-500 focus:ring-rose-200"
+                            : "border-slate-200 focus:border-indigo-500 focus:ring-indigo-100"
+                        )}
                       />
+                      {formErrors.raisonSociale && (
+                        <p id="create-rs-err" role="alert" className="mt-1 text-xs text-rose-600 font-medium flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3 inline shrink-0" />
+                          <span>{formErrors.raisonSociale}</span>
+                        </p>
+                      )}
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label htmlFor="create-forme-juridique" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Forme Juridique
                       </label>
                       <select
+                        id="create-forme-juridique"
                         value={form.formeJuridique}
                         onChange={(e) => setForm({ ...form, formeJuridique: e.target.value })}
                         className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
@@ -860,16 +967,33 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Numéro RCCM (Registre du commerce)
+                      <label htmlFor="create-rccm" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Numéro RCCM (Registre du commerce) <span className="text-rose-500">*</span>
                       </label>
                       <input
+                        id="create-rccm"
                         type="text"
                         placeholder="Ex: MA.BKO.2024.B.1298"
                         value={form.rccm}
-                        onChange={(e) => setForm({ ...form, rccm: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        onChange={(e) => {
+                          setForm({ ...form, rccm: e.target.value })
+                          if (formErrors.rccm) setFormErrors((prev) => { const n = { ...prev }; delete n.rccm; return n; })
+                        }}
+                        aria-invalid={!!formErrors.rccm}
+                        aria-describedby={formErrors.rccm ? "create-rccm-err" : undefined}
+                        className={cn(
+                          "w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 outline-none transition",
+                          formErrors.rccm
+                            ? "border-rose-400 bg-rose-50/30 focus:border-rose-500 focus:ring-rose-200"
+                            : "border-slate-200 focus:border-indigo-500 focus:ring-indigo-100"
+                        )}
                       />
+                      {formErrors.rccm && (
+                        <p id="create-rccm-err" role="alert" className="mt-1 text-xs text-rose-600 font-medium flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3 inline shrink-0" />
+                          <span>{formErrors.rccm}</span>
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -919,17 +1043,33 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                 <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Nom de famille *
+                      <label htmlFor="create-particulier-nom" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Nom de famille <span className="text-rose-500">*</span>
                       </label>
                       <input
+                        id="create-particulier-nom"
                         type="text"
-                        required
                         placeholder="Ex: Traoré"
                         value={form.nom}
-                        onChange={(e) => setForm({ ...form, nom: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        onChange={(e) => {
+                          setForm({ ...form, nom: e.target.value })
+                          if (formErrors.nom) setFormErrors((prev) => { const n = { ...prev }; delete n.nom; return n; })
+                        }}
+                        aria-invalid={!!formErrors.nom}
+                        aria-describedby={formErrors.nom ? "create-nom-err" : undefined}
+                        className={cn(
+                          "w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 outline-none transition",
+                          formErrors.nom
+                            ? "border-rose-400 bg-rose-50/30 focus:border-rose-500 focus:ring-rose-200"
+                            : "border-slate-200 focus:border-indigo-500 focus:ring-indigo-100"
+                        )}
                       />
+                      {formErrors.nom && (
+                        <p id="create-nom-err" role="alert" className="mt-1 text-xs text-rose-600 font-medium flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3 inline shrink-0" />
+                          <span>{formErrors.nom}</span>
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -1068,16 +1208,33 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
               {/* Coordonnées communes */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Téléphone
+                  <label htmlFor="create-client-telephone" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Téléphone {clientType === "Particulier" && <span className="text-rose-500">*</span>}
                   </label>
                   <input
+                    id="create-client-telephone"
                     type="tel"
                     placeholder="+223 70 00 00 00"
                     value={form.telephone}
-                    onChange={(e) => setForm({ ...form, telephone: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    onChange={(e) => {
+                      setForm({ ...form, telephone: e.target.value })
+                      if (formErrors.telephone) setFormErrors((prev) => { const n = { ...prev }; delete n.telephone; return n; })
+                    }}
+                    aria-invalid={!!formErrors.telephone}
+                    aria-describedby={formErrors.telephone ? "create-tel-err" : undefined}
+                    className={cn(
+                      "w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 outline-none transition",
+                      formErrors.telephone
+                        ? "border-rose-400 bg-rose-50/30 focus:border-rose-500 focus:ring-rose-200"
+                        : "border-slate-200 focus:border-indigo-500 focus:ring-indigo-100"
+                    )}
                   />
+                  {formErrors.telephone && (
+                    <p id="create-tel-err" role="alert" className="mt-1 text-xs text-rose-600 font-medium flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3 inline shrink-0" />
+                      <span>{formErrors.telephone}</span>
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -1104,31 +1261,39 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
               </div>
 
               {/* Footer Modal Actions */}
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition shadow-sm disabled:opacity-50"
-                >
-                  {submitting ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      Enregistrement...
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="h-4 w-4" />
-                      Enrôler et Enregistrer
-                    </>
-                  )}
-                </button>
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                <div className="flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalOpen(false)
+                      setFormErrors({})
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition shadow-sm disabled:opacity-50 cursor-pointer"
+                  >
+                    {submitting ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        Enrôlement en cours...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="h-4 w-4" />
+                        Créer la fiche sociétaire
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-center text-2xs text-slate-400">
+                  Contrôle automatique : Dès validation, un scan immédiat contre les listes de sanctions ONU / UEMOA / OFAC est exécuté.
+                </p>
               </div>
             </form>
           </div>
@@ -1162,8 +1327,21 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
 
       {/* ═══════════════ MODALE MODIFICATION CLIENT ═══════════════ */}
       {editModalOpen && clientToEdit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in"
+          onClick={() => {
+            setEditModalOpen(false)
+            setEditFormErrors({})
+            setClientToEdit(null)
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-modal-title"
+            className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
             <div className="sticky top-0 bg-white dark:bg-slate-900 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between z-10">
               <div className="flex items-center gap-2.5">
@@ -1171,7 +1349,7 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                   <Pencil className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                  <h2 id="edit-modal-title" className="text-lg font-bold text-slate-900 dark:text-white">
                     Modifier le dossier client
                   </h2>
                   <p className="text-xs text-slate-500">
@@ -1180,8 +1358,14 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                 </div>
               </div>
               <button
-                onClick={() => { setEditModalOpen(false); setClientToEdit(null) }}
-                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                type="button"
+                onClick={() => {
+                  setEditModalOpen(false)
+                  setEditFormErrors({})
+                  setClientToEdit(null)
+                }}
+                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                aria-label="Fermer la boîte de dialogue"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -1208,14 +1392,32 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 block">Nom *</label>
+                      <label htmlFor="edit-client-nom" className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 block">
+                        Nom *
+                      </label>
                       <input
+                        id="edit-client-nom"
                         value={editForm.nom}
-                        onChange={(e) => setEditForm((f) => ({ ...f, nom: e.target.value }))}
-                        required
-                        className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+                        onChange={(e) => {
+                          setEditForm((f) => ({ ...f, nom: e.target.value }))
+                          if (editFormErrors.nom) setEditFormErrors((prev) => { const n = { ...prev }; delete n.nom; return n; })
+                        }}
+                        aria-invalid={!!editFormErrors.nom}
+                        aria-describedby={editFormErrors.nom ? "edit-nom-err" : undefined}
+                        className={cn(
+                          "w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border rounded-lg focus:outline-none focus:ring-2 text-slate-900 dark:text-white transition",
+                          editFormErrors.nom
+                            ? "border-rose-400 bg-rose-50/20 focus:ring-rose-200"
+                            : "border-slate-200 dark:border-slate-700 focus:ring-indigo-500"
+                        )}
                         placeholder="Nom de famille"
                       />
+                      {editFormErrors.nom && (
+                        <p id="edit-nom-err" role="alert" className="mt-1 text-xs text-rose-600 font-medium flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3 inline shrink-0" />
+                          <span>{editFormErrors.nom}</span>
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 block">Prénom</label>
@@ -1323,14 +1525,32 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2">
-                      <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 block">Raison Sociale *</label>
+                      <label htmlFor="edit-client-rs" className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 block">
+                        Raison Sociale *
+                      </label>
                       <input
+                        id="edit-client-rs"
                         value={editForm.raisonSociale}
-                        onChange={(e) => setEditForm((f) => ({ ...f, raisonSociale: e.target.value }))}
-                        required
-                        className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+                        onChange={(e) => {
+                          setEditForm((f) => ({ ...f, raisonSociale: e.target.value }))
+                          if (editFormErrors.raisonSociale) setEditFormErrors((prev) => { const n = { ...prev }; delete n.raisonSociale; return n; })
+                        }}
+                        aria-invalid={!!editFormErrors.raisonSociale}
+                        aria-describedby={editFormErrors.raisonSociale ? "edit-rs-err" : undefined}
+                        className={cn(
+                          "w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border rounded-lg focus:outline-none focus:ring-2 text-slate-900 dark:text-white transition",
+                          editFormErrors.raisonSociale
+                            ? "border-rose-400 bg-rose-50/20 focus:ring-rose-200"
+                            : "border-slate-200 dark:border-slate-700 focus:ring-indigo-500"
+                        )}
                         placeholder="Dénomination officielle"
                       />
+                      {editFormErrors.raisonSociale && (
+                        <p id="edit-rs-err" role="alert" className="mt-1 text-xs text-rose-600 font-medium flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3 inline shrink-0" />
+                          <span>{editFormErrors.raisonSociale}</span>
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 block">Forme Juridique</label>
@@ -1602,11 +1822,21 @@ export function ClientsManagementView({ onSelectClient }: ClientsManagementProps
                 L'agent doit interroger le client sur la justification economique de cette ouverture de compte et documenter la reponse.
               </div>
               <div className="flex items-center gap-2.5 pt-2">
-                <button onClick={() => setAlertFeedbackModal(null)}
-                  className="flex-1 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200 transition">Fermer</button>
-                <button onClick={() => { setAlertFeedbackModal(null); navigateTo("alerts-center") }}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition">
-                  <ShieldAlert className="h-4 w-4" />Voir dans les Alertes
+                <button
+                  onClick={() => setAlertFeedbackModal(null)}
+                  className="flex-1 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200 transition cursor-pointer"
+                >
+                  Fermer
+                </button>
+                <button
+                  onClick={() => {
+                    setAlertFeedbackModal(null)
+                    navigateTo("Centre d'alertes")
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition cursor-pointer"
+                >
+                  <ShieldAlert className="h-4 w-4" />
+                  Traiter l'alerte
                 </button>
               </div>
             </div>

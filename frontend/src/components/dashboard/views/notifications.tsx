@@ -257,10 +257,10 @@ export function NotificationsView() {
           {/* Stats KPI */}
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             {[
-              { label: "Non lues", value: unread, color: "#EF4444" },
-              { label: "Bloquantes", value: items.filter((n) => n.type === "bloquante").length, color: "#F59E0B" },
-              { label: "Aujourd'hui", value: items.length, color: "#6366F1" },
-              { label: "Canaux externes", value: dispatched.length, color: "#10B981" },
+              { label: "Non lues", value: unread, color: "#CD0D29" },
+              { label: "Bloquantes", value: items.filter((n) => n.type === "bloquante").length, color: "#D97706" },
+              { label: "Aujourd'hui", value: items.length, color: "#070347" },
+              { label: "Canaux externes", value: dispatched.length, color: "#059669" },
             ].map((s) => (
               <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="flex items-center gap-2">

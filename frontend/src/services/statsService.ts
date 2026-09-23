@@ -81,16 +81,16 @@ export const statsService = {
     } catch (e) {
       return {
         steps: [
-          { name: "Transactions analysées", value: 1200, pct: 100, color: "#6366F1" },
-          { name: "Correspondances PPE/sanctions", value: 120, pct: 10.0, color: "#7C8DF5" },
-          { name: "Alertes générées", value: 45, pct: 3.8, color: "#06B6D4" },
-          { name: "Investigations ouvertes", value: 12, pct: 1.0, color: "#22D3EE" },
-          { name: "Décisions documentées", value: 8, pct: 0.7, color: "#5EEAD4" },
+          { name: "Transactions analysées", value: 1200, pct: 100, color: "#070347" },
+          { name: "Correspondances PPE/sanctions", value: 120, pct: 10.0, color: "#1E1B6B" },
+          { name: "Alertes générées", value: 45, pct: 3.8, color: "#3E3A82" },
+          { name: "Investigations ouvertes", value: 12, pct: 1.0, color: "#6762A6" },
+          { name: "Décisions documentées", value: 8, pct: 0.7, color: "#98A3B9" },
         ],
         reasons: [
-          { label: "Fractionnement potentiel", count: 2, pct: 33.3, color: "#6366F1", clients: [{ client: "Traoré, Moussa", ref: "ALR-241", score: 87, level: "bloquante" }] },
-          { label: "Correspondance PPE", count: 2, pct: 33.3, color: "#3B82F6", clients: [{ client: "Diarra, Fatoumata", ref: "ALR-238", score: 72, level: "bloquante" }] },
-          { label: "Volume inhabituel", count: 2, pct: 33.3, color: "#06B6D4", clients: [{ client: "Keïta, Ibrahim", ref: "ALR-235", score: 64, level: "analyser" }] },
+          { label: "Fractionnement potentiel", count: 2, pct: 33.3, color: "#CD0D29", clients: [{ client: "Traoré, Moussa", ref: "ALR-241", score: 87, level: "bloquante" }] },
+          { label: "Correspondance PPE", count: 2, pct: 33.3, color: "#070347", clients: [{ client: "Diarra, Fatoumata", ref: "ALR-238", score: 72, level: "bloquante" }] },
+          { label: "Volume inhabituel", count: 2, pct: 33.3, color: "#98A3B9", clients: [{ client: "Keïta, Ibrahim", ref: "ALR-235", score: 64, level: "analyser" }] },
         ],
         insights: [
           {
@@ -137,7 +137,7 @@ export const statsService = {
           { range: "21-40", count: 0, pct: 0, color: "#10B981" },
           { range: "41-60", count: 0, pct: 0, color: "#F59E0B" },
           { range: "61-80", count: 0, pct: 0, color: "#F59E0B" },
-          { range: "81-100", count: 0, pct: 0, color: "#EF4444" },
+          { range: "81-100", count: 0, pct: 0, color: "#CD0D29" },
         ],
         total_clients: 0,
         score_moyen: 0,

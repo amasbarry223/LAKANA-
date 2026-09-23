@@ -30,6 +30,9 @@ import { DataPagination } from "@/components/ui/data-pagination"
 import { usePaginatedFetch } from "@/hooks/use-pagination"
 import { RowActionDropdown } from "@/components/ui/row-action-dropdown"
 import { StatusBadge } from "@/components/ui/status-badge"
+import { TableSkeleton, CardGridSkeleton } from "@/components/ui/skeleton"
+import { EmptyState } from "@/components/ui/empty-state"
+import { ErrorState } from "@/components/ui/error-state"
 import { cn } from "@/lib/utils"
 import type { Alert } from "@/models/alert"
 
@@ -91,6 +94,7 @@ export function AlertsCenterView() {
     setPage,
     totalPages,
     loading,
+    error,
     refetch: refetchAlerts,
   } = usePaginatedFetch<Alert>(
     ({ skip, limit }) =>
@@ -120,15 +124,37 @@ export function AlertsCenterView() {
   }, [filters, debouncedSearchTerm, alerts])
   const counts = tabCounts
 
-  // Modification dynamique du statut en base réelle
+  // Modification dynamique du statut en base réelle avec Optimistic Feedback & Célébration
   const handleStatusChange = async (alert: Alert, newStatus: string) => {
-    setUpdatingId(alert.id || alert.ref)
+    const alertId = alert.id || alert.ref
+    setUpdatingId(alertId)
+    const statusLabel = STATUS_CONFIG[newStatus]?.label || newStatus
+
+    // Feedback immédiat rassurant (Performance perçue < 100ms)
+    toast.success(`Statut mis à jour : ${statusLabel}`, {
+      description: `L'alerte ${alert.ref} (${alert.client}) est enregistrée comme "${statusLabel}".`,
+    })
+
+    // Récompense variable & célébration si la dernière alerte bloquante est résolue
+    if (alert.level === "bloquante" && (newStatus === "cloturee" || newStatus === "classee")) {
+      if (counts.bloquantes <= 1) {
+        setTimeout(() => {
+          toast.success("Objectif atteint ! 🎉", {
+            description: "Toutes les alertes bloquantes prioritaires du jour ont été traitées avec succès.",
+          })
+        }, 600)
+      }
+    }
+
     try {
-      await alertService.updateAlertStatus(alert.id || alert.ref, newStatus)
-      toast.success(`Alerte ${alert.ref} : statut mis à jour en "${STATUS_CONFIG[newStatus]?.label || newStatus}"`)
+      await alertService.updateAlertStatus(alertId, newStatus)
+      window.dispatchEvent(new CustomEvent("lakana-alert-updated"))
       refetchAlerts()
     } catch (e) {
-      toast.error(`Erreur lors de la mise à jour de l'alerte ${alert.ref}`)
+      toast.error(`Erreur de synchronisation pour l'alerte ${alert.ref}`, {
+        description: "La modification n'a pas pu être sauvegardée sur le serveur. Actualisation...",
+      })
+      refetchAlerts()
     } finally {
       setUpdatingId(null)
     }
@@ -248,35 +274,43 @@ export function AlertsCenterView() {
           </div>
         </div>
 
-        {/* Contenu : Tableau ou Grille */}
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-16 text-slate-500">
-            <RefreshCw className="h-8 w-8 animate-spin text-indigo-600" />
-            <p className="mt-3 text-sm font-medium">Chargement des alertes en direct depuis l'API...</p>
-          </div>
-        ) : filteredAlerts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-              <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+        {/* Contenu : Erreur, Chargement (Skeleton), Vide (EmptyState) ou Données */}
+        {error ? (
+          <ErrorState
+            error={error}
+            onRetry={loadAlerts}
+            title="Impossible de charger les alertes"
+            message="La connexion avec le moteur d'alertes LAKANA n'a pas abouti. Vérifiez que le serveur FastAPI est actif sur le port 8000."
+            className="my-8"
+          />
+        ) : loading ? (
+          alertsView === "grid" ? (
+            <CardGridSkeleton count={6} className="p-5" />
+          ) : (
+            <div className="overflow-x-auto">
+              <TableSkeleton rows={8} cols={5} />
             </div>
-            <h3 className="mt-3 text-base font-semibold text-slate-800">Aucune alerte trouvée</h3>
-            <p className="mt-1 text-sm text-slate-500 max-w-md">
-              {searchTerm
-                ? `Aucun résultat ne correspond à votre recherche "${searchTerm}".`
-                : "Toutes les alertes pour ces filtres ont été traitées ou aucune anomalie n'a été levée."}
-            </p>
-            {(searchTerm || activeTab !== "all") && (
-              <button
-                onClick={() => {
-                  setSearchTerm("")
-                  setActiveTab("all")
-                }}
-                className="mt-4 text-xs font-semibold text-indigo-600 hover:underline"
-              >
-                Réinitialiser la recherche et les onglets
-              </button>
-            )}
-          </div>
+          )
+        ) : filteredAlerts.length === 0 ? (
+          <EmptyState
+            icon={CheckCircle2}
+            title={searchTerm ? "Aucune alerte trouvée" : "Toutes les alertes sont traitées"}
+            description={
+              searchTerm
+                ? `Aucun résultat ne correspond à votre recherche "${searchTerm}". Vérifiez l'orthographe ou réinitialisez les filtres.`
+                : "Toutes les alertes associées à cette sélection ont été traitées ou aucune anomalie n'a été détectée par le moteur de conformité."
+            }
+            actionLabel={searchTerm || activeTab !== "all" ? "Réinitialiser les critères" : undefined}
+            onAction={
+              searchTerm || activeTab !== "all"
+                ? () => {
+                    setSearchTerm("")
+                    setActiveTab("all")
+                  }
+                : undefined
+            }
+            className="py-16"
+          />
         ) : alertsView === "grid" ? (
           /* Affichage en cartes Grid */
           <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2 lg:grid-cols-3">

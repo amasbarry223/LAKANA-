@@ -47,17 +47,17 @@ type InternalEdge = {
 }
 
 const nodeStyle: Record<InternalNode["type"], { fill: string; stroke: string; textColor: string; r: number }> = {
-  client: { fill: "#6366F1", stroke: "#4F46E5", textColor: "#ffffff", r: 30 },
-  compte: { fill: "#ffffff", stroke: "#CBD5E1", textColor: "#475569", r: 24 },
-  beneficiaire: { fill: "#ffffff", stroke: "#CBD5E1", textColor: "#475569", r: 22 },
-  alerte: { fill: "#FEE2E2", stroke: "#EF4444", textColor: "#991B1B", r: 22 },
+  client: { fill: "#070347", stroke: "#050236", textColor: "#ffffff", r: 30 },
+  compte: { fill: "#ffffff", stroke: "#98A3B9", textColor: "#29282B", r: 24 },
+  beneficiaire: { fill: "#ffffff", stroke: "#98A3B9", textColor: "#29282B", r: 22 },
+  alerte: { fill: "#FDF2F4", stroke: "#CD0D29", textColor: "#CD0D29", r: 22 },
 }
 
 const legend = [
-  { label: "Client émetteur", color: "#6366F1" },
-  { label: "Compte bancaire", color: "#CBD5E1" },
-  { label: "Bénéficiaire régulier", color: "#94A3B8" },
-  { label: "Alerte Rouge (≥ 15M / jour ou > 2× habituel)", color: "#EF4444" },
+  { label: "Client émetteur", color: "#070347" },
+  { label: "Compte bancaire", color: "#98A3B9" },
+  { label: "Bénéficiaire régulier", color: "#98A3B9" },
+  { label: "Alerte Rouge (≥ 15M / jour ou > 2× habituel)", color: "#CD0D29" },
 ]
 
 export function GraphView() {
@@ -367,11 +367,11 @@ export function GraphView() {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 2px solid #4f46e5;
+            border-bottom: 2px solid #070347;
             padding-bottom: 12px;
             margin-bottom: 16px;
           }
-          .title { font-size: 20px; font-weight: 800; color: #1e1b4b; }
+          .title { font-size: 20px; font-weight: 800; color: #070347; }
           .subtitle { font-size: 11px; color: #64748b; margin-top: 3px; }
           .badge {
             background: #f1f5f9;
@@ -440,7 +440,7 @@ export function GraphView() {
           </div>
           <div class="summary-card">
             <div class="summary-label">Total Flux Détectés</div>
-            <div class="summary-val" style="color: #4f46e5;">${graphData.totalFlux.toLocaleString("fr-FR")} FCFA</div>
+            <div class="summary-val" style="color: #070347;">${graphData.totalFlux.toLocaleString("fr-FR")} FCFA</div>
           </div>
           <div class="summary-card">
             <div class="summary-label">Nœuds Identifiés</div>
@@ -448,7 +448,7 @@ export function GraphView() {
           </div>
           <div class="summary-card">
             <div class="summary-label">Alertes Rouges Actives</div>
-            <div class="summary-val" style="color: #dc2626;">${nodes.filter((n) => n.alert).length} flux suspect(s)</div>
+            <div class="summary-val" style="color: #CD0D29;">${nodes.filter((n) => n.alert).length} flux suspect(s)</div>
           </div>
         </div>
 
@@ -833,20 +833,20 @@ export function GraphView() {
                         y1={from.y}
                         x2={to.x}
                         y2={to.y}
-                        stroke={e.strong ? "#EF4444" : "#CBD5E1"}
+                        stroke={e.strong ? "#CD0D29" : "#98A3B9"}
                         strokeWidth={e.strong ? 2.5 : 1.5}
-                        strokeDasharray={e.strong ? "0" : "4 3"}
+                        strokeDasharray={e.strong ? "4 3" : undefined}
                       />
                       {e.label && (
                         <g>
                           <rect
-                            x={midX - 34}
+                            x={midX - 22}
                             y={midY - 9}
-                            width={68}
-                            height={16}
+                            width={44}
+                            height={18}
                             rx={4}
                             fill="#ffffff"
-                            stroke={e.strong ? "#FCA5A5" : "#E2E8F0"}
+                            stroke={e.strong ? "#CD0D29" : "#98A3B9"}
                             strokeWidth={e.strong ? 1.5 : 1}
                           />
                           <text
@@ -898,7 +898,7 @@ export function GraphView() {
                           cy={n.y}
                           r={style.r + 6}
                           fill="none"
-                          stroke={isAlert ? "#EF4444" : "#6366F1"}
+                          stroke={isAlert ? "#CD0D29" : "#070347"}
                           strokeWidth={2.5}
                           strokeDasharray="3 3"
                         />

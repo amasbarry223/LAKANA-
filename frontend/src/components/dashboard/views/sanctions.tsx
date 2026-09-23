@@ -10,6 +10,9 @@ import { alertService } from "@/services/alertService"
 import { filteringService } from "@/services/filteringService"
 import { DataPagination } from "@/components/ui/data-pagination"
 import { usePageSlice } from "@/hooks/use-pagination"
+import { TableSkeleton } from "@/components/ui/skeleton"
+import { EmptyState } from "@/components/ui/empty-state"
+import { ErrorState } from "@/components/ui/error-state"
 import type { SanctionMatch } from "@/models/sanction"
 
 type Match = {
@@ -51,6 +54,7 @@ function SortIcon({ column, sortBy, sortDir }: { column: SortColumn; sortBy: Sor
 export function SanctionsView() {
   const [items, setItems] = useState<Match[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<Error | string | null>(null)
   const [filter, setFilter] = useState<(typeof filters)[number]>("Toutes")
   const [query, setQuery] = useState("")
   const [sortBy, setSortBy] = useState<SortColumn | null>(null)
@@ -63,6 +67,7 @@ export function SanctionsView() {
 
   const fetchMatches = async () => {
     setLoading(true)
+    setError(null)
     try {
       const alerts = await alertService.getAlerts()
       const fltAlerts = alerts.filter(
@@ -102,6 +107,8 @@ export function SanctionsView() {
       setItems(dynamicMatches)
     } catch (e) {
       console.warn("Erreur chargement sanctions dynamiques:", e)
+      setError(e instanceof Error ? e : new Error(String(e)))
+      toast.error("Erreur de chargement", { description: "Impossible d'accéder au service de filtrage sanctions." })
     } finally {
       setLoading(false)
     }
@@ -249,14 +256,14 @@ export function SanctionsView() {
       {/* Stats rapides */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
-          { label: "Correspondances en attente", value: items.filter((m) => m.status === "en_attente").length, color: "#F59E0B" },
-          { label: "Confirmées (bloquantes)", value: items.filter((m) => m.status === "confirme").length, color: "#EF4444" },
-          { label: "Faux positifs rejetés", value: items.filter((m) => m.status === "rejete").length, color: "#64748B" },
-          { label: "Bases synchronisées", value: "ONU · CENTIF · PPE", color: "#6366F1" },
+          { label: "Correspondances en attente", value: items.filter((m) => m.status === "en_attente").length, color: "#D97706" },
+          { label: "Confirmées (bloquantes)", value: items.filter((m) => m.status === "confirme").length, color: "#CD0D29" },
+          { label: "Faux positifs rejetés", value: items.filter((m) => m.status === "rejete").length, color: "#98A3B9" },
+          { label: "Bases synchronisées", value: "ONU · CENTIF · PPE", color: "#070347" },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-xs">
             <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full" style={{ background: typeof s.color === "string" ? s.color : "#6366F1" }} />
+              <span className="h-2 w-2 rounded-full" style={{ background: typeof s.color === "string" ? s.color : "#070347" }} />
               <p className="text-xs font-medium text-slate-500">{s.label}</p>
             </div>
             <p className="mt-1.5 text-xl font-bold text-slate-900">{s.value}</p>
@@ -319,10 +326,36 @@ export function SanctionsView() {
           </div>
         </div>
 
-        {loading ? (
-          <div className="py-12 text-center text-xs text-slate-400">Chargement des correspondances...</div>
+        {error ? (
+          <ErrorState
+            error={error}
+            onRetry={fetchMatches}
+            title="Impossible de charger les correspondances"
+            message="Le service de filtrage sanctions n'a pas pu récupérer les données depuis l'API."
+            className="my-6"
+          />
+        ) : loading ? (
+          <TableSkeleton rows={5} cols={4} />
         ) : pagedMatches.length === 0 ? (
-          <div className="py-12 text-center text-xs text-slate-400">Aucune correspondance ne correspond aux filtres.</div>
+          <EmptyState
+            icon={ShieldAlert}
+            title={query || filter !== "Toutes" ? "Aucune correspondance trouvée" : "Aucune correspondance active"}
+            description={
+              query || filter !== "Toutes"
+                ? "Aucune entrée ne correspond à vos critères de filtrage actuels."
+                : "Toutes les correspondances ont été vérifiées ou aucune alerte de sanction n'est en cours."
+            }
+            actionLabel={query || filter !== "Toutes" ? "Réinitialiser les filtres" : undefined}
+            onAction={
+              query || filter !== "Toutes"
+                ? () => {
+                    setFilter("Toutes")
+                    setQuery("")
+                  }
+                : undefined
+            }
+            className="py-12"
+          />
         ) : (
           <div className="divide-y divide-slate-100">
             {pagedMatches.map((m) => (

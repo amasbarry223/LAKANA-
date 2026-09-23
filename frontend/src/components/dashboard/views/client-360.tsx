@@ -42,6 +42,9 @@ import { clientService } from "@/services/clientService"
 import { transactionService } from "@/services/transactionService"
 import { DataPagination } from "@/components/ui/data-pagination"
 import { usePaginatedFetch } from "@/hooks/use-pagination"
+import { DetailPaneSkeleton, StatCardsSkeleton, TableSkeleton } from "@/components/ui/skeleton"
+import { EmptyState } from "@/components/ui/empty-state"
+import { ErrorState } from "@/components/ui/error-state"
 import { alertService } from "@/services/alertService"
 import { aiService } from "@/services/aiService"
 import type { Client } from "@/models/client"
@@ -76,6 +79,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
 
   const [clients, setClients] = useState<Client[]>([])
   const [loadingClients, setLoadingClients] = useState(true)
+  const [clientsError, setClientsError] = useState<Error | string | null>(null)
   const [activeClientId, setActiveClientId] = useState<string | null>(null)
   const [clientSearchTerm, setClientSearchTerm] = useState("")
 
@@ -130,6 +134,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
   // 2. Chargement de tous les clients depuis l'API backend
   const loadClients = useCallback(async () => {
     setLoadingClients(true)
+    setClientsError(null)
     try {
       const data = await clientService.getClients()
       setClients(data)
@@ -156,6 +161,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
       }
     } catch (err) {
       console.error("Erreur chargement clients Client 360:", err)
+      setClientsError(err instanceof Error ? err : new Error(String(err)))
     } finally {
       setLoadingClients(false)
     }
@@ -384,22 +390,48 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
     return () => window.removeEventListener("keydown", onKey)
   }, [selectedAccount])
 
+  if (clientsError) {
+    return (
+      <ErrorState
+        error={clientsError}
+        onRetry={loadClients}
+        title="Impossible de charger le dossier Client 360°"
+        message="La connexion à la base de données pour récupérer les informations consolidées du client a échoué."
+        className="my-12 rounded-xl border border-slate-200 bg-white"
+      />
+    )
+  }
+
   if (loadingClients) {
     return (
-      <div className="flex h-96 flex-col items-center justify-center gap-3">
-        <RefreshCw className="h-8 w-8 animate-spin text-indigo-600" />
-        <p className="text-sm font-medium text-slate-500">Chargement des fiches clients depuis la base de données...</p>
+      <div className="space-y-6" aria-busy="true" aria-label="Chargement du profil client...">
+        <div className="flex items-center justify-between animate-pulse">
+          <div className="h-8 w-64 rounded bg-slate-200" />
+          <div className="h-9 w-48 rounded-lg bg-slate-200" />
+        </div>
+        <StatCardsSkeleton count={4} />
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+          <DetailPaneSkeleton className="xl:col-span-1" />
+          <div className="rounded-xl border border-slate-200 bg-white p-5 xl:col-span-2 space-y-4 animate-pulse">
+            <div className="h-5 w-40 rounded bg-slate-200" />
+            <div className="h-40 rounded-lg bg-slate-100" />
+            <TableSkeleton rows={4} cols={4} />
+          </div>
+        </div>
       </div>
     )
   }
 
   if (!activeClient) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-        <AlertTriangle className="mx-auto h-8 w-8 text-amber-500" />
-        <h3 className="mt-2 text-base font-semibold text-slate-900">Aucun client trouvé</h3>
-        <p className="mt-1 text-sm text-slate-500">La base de données ne contient aucun client pour le moment.</p>
-      </div>
+      <EmptyState
+        icon={User}
+        title="Aucun client trouvé"
+        description="La base de données ne contient aucun client pour le moment ou le sociétaire recherché n'a pas été trouvé."
+        actionLabel="Consulter le registre des clients"
+        onAction={() => navigateTo("Clients & Enrôlement")}
+        className="my-12 rounded-xl border border-slate-200 bg-white"
+      />
     )
   }
 
@@ -639,7 +671,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
                   cy="60"
                   r="50"
                   fill="none"
-                  stroke={clientScore >= 70 ? "#EF4444" : clientScore >= 40 ? "#F59E0B" : "#10B981"}
+                  stroke={clientScore >= 70 ? "#CD0D29" : clientScore >= 40 ? "#D97706" : "#059669"}
                   strokeWidth="12"
                   strokeLinecap="round"
                   strokeDasharray={`${(clientScore / 100) * 314} 314`}
@@ -843,8 +875,8 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
               <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="txGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6366F1" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#6366F1" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#070347" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="#070347" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
@@ -856,7 +888,7 @@ export function Client360View({ initialClientId }: Client360Props = {}) {
                   tickFormatter={(v) => `${(v / 1000000).toFixed(1)}M`}
                 />
                 <Tooltip content={<TxTooltip />} />
-                <Area type="monotone" dataKey="montant" stroke="#6366F1" strokeWidth={2} fill="url(#txGrad)" isAnimationActive={false} />
+                <Area type="monotone" dataKey="montant" stroke="#070347" strokeWidth={2.5} fill="url(#txGrad)" isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>

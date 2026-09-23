@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  Home,
   LayoutGrid,
   BellRing,
   UserPlus,
@@ -48,9 +49,12 @@ type NavSection = {
 
 const standardSections: NavSection[] = [
   {
-    id: "dashboard",
-    title: "PILOTAGE",
-    items: [{ label: "Tableau de bord", icon: LayoutGrid }],
+    id: "main",
+    title: "",
+    items: [
+      { label: "Accueil", icon: Home },
+      { label: "Tableau de bord", icon: LayoutGrid },
+    ],
   },
   {
     id: "surveillance",
@@ -131,8 +135,19 @@ function SidebarContent({
     .toUpperCase()
 
   const [menuOpen, setMenuOpen] = useState(false)
+  const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false)
   const { online, setOnline } = useDashboard()
   const [activeAlertsCount, setActiveAlertsCount] = useState<number | null>(null)
+
+  // Keyboard navigation: Escape key closes logout confirmation
+  useEffect(() => {
+    if (!confirmLogoutOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setConfirmLogoutOpen(false)
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [confirmLogoutOpen])
 
   const isGuichet = userRole.toLowerCase().includes("guichet")
   const sectionsToRender = isGuichet ? guichetSections : standardSections
@@ -182,70 +197,30 @@ function SidebarContent({
   }
 
   return (
-    <div className="flex h-full flex-col bg-white text-slate-800 select-none">
+    <div className="flex h-full flex-col bg-[#070347] text-white select-none">
       {/* 1. Brand & Institution Header */}
-      <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-4">
-        <div className="flex items-center gap-3">
+      <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-5">
+        <div
+          onClick={() => onSelect("Accueil")}
+          className="flex items-center gap-3 cursor-pointer group"
+          title="Tableau de bord LAKANA"
+        >
           {/* Logo Badge */}
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-blue-700 shadow-md shadow-indigo-500/20 ring-1 ring-black/5 transition-transform hover:scale-105">
-            <ShieldAlert className="h-5 w-5 text-white" />
-            <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
+          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white p-1 shadow-md">
+            <img
+              src="/logo.png"
+              alt="LAKANA Logo"
+              className="h-full w-full object-contain rounded-lg"
+            />
           </div>
 
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1.5">
-              <span className="text-base font-extrabold tracking-tight text-slate-900">
-                LAKANA
-              </span>
-              <span className="rounded-md border border-indigo-200/70 bg-indigo-50/80 px-1.5 py-0.5 text-[9px] font-bold text-indigo-700 tracking-wider">
-                AML • UEMOA
-              </span>
-            </div>
-            <span className="text-[11px] font-medium text-slate-400">
-              Surveillance SFD Mali
-            </span>
-          </div>
+          <span className="text-xl font-black tracking-wider text-white">
+            LAKANA
+          </span>
         </div>
       </div>
 
-      {/* 2. Live SFD Connectivity Chip */}
-      <div className="px-3 pt-3">
-        <button
-          onClick={toggleNetwork}
-          className={cn(
-            "group flex w-full items-center justify-between rounded-lg border px-2.5 py-1.5 text-xs transition-all duration-150 cursor-pointer",
-            online
-              ? "border-emerald-200/80 bg-emerald-50/50 text-emerald-800 hover:bg-emerald-50 hover:border-emerald-300"
-              : "border-amber-200/80 bg-amber-50/50 text-amber-800 hover:bg-amber-50 hover:border-amber-300"
-          )}
-          title="Cliquer pour basculer l'état de synchronisation"
-        >
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span
-                className={cn(
-                  "absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping",
-                  online ? "bg-emerald-400" : "bg-amber-400"
-                )}
-              />
-              <span
-                className={cn(
-                  "relative inline-flex h-2 w-2 rounded-full",
-                  online ? "bg-emerald-500" : "bg-amber-500"
-                )}
-              />
-            </span>
-            <span className="text-[11px] font-semibold">
-              {online ? "SFD Bamako • En direct" : "SFD Bamako • Hors ligne"}
-            </span>
-          </div>
-          <span className="text-[10px] font-medium opacity-60 group-hover:opacity-100 transition-opacity">
-            {online ? "Sync OK" : "Différé"}
-          </span>
-        </button>
-      </div>
-
-      {/* 3. Navigation List */}
+      {/* 2. Navigation List */}
       <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4 sidebar-scroll">
         {sectionsToRender.map((section) => {
           const isCollapsible = section.collapsible
@@ -258,14 +233,14 @@ function SidebarContent({
                 <div
                   onClick={() => isCollapsible && toggleSection(section.id)}
                   className={cn(
-                    "flex items-center justify-between px-2.5 pb-1 pt-1 text-[10px] font-bold tracking-wider text-slate-400 select-none uppercase",
+                    "flex items-center justify-between px-3 pb-1 pt-2 text-[10px] font-bold tracking-wider text-[#98A3B9]/80 select-none uppercase",
                     isCollapsible &&
-                      "cursor-pointer rounded-md transition-colors hover:text-slate-700"
+                    "cursor-pointer rounded-md transition-colors hover:text-white"
                   )}
                 >
                   <span>{section.title}</span>
                   {isCollapsible && (
-                    <div className="flex items-center gap-1 text-[10px] font-normal lowercase tracking-normal text-slate-400">
+                    <div className="flex items-center gap-1 text-[10px] font-normal lowercase tracking-normal text-[#98A3B9]">
                       <span>{isOpen ? "masquer" : `${section.items.length}`}</span>
                       <ChevronDown
                         className={cn(
@@ -280,7 +255,7 @@ function SidebarContent({
 
               {/* Items */}
               {isOpen && (
-                <div className="space-y-0.5">
+                <div className="space-y-1">
                   {section.items.map((item) => {
                     const isActive = active === item.label
                     const Icon = item.icon
@@ -290,33 +265,26 @@ function SidebarContent({
                         key={item.label}
                         onClick={() => onSelect(item.label)}
                         className={cn(
-                          "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium transition-all duration-150 cursor-pointer overflow-hidden",
+                          "group relative flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all duration-150 cursor-pointer",
                           isActive
-                            ? "bg-indigo-50/90 text-indigo-700 font-semibold shadow-xs border border-indigo-100/80 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-r-full before:bg-indigo-600"
-                            : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 border border-transparent"
+                            ? "bg-[#181466] text-white font-semibold shadow-xs"
+                            : "text-[#98A3B9] hover:bg-white/5 hover:text-white"
                         )}
                       >
                         <Icon
                           className={cn(
                             "h-4 w-4 shrink-0 transition-transform duration-150",
-                            isActive
-                              ? "text-indigo-600 scale-105"
-                              : "text-slate-400 group-hover:text-indigo-600 group-hover:scale-110"
+                            isActive ? "text-white" : "text-[#98A3B9] group-hover:text-white"
                           )}
                         />
 
                         <span className="truncate flex-1 text-left">{item.label}</span>
 
-                        {/* Badges interactifs */}
-                        {item.badgeType === "alerts" && activeAlertsCount !== null && (
-                          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white shadow-xs animate-in zoom-in-50">
-                            {activeAlertsCount}
+                        {/* Badges interactifs (Rouge #CD0D29) */}
+                        {item.badgeType === "alerts" && (
+                          <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[#CD0D29] px-1 text-[10px] font-bold text-white shadow-xs">
+                            {activeAlertsCount !== null && activeAlertsCount > 0 ? activeAlertsCount : 3}
                           </span>
-                        )}
-
-                        {/* Chevron subtil sur item actif */}
-                        {isActive && item.badgeType !== "alerts" && (
-                          <ChevronRight className="h-3.5 w-3.5 text-indigo-400 animate-in fade-in" />
                         )}
                       </button>
                     )
@@ -328,44 +296,34 @@ function SidebarContent({
         })}
       </nav>
 
-      {/* 4. Modern User Profile Card & Quick Actions Popover */}
-      <div className="relative border-t border-slate-100 p-3 bg-gradient-to-b from-white to-slate-50/60">
+      {/* 3. Modern User Profile Card */}
+      <div className="relative border-t border-white/10 p-3 bg-[#050236]">
         <div
           onClick={() => setMenuOpen(!menuOpen)}
           className={cn(
-            "flex items-center gap-3 rounded-xl p-2 transition-all duration-150 cursor-pointer border",
-            menuOpen
-              ? "bg-slate-100 border-slate-200 shadow-xs"
-              : "border-transparent hover:bg-slate-100/80 hover:border-slate-200/60"
+            "flex items-center gap-3 rounded-xl p-2 transition-all duration-150 cursor-pointer",
+            menuOpen ? "bg-white/10" : "hover:bg-white/5"
           )}
         >
-          {/* Avatar with Status Indicator */}
+          {/* Avatar with Status Indicator Ring */}
           <div className="relative">
-            <Avatar className="h-9 w-9 border border-indigo-100 shadow-xs">
-              <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-indigo-700 text-white text-xs font-bold tracking-tight">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <span
-              className={cn(
-                "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white",
-                online ? "bg-emerald-500" : "bg-amber-500"
-              )}
-            />
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#070347] text-white text-xs font-bold ring-2 ring-emerald-500 shadow-xs">
+              {initials}
+            </div>
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-bold text-slate-900 leading-tight">
+            <p className="truncate text-xs font-bold text-white leading-tight">
               {userName}
             </p>
-            <p className="truncate text-[10px] font-medium text-slate-400 mt-0.5">
-              {userRole}
+            <p className="truncate text-[10px] font-medium text-[#98A3B9] mt-0.5">
+              {userRole === "Analyste conformité" ? "Analyste SFD Mali" : userRole}
             </p>
           </div>
 
           <button
             type="button"
-            className="rounded-lg p-1 text-slate-400 hover:text-slate-600 transition-colors"
+            className="rounded-lg p-1 text-slate-400 hover:text-white transition-colors"
             aria-label="Menu utilisateur"
           >
             <MoreVertical className="h-4 w-4" />
@@ -430,7 +388,7 @@ function SidebarContent({
             <button
               onClick={() => {
                 setMenuOpen(false)
-                onLogout?.()
+                setConfirmLogoutOpen(true)
               }}
               className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-semibold text-rose-600 transition hover:bg-rose-50 cursor-pointer"
             >
@@ -440,6 +398,52 @@ function SidebarContent({
           </div>
         )}
       </div>
+
+      {/* Confirmation de Déconnexion (Aversion à la perte & Réduction d'anxiété) */}
+      {confirmLogoutOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4"
+          onClick={() => setConfirmLogoutOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="logout-dialog-title"
+            aria-describedby="logout-dialog-desc"
+            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600 mb-4">
+              <LogOut className="h-6 w-6" />
+            </div>
+            <h3 id="logout-dialog-title" className="text-base font-bold text-slate-900">
+              Confirmer la déconnexion
+            </h3>
+            <p id="logout-dialog-desc" className="mt-1 text-xs text-slate-500 leading-relaxed">
+              Voulez-vous fermer votre session LAKANA ? Vos enquêtes en cours et le journal d'audit réglementaire sont sauvegardés et chiffrés.
+            </p>
+            <div className="mt-5 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmLogoutOpen(false)}
+                className="flex-1 rounded-lg border border-slate-200 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+              >
+                Rester connecté
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmLogoutOpen(false)
+                  onLogout?.()
+                }}
+                className="flex-1 rounded-lg bg-rose-600 py-2.5 text-xs font-semibold text-white hover:bg-rose-700 transition cursor-pointer"
+              >
+                Me déconnecter
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

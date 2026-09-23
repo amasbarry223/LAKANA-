@@ -12,6 +12,7 @@ import {
   User,
   X,
   Plus,
+  AlertTriangle,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -20,6 +21,9 @@ import { useDashboard, type InvestigationStatus, type Investigation } from "@/li
 import { investigationService } from "@/services/investigationService"
 import { DataPagination } from "@/components/ui/data-pagination"
 import { usePaginatedFetch } from "@/hooks/use-pagination"
+import { TableSkeleton, DetailPaneSkeleton } from "@/components/ui/skeleton"
+import { EmptyState } from "@/components/ui/empty-state"
+import { ErrorState } from "@/components/ui/error-state"
 
 const statusConfig: Record<InvestigationStatus, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
   en_cours: { label: "En cours", color: "bg-amber-50 text-amber-700 border-amber-200", icon: Clock },
@@ -41,7 +45,21 @@ export function InvestigationsView() {
   const [decisionOpen, setDecisionOpen] = useState(false)
   const [decisionText, setDecisionText] = useState("")
   const [decisionType, setDecisionType] = useState<InvestigationStatus>("cloturee")
+  const [decisionError, setDecisionError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  // Fermeture du modal de décision avec la touche Échap
+  useEffect(() => {
+    if (!decisionOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setDecisionOpen(false)
+        setDecisionError(null)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [decisionOpen])
 
   // Liste paginée côté serveur (source de vérité pour le tableau de dossiers)
   const {
@@ -51,6 +69,7 @@ export function InvestigationsView() {
     setPage,
     totalPages,
     loading,
+    error,
     refetch: refetchInvestigations,
   } = usePaginatedFetch<Investigation>(
     ({ skip, limit }) => investigationService.getInvestigationsPage(filter === "toutes" ? undefined : filter, { skip, limit }),
@@ -99,9 +118,11 @@ export function InvestigationsView() {
 
   const submitDecision = async () => {
     if (!decisionText.trim()) {
-      toast.error("Décision requise", { description: "Veuillez documenter la décision motivée." })
+      setDecisionError("Veuillez renseigner les motifs et justifications de la décision.")
+      toast.error("Décision requise", { description: "Veuillez documenter la décision motivée avant de valider." })
       return
     }
+    setDecisionError(null)
     if (!selectedInv) return
 
     if (decisionType === "en_cours") {
@@ -178,10 +199,10 @@ export function InvestigationsView() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
-          { label: "Total dossiers", value: counts.toutes, color: "#6366F1" },
-          { label: "En cours", value: counts.en_cours, color: "#F59E0B" },
-          { label: "Classées", value: counts.cloturee, color: "#64748B" },
-          { label: "Transmises CENTIF", value: counts.transmise, color: "#EF4444" },
+          { label: "Total dossiers", value: counts.toutes, color: "#070347" },
+          { label: "En cours", value: counts.en_cours, color: "#D97706" },
+          { label: "Classées", value: counts.cloturee, color: "#98A3B9" },
+          { label: "Transmises CENTIF", value: counts.transmise, color: "#CD0D29" },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex items-center gap-2">
@@ -226,11 +247,29 @@ export function InvestigationsView() {
               Dossiers ({totalFiltered})
             </h3>
           </div>
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-14 text-slate-400">
-              <FolderSearch className="h-7 w-7 animate-pulse" />
-              <p className="mt-2 text-sm font-medium">Chargement des dossiers...</p>
-            </div>
+          {error ? (
+            <ErrorState
+              error={error}
+              onRetry={refetchInvestigations}
+              title="Erreur de chargement des dossiers"
+              message="Impossible d'accéder au registre des investigations. Vérifiez la connexion à l'API."
+              className="my-6"
+            />
+          ) : loading ? (
+            <TableSkeleton rows={5} cols={3} />
+          ) : pagedInvestigations.length === 0 ? (
+            <EmptyState
+              icon={FolderSearch}
+              title={filter !== "toutes" ? "Aucun dossier pour ce statut" : "Aucun dossier d'investigation"}
+              description={
+                filter !== "toutes"
+                  ? `Aucun dossier ne correspond au filtre "${filters.find((f) => f.key === filter)?.label}".`
+                  : "Aucune investigation enregistrée. Les dossiers créés ou issus d'alertes apparaîtront ici."
+              }
+              actionLabel={filter !== "toutes" ? "Voir tous les dossiers" : "Ouvrir une nouvelle investigation"}
+              onAction={filter !== "toutes" ? () => setFilter("toutes") : () => openNewInvestigation()}
+              className="py-12"
+            />
           ) : (
             <div className="divide-y divide-slate-100">
               {pagedInvestigations.map((inv) => {
@@ -242,7 +281,7 @@ export function InvestigationsView() {
                     key={inv.ref}
                     onClick={() => setSelected(inv.ref)}
                     className={cn(
-                      "flex w-full items-center gap-3 px-5 py-3.5 text-left transition",
+                      "flex w-full items-center gap-3 px-5 py-3.5 text-left transition cursor-pointer",
                       isSelected ? "bg-indigo-50/50" : "hover:bg-slate-50"
                     )}
                   >
@@ -285,7 +324,9 @@ export function InvestigationsView() {
         </div>
 
         {/* Detail panel */}
-        {selectedInv && (
+        {loading ? (
+          <DetailPaneSkeleton className="xl:col-span-1" />
+        ) : selectedInv ? (
           <div className="rounded-xl border border-slate-200 bg-white p-5 xl:col-span-1">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-semibold text-slate-900">Détail du dossier</h3>
@@ -316,6 +357,36 @@ export function InvestigationsView() {
                 <div className="rounded-lg bg-slate-50 p-3">
                   <p className="text-xs text-slate-400">Analyste</p>
                   <p className="mt-0.5 text-sm font-semibold text-slate-900">{selectedInv.analyste}</p>
+                </div>
+              </div>
+
+              {/* Goal Gradient Effect : Étapes réglementaires du dossier (Loi de Miller) */}
+              <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-700">Parcours d'investigation</span>
+                  <span className="text-[11px] font-bold text-indigo-600">
+                    {selectedInv.status === "en_cours" ? "Étape 3/4 • Analyse" : "Étape 4/4 • Clôturé"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[
+                    { step: 1, label: "Ouverture", done: true },
+                    { step: 2, label: "Pièces KYC", done: true },
+                    { step: 3, label: "Analyse", done: true },
+                    { step: 4, label: "Décision", done: selectedInv.status !== "en_cours" },
+                  ].map((s) => (
+                    <div key={s.step} className="flex flex-col gap-1">
+                      <div
+                        className={cn(
+                          "h-1.5 rounded-full transition-all",
+                          s.done ? "bg-indigo-600" : "bg-slate-200"
+                        )}
+                      />
+                      <span className="text-[10px] text-center font-medium text-slate-500">
+                        {s.label}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -373,22 +444,48 @@ export function InvestigationsView() {
               </p>
             </div>
           </div>
-        )}
+        ) : !loading ? (
+          <div className="rounded-xl border border-slate-200 bg-white p-5 xl:col-span-1">
+            <EmptyState
+              variant="compact"
+              icon={FolderSearch}
+              title="Aucun dossier sélectionné"
+              description="Sélectionnez un dossier dans la liste pour consulter ses détails, notes et pièces justificatives."
+            />
+          </div>
+        ) : null}
       </div>
 
       {/* Decision modal */}
       {decisionOpen && selectedInv && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4" onClick={() => setDecisionOpen(false)}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+          onClick={() => {
+            setDecisionOpen(false)
+            setDecisionError(null)
+          }}
+        >
           <div
-            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="decision-modal-title"
+            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in-50 zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">Documenter une décision</h3>
+                <h3 id="decision-modal-title" className="text-lg font-semibold text-slate-900">Documenter une décision</h3>
                 <p className="mt-0.5 text-xs text-slate-400">{selectedInv.ref} — {selectedInv.client}</p>
               </div>
-              <button onClick={() => setDecisionOpen(false)} className="rounded-md p-1 text-slate-400 hover:bg-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setDecisionOpen(false)
+                  setDecisionError(null)
+                }}
+                className="rounded-md p-1 text-slate-400 hover:bg-slate-100 cursor-pointer"
+                aria-label="Fermer la boîte de dialogue"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -403,9 +500,10 @@ export function InvestigationsView() {
                 ] as const).map((o) => (
                   <button
                     key={o.v}
+                    type="button"
                     onClick={() => setDecisionType(o.v)}
                     className={cn(
-                      "rounded-lg border px-3 py-2 text-xs font-semibold transition",
+                      "rounded-lg border px-3 py-2 text-xs font-semibold transition cursor-pointer",
                       decisionType === o.v
                         ? "border-indigo-300 bg-indigo-50 text-indigo-700"
                         : "border-slate-200 text-slate-600 hover:bg-slate-50"
@@ -418,32 +516,78 @@ export function InvestigationsView() {
             </div>
 
             <div className="mt-4">
-              <label className="text-xs font-medium text-slate-600">Décision motivée</label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="decision-motivation-input" className="text-xs font-medium text-slate-600">
+                  Décision motivée <span className="text-rose-500">*</span>
+                </label>
+                <span className="text-2xs text-slate-400">Exigence légale CENTIF</span>
+              </div>
               <textarea
+                id="decision-motivation-input"
                 value={decisionText}
-                onChange={(e) => setDecisionText(e.target.value)}
+                onChange={(e) => {
+                  setDecisionText(e.target.value)
+                  if (decisionError) setDecisionError(null)
+                }}
                 rows={4}
-                placeholder="Décrivez la décision et sa motivation..."
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                aria-invalid={!!decisionError}
+                aria-describedby={decisionError ? "decision-error-hint" : undefined}
+                placeholder="Décrivez la décision et sa motivation détaillée..."
+                className={cn(
+                  "mt-1 w-full rounded-lg border bg-slate-50 p-3 text-sm outline-none transition",
+                  decisionError
+                    ? "border-rose-400 bg-rose-50/30 focus:border-rose-500 focus:ring-2 focus:ring-rose-200"
+                    : "border-slate-200 focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                )}
               />
+              {decisionError && (
+                <p id="decision-error-hint" role="alert" className="mt-1 text-xs text-rose-600 font-medium flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3 inline shrink-0" />
+                  <span>{decisionError}</span>
+                </p>
+              )}
             </div>
 
             <div className="mt-5 flex items-center justify-end gap-2">
               <button
-                onClick={() => setDecisionOpen(false)}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                type="button"
+                onClick={() => {
+                  setDecisionOpen(false)
+                  setDecisionError(null)
+                }}
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
               >
                 Annuler
               </button>
               <button
+                type="button"
                 onClick={submitDecision}
                 disabled={submitting}
-                className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+                className={cn(
+                  "flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50 cursor-pointer",
+                  decisionType === "transmise"
+                    ? "bg-rose-600 hover:bg-rose-700"
+                    : decisionType === "cloturee"
+                    ? "bg-slate-800 hover:bg-slate-900"
+                    : "bg-indigo-600 hover:bg-indigo-700"
+                )}
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                {submitting ? "Enregistrement..." : "Valider la décision"}
+                <span>
+                  {submitting
+                    ? "Enregistrement cryptographique..."
+                    : decisionType === "cloturee"
+                    ? "Classer sans suite (Faux positif)"
+                    : decisionType === "transmise"
+                    ? "Transmettre au CENTIF"
+                    : "Maintenir en cours d'investigation"}
+                </span>
               </button>
             </div>
+
+            <p className="mt-3 text-center text-2xs text-slate-400">
+              Scellé SHA-256 : La décision motivée est enregistrée avec signature de l'analyste et horodatage certifié.
+            </p>
           </div>
         </div>
       )}

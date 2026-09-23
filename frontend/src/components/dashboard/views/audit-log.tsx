@@ -183,10 +183,10 @@ export function AuditLogView() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
-          { label: "Entrées enregistrées", value: items.length, color: "#6366F1" },
-          { label: "Tentatives échouées", value: items.filter((l) => l.result === "Échec").length, color: "#EF4444" },
-          { label: "Actions réussies", value: items.filter((l) => l.result === "Succès").length, color: "#10B981" },
-          { label: "Actions admin", value: items.filter((l) => l.role.toLowerCase().includes("admin") || l.role.toLowerCase().includes("responsable")).length, color: "#F59E0B" },
+          { label: "Entrées enregistrées", value: items.length, color: "#070347" },
+          { label: "Tentatives échouées", value: items.filter((l) => l.result === "Échec").length, color: "#CD0D29" },
+          { label: "Actions réussies", value: items.filter((l) => l.result === "Succès").length, color: "#059669" },
+          { label: "Actions admin", value: items.filter((l) => l.role.toLowerCase().includes("admin") || l.role.toLowerCase().includes("responsable")).length, color: "#D97706" },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex items-center gap-2">
