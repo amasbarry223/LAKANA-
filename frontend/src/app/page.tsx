@@ -63,9 +63,8 @@ function DashboardListeners() {
 const views: Record<string, React.ComponentType<any>> = {
   "Tableau de bord": OverviewView,
   "Centre d'alertes": AlertsCenterView,
+  "Contrôle & Pré-filtrage Sociétaire": TransactionSimulatorView,
   "Clients & Enrôlement": ClientsManagementView,
-  "Transactions": TransactionSimulatorView,
-  "Simulateur de transactions": TransactionSimulatorView,
   "Client 360°": Client360View,
   "Graphe de relations": GraphView,
   "Investigations": InvestigationsView,
@@ -83,10 +82,8 @@ const views: Record<string, React.ComponentType<any>> = {
 }
 
 function roleToUserName(role: string) {
-  if (role === "Analyste conformité") return "Aminata Touré"
-  if (role === "Responsable conformité") return "Fatoumata Koné"
-  if (role === "Administrateur système") return "Seydou Traoré"
-  if (role === "Auditeur (lecture seule)") return "Mariam Coulibaly"
+  if (role === "Agent de guichet" || role === "guichet") return "Bakary Diarra"
+  if (role === "Analyste conformité" || role === "analyste") return "Aminata Touré"
   return "Utilisateur"
 }
 
@@ -97,7 +94,7 @@ function DashboardContent({
   role: string
   onLogout: () => void
 }) {
-  const [active, setActive] = useState("Centre d'alertes")
+  const [active, setActive] = useState("Tableau de bord")
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const { theme, setTheme } = useTheme()
@@ -225,7 +222,7 @@ function DashboardContent({
             <View
               onLogout={active === "Mon profil" ? onLogout : undefined}
               onSelectClient={
-                active === "Clients & Enrôlement"
+                active === "Contrôle & Pré-filtrage Sociétaire"
                   ? (c: any) => handleNavigate("Client 360°", { clientId: c.id || c.codeClient })
                   : undefined
               }

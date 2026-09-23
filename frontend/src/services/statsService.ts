@@ -1,5 +1,5 @@
 import { ApiClient } from "./apiClient"
-import type { DashboardStats, ModuleStat } from "@/models/stats"
+import type { DashboardStats, ModuleStat, GuichetStats } from "@/models/stats"
 import type { AuditLogEntry } from "@/models/stats"
 
 export type FunnelStep = {
@@ -38,6 +38,7 @@ export type FunnelData = {
 export const statsService = {
   async getDashboardOverview(): Promise<{
     stats: DashboardStats
+    guichet_stats?: GuichetStats
     modules: ModuleStat[]
     trend?: { date: string; alertes: number; investigations: number }[]
     statut_systeme: string

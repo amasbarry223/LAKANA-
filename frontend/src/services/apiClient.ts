@@ -27,7 +27,14 @@ export class ApiClient {
     })
 
     if (!res.ok) {
-      throw new Error(`API GET Error [${res.status}]: ${res.statusText} on ${path}`)
+      let detailMsg = ""
+      try {
+        const errJson = await res.json()
+        detailMsg = errJson.detail || errJson.message || ""
+      } catch {
+        // ignore
+      }
+      throw new Error(detailMsg || `API GET Error [${res.status}]: ${res.statusText} on ${path}`)
     }
     return res.json()
   }
@@ -75,7 +82,14 @@ export class ApiClient {
     })
 
     if (!res.ok) {
-      throw new Error(`API POST Error [${res.status}]: ${res.statusText} on ${path}`)
+      let detailMsg = ""
+      try {
+        const errJson = await res.json()
+        detailMsg = errJson.detail || errJson.message || ""
+      } catch {
+        // ignore
+      }
+      throw new Error(detailMsg || `API POST Error [${res.status}]: ${res.statusText} on ${path}`)
     }
     return res.json()
   }

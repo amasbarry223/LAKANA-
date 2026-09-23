@@ -25,17 +25,17 @@ class AIService:
         if score >= 70:
             qualif = "élevé"
             priorite = "Priorité Haute — Examen approfondi immédiat. Mesure conservatoire et possible Déclaration de Soupçon CENTIF-Mali sous 48h"
-            badge_icon = "🔴"
+            badge_icon = "[RISQUE ELEVE]"
             recommandation_action = "1. Geler à titre conservatoire les opérations sortantes non dénouées.\n2. Exiger les pièces justificatives d'origine des fonds (factures, bordereaux de livraison, actes notariés).\n3. Transmettre le dossier au Responsable Conformité pour instruction de déclaration CENTIF."
         elif score >= 40:
             qualif = "moyen"
             priorite = "Priorité Moyenne — Surveillance renforcée et vérification des justificatifs économiques"
-            badge_icon = "🟡"
+            badge_icon = "[RISQUE MOYEN]"
             recommandation_action = "1. Mettre le compte sous surveillance renforcée (seuil d'alerte abaissé à 500 000 FCFA).\n2. Prendre contact avec le gestionnaire de compte de l'agence pour clarifier l'activité récente.\n3. Vérifier la cohérence de l'enrôlement KYC."
         else:
             qualif = "faible"
             priorite = "Priorité Faible — Risque maîtrisé, contrôle périodique standard"
-            badge_icon = "🟢"
+            badge_icon = "[RISQUE FAIBLE]"
             recommandation_action = "1. Poursuivre le traitement normal des transactions.\n2. Réévaluation automatique du score selon le calendrier semestriel réglementaire."
 
         # Analyse catégorielle des facteurs transmis (IA-02)
@@ -59,7 +59,7 @@ class AIService:
                 interpretation = "Profil conforme : flux compatibles avec la distribution attendue des sociétaires sains."
 
             diagnostic_ml = (
-                f"\n\n🤖 ANALYSE PRÉDICTIVE IA (Isolation Forest & Random Forest) :\n"
+                f"\n\nANALYSE PRÉDICTIVE IA (Isolation Forest & Random Forest) :\n"
                 f"  - Score d'atypisme multidimensionnel : {anomaly_score:.2f} / 1.00 ({pct_anomalie}% d'anomalie)\n"
                 f"  - Risque statistique prédit : {predicted_risk or qualif.capitalize()}\n"
                 f"  - Diagnostic statistique : {interpretation}"
@@ -72,13 +72,13 @@ class AIService:
             f"{badge_icon} SYNTHÈSE ANALYTIQUE CONFORMITÉ LAKANA\n"
             f"Client audité : {client_nom}{code_str}\n"
             f"Risk Score : {score}/100 — Catégorisation : RISQUE {qualif.upper()}\n\n"
-            f"📌 Facteurs déterminants et signaux d'alerte détectés :\n"
+            f"Facteurs déterminants et signaux d'alerte détectés :\n"
             f"{lignes_facteurs}"
             f"{diagnostic_ml}\n\n"
-            f"📋 Conduite à tenir recommandée :\n"
+            f"Conduite à tenir recommandée :\n"
             f"Statut opérationnel : {priorite}\n"
             f"{recommandation_action}\n\n"
-            f"⚖️ Cadre réglementaire de référence :\n"
+            f"Cadre réglementaire de référence :\n"
             f"Instruction BCEAO n°003-03-2025 relative à la LBC/FT/FP dans les SFD et dispositions CENTIF-Mali (Loi uniforme UEMOA)."
         )
 
@@ -100,7 +100,7 @@ class AIService:
         return AIExplainResponse(
             synthese=synthese,
             points_cles=points_cles,
-            rappel_conformite="⚠️ Rappel réglementaire (IA-03) : Ce rapport généré par l'IA constitue une aide à la décision. La décision finale d'investigation, de gel de fonds ou de déclaration de soupçon CENTIF revient exclusivement à l'analyste conformité habilité.",
+            rappel_conformite="Rappel réglementaire (IA-03) : Ce rapport généré par l'IA constitue une aide à la décision. La décision finale d'investigation, de gel de fonds ou de déclaration de soupçon CENTIF revient exclusivement à l'analyste conformité habilité.",
             source_moteur="Moteur Hybride LAKANA (Règles Métier BCEAO + Modèles IA Scikit-Learn)",
         )
 
@@ -122,7 +122,7 @@ class AIService:
         q = message.strip()
         q_norm = normalize_text(q)
         q_phonetic = phonetize_west_african(q)
-        reminder = "\n\n⚠️ Rappel : la décision finale revient à l'analyste habilité (IA-03)."
+        reminder = "\n\nRappel : la décision finale revient à l'analyste habilité (IA-03)."
 
         # ── 1. RECHERCHE D'UN CLIENT SPÉCIFIQUE (Code, Nom, Prénom ou Phonétique) ──
         target_client = None
@@ -235,15 +235,15 @@ class AIService:
                 seq = structuring_service.detect_structuring(db, target_client.id)
                 if seq:
                     lines = [
-                        f"⚠️ **Alerte Fractionnement Active pour {target_client.nom} {target_client.prenom or ''}** ({target_client.code_client}) :",
-                        f"• Séquence détectée : **{seq.count} transactions** individuelles sous le seuil de 1 000 000 FCFA.",
-                        f"• Montant cumulé : **{seq.total_amount:,.0f} FCFA** sur une fenêtre de {seq.window_hours}h.",
-                        "• Conformité : Violation potentielle de la Règle R-FRC-01 (Instruction BCEAO n°003-03-2025).",
-                        "\n📋 **Mesures recommandées** : Gel temporaire et demande de justificatifs d'origine des fonds.",
+                        f"[ALERTE FRACTIONNEMENT] **Alerte Fractionnement Active pour {target_client.nom} {target_client.prenom or ''}** ({target_client.code_client}) :",
+                        f"- Séquence détectée : **{seq.count} transactions** individuelles sous le seuil de 1 000 000 FCFA.",
+                        f"- Montant cumulé : **{seq.total_amount:,.0f} FCFA** sur une fenêtre de {seq.window_hours}h.",
+                        "- Conformité : Violation potentielle de la Règle R-FRC-01 (Instruction BCEAO n°003-03-2025).",
+                        "\n[MESURES RECOMMANDEES] : Gel temporaire et demande de justificatifs d'origine des fonds.",
                     ]
                 else:
                     lines = [
-                        f"✅ **Aucune anomalie de fractionnement détectée** pour {target_client.nom} {target_client.prenom or ''}.",
+                        f"[CONFORME] **Aucune anomalie de fractionnement détectée** pour {target_client.nom} {target_client.prenom or ''}.",
                         f"Les {tx_count} transactions analysées respectent le comportement attendu sur fenêtre de 48h.",
                     ]
                 lines.append(reminder)
@@ -322,7 +322,7 @@ class AIService:
             total_b = db.query(Alert).filter(Alert.niveau == "bloquante").count()
             if bloquantes:
                 lines = [
-                    f"🚨 **Alertes Bloquantes Actives — {total_b} dossier(s) critique(s)** :\n",
+                    f"[ALERTES BLOQUANTES ACTIVES] — {total_b} dossier(s) critique(s) :\n",
                     "Les alertes de niveau Bloquante suspendent immédiatement les opérations sortantes en attente d'instruction par le Responsable Conformité :\n",
                 ]
                 for a in bloquantes:
@@ -330,12 +330,12 @@ class AIService:
                     c_name = f"{c.nom} ({c.code_client})" if c else "Client inconnu"
                     date_s = a.created_at.strftime("%d/%m/%Y") if a.created_at else "N/A"
                     lines.append(
-                        f"• 🔴 **Alerte `{a.reference}`** ({date_s}) : **{a.type_alerte}**\n"
+                        f"- [DOSSIER {a.reference}] ({date_s}) : **{a.type_alerte}**\n"
                         f"    Sociétaire : **{c_name}** | Statut : `{a.statut}`"
                     )
-                lines.append("\n📋 **Action requise** : Ouvrir immédiatement le centre d'alertes pour motiver la décision (INV-02).")
+                lines.append("\n[ACTION REQUISE] : Ouvrir immédiatement le centre d'alertes pour motiver la décision (INV-02).")
             else:
-                lines = ["✅ **Aucune alerte bloquante active.** Toutes les alertes critiques ont été instruites."]
+                lines = ["[CONFORME] Aucune alerte bloquante active. Toutes les alertes critiques ont été instruites."]
             lines.append(reminder)
 
             return AIChatResponse(
@@ -358,13 +358,12 @@ class AIService:
                     suggestions=["Comment enrôler un client ?", "État du système"],
                 )
 
-            lines = ["🚨 **Clients nécessitant la plus haute vigilance (Top Risque en BDD)** :\n"]
+            lines = ["[VIGILANCE CONFORMITE] Sociétaires nécessitant la plus haute vigilance (Top Risque en BDD) :\n"]
             for i, c in enumerate(top_clients, start=1):
-                badge = "🔴" if (c.risk_score or 0) >= 70 else "🟡" if (c.risk_score or 0) >= 40 else "🟢"
                 ppe_tag = " [PPE]" if c.est_ppe else ""
-                lines.append(f"{i}. {badge} **{c.nom} {c.prenom or ''}** ({c.code_client}){ppe_tag} — **Score : {c.risk_score or 0}/100** ({c.niveau_risque})")
+                lines.append(f"{i}. **{c.nom} {c.prenom or ''}** ({c.code_client}){ppe_tag} — **Score : {c.risk_score or 0}/100** ({c.niveau_risque})")
 
-            lines.append("\n💡 *Pour analyser un sociétaire, demandez par exemple : 'Expliquer le score de " + top_clients[0].nom + "'.*")
+            lines.append("\n*Pour analyser un sociétaire, demandez par exemple : 'Expliquer le score de " + top_clients[0].nom + "'.*")
             lines.append(reminder)
 
             suggestions = [f"Expliquer le score de {c.nom}" for c in top_clients[:3]]
@@ -385,17 +384,17 @@ class AIService:
 
             if suspects:
                 lines = [
-                    f"⚠️ **Détection de Fractionnement (Structuring) — {len(suspects)} cas actif(s) en BDD** :\n",
+                    f"[ALERTE FRACTIONNEMENT] Détection de Fractionnement (Structuring) — {len(suspects)} cas actif(s) en BDD :\n",
                     "Le moteur LAKANA analyse en continu les opérations sous le seuil réglementaire de 1 000 000 FCFA sur fenêtre glissante de 48 heures (Règle R-FRC-01) :\n",
                 ]
                 for c, seq in suspects:
                     lines.append(
-                        f"• 🔴 **{c.nom} {c.prenom or ''}** ({c.code_client}) : **{seq.count} transactions** cumulant **{seq.total_amount:,.0f} FCFA** sur {seq.window_hours}h."
+                        f"- **{c.nom} {c.prenom or ''}** ({c.code_client}) : **{seq.count} transactions** cumulant **{seq.total_amount:,.0f} FCFA** sur {seq.window_hours}h."
                     )
-                lines.append("\n📋 **Recommandation immédiate** : Ouvrir un dossier d'investigation formel et vérifier la justification économique des opérations.")
+                lines.append("\n[RECOMMANDATION] : Ouvrir un dossier d'investigation formel et vérifier la justification économique des opérations.")
             else:
                 lines = [
-                    "✅ **Aucun cas de fractionnement sous le seuil détecté** sur les 48 dernières heures.",
+                    "[CONFORME] Aucun cas de fractionnement sous le seuil détecté sur les 48 dernières heures.",
                     "\nLe moteur surveille les transactions individuelles < 1 000 000 FCFA dont le cumul dépasse ce montant sur fenêtre glissante (Instruction BCEAO n°003-03-2025).",
                 ]
             lines.append(reminder)

@@ -26,6 +26,7 @@ export interface Client {
   ville?: string
   pays?: string
   telephone?: string
+  agence?: string
 
   // Type : Particulier ou Entreprise
   typeClient?: "Particulier" | "Entreprise" | string

@@ -9,6 +9,7 @@ import {
   FolderSearch,
   Sparkles,
   ShieldAlert,
+  ShieldCheck,
   Users,
   ScrollText,
   FileBarChart,
@@ -17,12 +18,11 @@ import {
   MoreVertical,
   LogOut,
   X,
-  ArrowRightLeft,
+  Bell,
   Wifi,
   CloudOff,
   ChevronDown,
   ChevronRight,
-  ShieldCheck,
 } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { cn } from "@/lib/utils"
@@ -46,7 +46,7 @@ type NavSection = {
   defaultOpen?: boolean
 }
 
-const sections: NavSection[] = [
+const standardSections: NavSection[] = [
   {
     id: "dashboard",
     title: "PILOTAGE",
@@ -57,8 +57,8 @@ const sections: NavSection[] = [
     title: "SURVEILLANCE OPÉRATIONNELLE",
     items: [
       { label: "Centre d'alertes", icon: BellRing, badgeType: "alerts" },
+      { label: "Contrôle & Pré-filtrage Sociétaire", icon: ShieldCheck },
       { label: "Filtrage sanctions/PPE", icon: ShieldAlert },
-      { label: "Transactions", icon: ArrowRightLeft },
     ],
   },
   {
@@ -84,6 +84,27 @@ const sections: NavSection[] = [
       { label: "Utilisateurs & rôles", icon: Users },
       { label: "Paramètres", icon: Settings },
     ],
+  },
+]
+
+const guichetSections: NavSection[] = [
+  {
+    id: "dashboard",
+    title: "PILOTAGE GUICHET",
+    items: [{ label: "Tableau de bord", icon: LayoutGrid }],
+  },
+  {
+    id: "surveillance",
+    title: "SÉCURITÉ & CONFORMITÉ GUICHET",
+    items: [
+      { label: "Contrôle & Pré-filtrage Sociétaire", icon: ShieldCheck },
+      { label: "Filtrage sanctions/PPE", icon: ShieldAlert },
+    ],
+  },
+  {
+    id: "communication",
+    title: "COMMUNICATION & ALERTES",
+    items: [{ label: "Notifications", icon: Bell }],
   },
 ]
 
@@ -113,6 +134,9 @@ function SidebarContent({
   const { online, setOnline } = useDashboard()
   const [activeAlertsCount, setActiveAlertsCount] = useState<number | null>(null)
 
+  const isGuichet = userRole.toLowerCase().includes("guichet")
+  const sectionsToRender = isGuichet ? guichetSections : standardSections
+
   // Section repliable de gouvernance
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     governance: false,
@@ -137,11 +161,11 @@ function SidebarContent({
 
   // Dépliage automatique si un item de la section gouvernance est actif
   useEffect(() => {
-    const govSection = sections.find((s) => s.id === "governance")
+    const govSection = sectionsToRender.find((s) => s.id === "governance")
     if (govSection && govSection.items.some((i) => i.label === active)) {
       setExpandedSections((prev) => ({ ...prev, governance: true }))
     }
-  }, [active])
+  }, [active, sectionsToRender])
 
   const toggleSection = (id: string) => {
     setExpandedSections((prev) => ({ ...prev, [id]: !prev[id] }))
@@ -223,7 +247,7 @@ function SidebarContent({
 
       {/* 3. Navigation List */}
       <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4 sidebar-scroll">
-        {sections.map((section) => {
+        {sectionsToRender.map((section) => {
           const isCollapsible = section.collapsible
           const isOpen = !isCollapsible || !!expandedSections[section.id]
 

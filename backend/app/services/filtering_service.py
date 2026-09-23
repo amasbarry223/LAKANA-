@@ -254,6 +254,8 @@ class FilteringService:
                         similarite=round(score_max, 1),
                         correspondance_detectee=True,
                         motif=f"Similarité {score_max:.1f}% avec {entry.liste_nom} ({entry.liste_type}) [Fuzzy Ouest-Africain]",
+                        code_entree=entry.code_entree,
+                        titre_fonction=entry.titre_fonction,
                     )
                 )
 

@@ -38,3 +38,6 @@ class MatchResult(BaseModel):
     similarite: float
     correspondance_detectee: bool
     motif: str
+    code_entree: Optional[str] = None
+    titre_fonction: Optional[str] = None
+
