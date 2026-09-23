@@ -201,12 +201,12 @@ export function SanctionsView() {
         </button>
       </div>
 
-      {/* Testeur Rapide RapidFuzz (Direct API) */}
-      <div className="rounded-xl border border-indigo-200/80 bg-gradient-to-r from-indigo-50/70 to-white p-4 shadow-xs">
+      {/* Vérification ponctuelle d'un tiers */}
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
         <form onSubmit={handleTestFuzzy} className="flex flex-col sm:flex-row items-center gap-3">
-          <div className="flex items-center gap-2 text-indigo-900 shrink-0">
+          <div className="flex items-center gap-2 text-slate-800 shrink-0">
             <Search className="h-4 w-4 text-indigo-600" />
-            <span className="text-xs font-bold uppercase tracking-wide">Testeur Rapide RapidFuzz :</span>
+            <span className="text-xs font-bold uppercase tracking-wide">Vérification immédiate :</span>
           </div>
           <div className="relative flex-1 w-full">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
@@ -214,31 +214,31 @@ export function SanctionsView() {
               type="text"
               value={testNom}
               onChange={(e) => setTestNom(e.target.value)}
-              placeholder="Saisissez un nom à tester en direct contre les listes (ex: Traoré, Diarra, Keïta)..."
-              className="h-9 w-full rounded-lg border border-indigo-200 bg-white pl-9 pr-3 text-xs outline-none focus:border-indigo-400"
+              placeholder="Saisissez un nom ou une raison sociale à contrôler (ex: Traoré, Diarra)..."
+              className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs outline-none focus:border-indigo-400 focus:bg-white"
             />
           </div>
           <button
             type="submit"
             disabled={testingFuzzy || !testNom.trim()}
-            className="flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-4 text-xs font-semibold text-white hover:bg-indigo-700 cursor-pointer disabled:opacity-50 shrink-0"
+            className="flex h-9 items-center gap-1.5 rounded-lg bg-[#070347] px-4 text-xs font-semibold text-white hover:bg-[#0a0563] cursor-pointer disabled:opacity-50 shrink-0"
           >
             {testingFuzzy ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <UserCheck className="h-3.5 w-3.5" />}
-            <span>Vérifier</span>
+            <span>Contrôler</span>
           </button>
         </form>
 
         {testResults && testResults.length > 0 && (
-          <div className="mt-3 rounded-lg border border-indigo-200 bg-white p-3 space-y-2">
+          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2">
             <p className="text-2xs font-bold uppercase tracking-wide text-slate-500">
-              Résultats de comparaison RapidFuzz ({testResults.length}) :
+              Correspondances détectées sur les listes ({testResults.length}) :
             </p>
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-200/60">
               {testResults.map((r, i) => (
                 <div key={i} className="flex items-center justify-between py-1.5 text-xs">
                   <div>
                     <span className="font-semibold text-slate-900">{r.nom_liste}</span>
-                    <span className="ml-2 text-slate-400">({r.liste_nom})</span>
+                    <span className="ml-2 text-slate-500">({r.liste_nom})</span>
                   </div>
                   <Badge variant="outline" className={cn("font-mono text-2xs", r.similarite >= 85 ? "border-rose-200 bg-rose-50 text-rose-700" : "border-amber-200 bg-amber-50 text-amber-700")}>
                     Similarité : {r.similarite.toFixed(1)}%

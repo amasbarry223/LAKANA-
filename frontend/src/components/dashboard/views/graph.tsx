@@ -427,7 +427,7 @@ export function GraphView() {
       <body>
         <div class="header">
           <div>
-            <div class="title">🛡️ LAKANA — Graphe d'Investigation des Flux Financiers</div>
+            <div class="title">LAKANA — Graphe d'Investigation des Flux Financiers</div>
             <div class="subtitle">Conformité LBC/FT/FP • Dossier : ${graphData.title}</div>
           </div>
           <div class="badge">Édité le ${dateStr}</div>

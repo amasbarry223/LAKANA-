@@ -508,51 +508,51 @@ export function TransactionSimulatorView() {
                   <span>Filtrage instantané en cours sur les bases de sanctions, PPE et multi-comptes...</span>
                 </div>
               ) : preCheck?.bloquer_operations ? (
-                <div className="p-4 rounded-xl bg-red-50 border-2 border-red-500 text-red-950 space-y-2 animate-in fade-in-50">
+                <div className="p-4 rounded-xl bg-red-50 border border-red-300 text-red-950 space-y-2">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center shrink-0 shadow">
-                      <Lock className="w-5 h-5 animate-pulse" />
+                    <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Lock className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-bold text-red-700 text-sm tracking-wide uppercase">
-                          GEL DES AVOIRS / SANCTIONS ACTIVES
+                        <span className="font-bold text-red-800 text-sm tracking-wide">
+                          Gel des avoirs & Sanctions actives
                         </span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-600 text-white animate-pulse">
-                          OPÉRATION STRICTEMENT INTERDITE
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-600 text-white">
+                          Opération non autorisée
                         </span>
                       </div>
                       <p className="text-xs text-red-800 font-medium mt-1">
                         {preCheck.message}
                       </p>
-                      <div className="mt-2.5 p-2.5 bg-red-100 rounded-lg border border-red-300 text-xs">
-                        <span className="font-bold text-red-900">Consigne stricte pour l'agent : </span>
-                        <span className="text-red-800 font-medium">{preCheck.consigne_guichet}</span>
+                      <div className="mt-2.5 p-2.5 bg-red-100/70 rounded-lg border border-red-200 text-xs">
+                        <span className="font-bold text-red-900">Consigne guichet : </span>
+                        <span className="text-red-800">{preCheck.consigne_guichet}</span>
                       </div>
                       <div className="mt-2 flex items-center gap-2 text-[11px] text-red-700">
                         <span className="w-2 h-2 rounded-full bg-red-500" />
-                        <span>Alerte d'urgence transmise à la Direction de la Conformité par WhatsApp et Email.</span>
+                        <span>Alerte d'urgence transmise à la Direction de la Conformité (WhatsApp & Email).</span>
                       </div>
                     </div>
                   </div>
                 </div>
               ) : preCheck?.is_ppe ? (
-                <div className="p-4 rounded-xl bg-purple-50 border-2 border-purple-300 text-purple-950 space-y-3 animate-in fade-in-50">
+                <div className="p-4 rounded-xl bg-purple-50 border border-purple-200 text-purple-950 space-y-3">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow">
+                    <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
                       <Landmark className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-bold text-purple-900 text-sm tracking-wide uppercase">
-                          SOCIÉTAIRE PPE (Personne Politiquement Exposée) DÉTECTÉ
+                        <span className="font-bold text-purple-900 text-sm tracking-wide">
+                          Sociétaire PPE (Personne Politiquement Exposée) identifié
                         </span>
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-600 text-white">
-                          MANDAT : {preCheck.fonction_ppe || "Fonction publique"}
+                          Fonction : {preCheck.fonction_ppe || "Fonction publique"}
                         </span>
                         {preCheck.has_multi_accounts && (
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-600 text-white">
-                            {preCheck.comptes_count} COMPTES ({preCheck.identifiant_cle})
+                            {preCheck.comptes_count} comptes ({preCheck.identifiant_cle})
                           </span>
                         )}
                       </div>
@@ -583,7 +583,7 @@ export function TransactionSimulatorView() {
                         </div>
                       )}
 
-                      <div className="mt-2.5 p-2.5 bg-purple-100 rounded-lg border border-purple-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="mt-2.5 p-2.5 bg-purple-100/70 rounded-lg border border-purple-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div>
                           <span className="font-bold text-purple-900">Consigne guichet : </span>
                           <span className="text-purple-800">{preCheck.consigne_guichet}</span>
@@ -596,22 +596,22 @@ export function TransactionSimulatorView() {
                   </div>
                 </div>
               ) : preCheck?.has_multi_accounts ? (
-                <div className="p-4 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-950 space-y-3 animate-in fade-in-50">
+                <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 space-y-3">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0 shadow">
+                    <div className="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-xs">
                       <CreditCard className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-bold text-amber-900 text-sm tracking-wide uppercase">
-                          ALERTE MULTI-COMPTES / NOUVEAU COMPTE ({preCheck.identifiant_cle})
+                        <span className="font-bold text-amber-900 text-sm tracking-wide">
+                          Alerte multi-comptes ({preCheck.identifiant_cle})
                         </span>
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-600 text-white">
-                          {preCheck.comptes_count} COMPTES IDENTIFIÉS
+                          {preCheck.comptes_count} comptes identifiés
                         </span>
                         {preCheck.has_recent_new_account && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-600 text-white animate-pulse">
-                            CRÉATION RÉCENTE
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-600 text-white">
+                            Création récente
                           </span>
                         )}
                       </div>

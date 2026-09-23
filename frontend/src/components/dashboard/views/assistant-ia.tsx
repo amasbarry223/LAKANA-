@@ -171,7 +171,7 @@ export function AssistantIAView() {
             variant="outline"
             className="flex items-center gap-1.5 border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
           >
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
             {context?.models_ready ? "Moteur Réglementaire Opérationnel" : "Connecté à la BDD"}
           </Badge>
 

@@ -135,15 +135,11 @@ export function AlertsCenterView() {
       description: `L'alerte ${alert.ref} (${alert.client}) est enregistrée comme "${statusLabel}".`,
     })
 
-    // Récompense variable & célébration si la dernière alerte bloquante est résolue
-    if (alert.level === "bloquante" && (newStatus === "cloturee" || newStatus === "classee")) {
-      if (counts.bloquantes <= 1) {
-        setTimeout(() => {
-          toast.success("Objectif atteint ! 🎉", {
-            description: "Toutes les alertes bloquantes prioritaires du jour ont été traitées avec succès.",
-          })
-        }, 600)
-      }
+    // Traitement effectif de l'alerte
+    if (alert.level === "bloquante" && (newStatus === "cloturee" || newStatus === "classee") && counts.bloquantes <= 1) {
+      setTimeout(() => {
+        toast.info("Toutes les alertes bloquantes ont été traitées.")
+      }, 400)
     }
 
     try {
@@ -186,13 +182,6 @@ export function AlertsCenterView() {
           </button>
         </div>
       </div>
-
-      {compareMode && (
-        <div className="flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm text-indigo-800">
-          <span className="font-semibold">Mode comparaison actif</span>
-          <span className="text-indigo-600">— Période précédente : alertes bloquantes −8%, score moyen −2 pts</span>
-        </div>
-      )}
 
       {/* Cartes Métriques (KPIs réels) */}
       <MetricCards />
